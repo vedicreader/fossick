@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fossick"
+dynamic = ["version"]
+description = "simple web search"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [{name = "Karthik", email = "karthik.rajgopal@hotmail.com"}]
+keywords = ['nbdev']
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+
+dependencies = [
+    "curl-cffi>=0.15.0",
+    "diskcache>=5.6.3",
+    "dockeasy>=0.0.3",
+    "fastcdp>=0.0.5",
+    "fastcore>=1.12.31",
+    "html2text>=2025.4.15",
+    "pdf-oxide>=0.3.52",
+    "scrapling[fetchers]>=0.4.8",
+    "tenacity>=9.1.4",
+    "yt-dlp>=2026.3.17",
+]
+
+[project.urls]
+Repository = "https://github.com/vedicreader/fossick"
+Documentation = "https://vedicreader.github.io/fossick/"
+
+[project.scripts]
+fossick = "fossick.cli:main"
+
+[project.entry-points.nbdev]
+fossick = "fossick._modidx:d"
+
+[tool.hatch.version]
+path = "fossick/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["fossick"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/fossick",
+    "/README.md",
+    "/pyproject.toml",
+]
+
+[tool.nbdev]
+
+[dependency-groups]
+dev = [
+    "koshas>=0.0.9",
+    "nbdev>=3.0.12",
+    "notebook>=7.5.5",
+]

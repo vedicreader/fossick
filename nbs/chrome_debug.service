@@ -1,0 +1,10 @@
+[Unit]
+Description=Chrome remote debugging on port {port}
+After=graphical-session.target
+
+[Service]
+ExecStart={chrome} --remote-debugging-port={port} --remote-allow-origins={origins} --user-data-dir={profile_dir}
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

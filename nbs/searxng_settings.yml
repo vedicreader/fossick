@@ -1,0 +1,48 @@
+use_default_settings: true
+
+general:
+  instance_name: fossick
+  debug: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "en"
+  formats:
+    - html
+    - json
+
+server:
+  secret_key: "fossick-secret-change-in-prod"
+  bind_address: "0.0.0.0:8080"
+
+redis:
+  url: redis://redis:6379/0
+
+outgoing:
+  request_timeout: 4.0
+  max_request_timeout: 10.0
+  pool_maxsize: 20
+  enable_http2: true
+
+engines:
+  # general
+  - {name: google, engine: google, shortcut: g,  weight: 2.0}
+  - {name: brave,  engine: brave,  shortcut: br, weight: 1.7}
+  # academic
+  - {name: arxiv,            engine: arxiv,            shortcut: arx, categories: science}
+  - {name: semantic scholar, engine: semantic_scholar, shortcut: ss,  categories: science}
+  - {name: google scholar,   engine: google_scholar,   shortcut: gs,  categories: science}
+  # code / it
+  - {name: github,        engine: github,        shortcut: gh, categories: it}
+  - {name: stackoverflow, engine: stackoverflow, shortcut: so, categories: it}
+  # news
+  - {name: google news, engine: google_news, shortcut: gn, categories: news}
+  # disabled — low signal
+  - {name: bing,       engine: bing,       disabled: true}
+  - {name: duckduckgo, engine: duckduckgo, disabled: true}
+  - {name: qwant,      engine: qwant,      disabled: true}
+  - {name: yahoo,      engine: yahoo,      disabled: true}
+  - {name: yandex,     engine: yandex,     disabled: true}
+  - {name: baidu,      engine: baidu,      disabled: true}
+  - {name: ask,        engine: ask,        disabled: true}
