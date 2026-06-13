@@ -352,3 +352,25 @@ def source(self:CDPSession) -> dict:
 def automation_browser(port=9222, profile_dir=None) -> 'CDPSession':
     "CDPSession with a persistent debug profile — sessions and cookies survive across runs"
     return CDPSession(port=port, profile_dir=profile_dir)
+
+# %% ../nbs/01_cdp.ipynb #61748c00
+@patch
+def screenshot(self:CDPSession, url:str=None, path=None, full_page:bool=False) -> str:
+    """Navigate to url (if given) then capture a PNG screenshot. Returns the saved file path.
+    If full_page=True, resizes the viewport to the full page height before capture."""
+    sid = self.ensure_connected()
+    if url: self.goto(url, timeout=30)
+    async def _capture():
+        if full_page:
+            layout = await self._cdp.page.getLayoutMetrics(sid=sid)
+            cs = layout.get('contentSize', layout.get('cssContentSize', {}))
+            w, h = int(cs.get('width', 1280)), int(cs.get('height', 800))
+            await self._cdp.emulation.setDeviceMetricsOverride(
+                width=w, height=h, deviceScaleFactor=1, mobile=False, sid=sid)
+        data = await self._cdp.page.captureScreenshot(format='png', sid=sid)
+        return base64.b64decode(data)
+    img_bytes = self._run(_capture())
+    out = Path(path) if path else _cache(f'screenshot_{int(time.time()*1000)}.png')
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    Path(out).write_bytes(img_bytes)
+    return str(out)
