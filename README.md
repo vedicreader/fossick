@@ -91,7 +91,7 @@ fetches multiple URLs in parallel — faster than sequential
 ``` python
 urls = ['https://httpbin.org/get', 'https://httpbin.org/status/200', 'https://httpbin.org/json']
 pages = fetch_all(urls)
-print([p['status'] for p in pages])
+print([p.status for p in pages])
 ```
 
     [200, 200, 200]

@@ -12,6 +12,7 @@ import os, time, atexit, shutil
 import httpx
 from fastcore.all import AttrDictDefault, L, Path
 from .core import save_path, http_get
+from dockeasy import env_get, env_set, Compose
 
 # %% ../nbs/02_search.ipynb #00000005
 _SEARXNG_URL   = 'http://localhost:8080'
@@ -33,8 +34,7 @@ def _wait_for_searxng(url:str, timeout:int=30, interval:float=0.5):
 # %% ../nbs/02_search.ipynb #00000006
 def searxng_start(settings:Path=None) -> str:
     "Start SearXNG + Redis via Compose. `settings` overrides the bundled searxng_settings.yml. Idempotent."
-    from dockeasy import Compose
-    url = os.environ.get('SEARXNG_URL')
+    url = env_get('SEARXNG_URL')
     if url: return url
     try:
         if http_get(_SEARXNG_URL).status_code == 200: return _SEARXNG_URL
@@ -60,6 +60,7 @@ def searxng_start(settings:Path=None) -> str:
              networks=[_SEARXNG_NET])
         .up(detach=True, path=_COMPOSE_PATH))
     _wait_for_searxng(_SEARXNG_URL)
+    env_set('SEARXNG_URL', _SEARXNG_URL)
     return _SEARXNG_URL
 
 def searxng_stop():

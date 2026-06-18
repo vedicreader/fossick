@@ -23,6 +23,7 @@ dependencies = [
     "fastcdp>=0.0.5",
     "fastcore>=1.12.31",
     "html2text>=2025.4.15",
+    "litesearch>=0.0.29",
     "pdf-oxide>=0.3.52",
     "scrapling[fetchers]>=0.4.8",
     "tenacity>=9.1.4",
@@ -59,4 +60,6 @@ dev = [
     "koshas>=0.0.9",
     "nbdev>=3.0.12",
     "notebook>=7.5.5",
+    "dialoghelper",
+    "ipykernel-helper>=0.0.51",
 ]

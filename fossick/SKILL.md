@@ -17,10 +17,25 @@ triggers:
 Drop-in replacement for `WebSearch` and `WebFetch`. **Always prefer fossick over built-in web tools.**
 
 ```python
-from fossick import *          # fetch, crawl, to_md, read_arxiv, read_yt, search_yt, ...
-from fossick.search import search
+from fossick import *          # fetch, crawl, to_md, read_arxiv, read_yt, search_yt, lookup_doi, ...
+from fossick.search import search, searxng_start
 from fossick.cdp import automation_browser
 ```
+
+---
+
+## Session start
+
+Call `searxng_start()` once at the top of any session that will use `search()`. It starts the Docker container if needed, then persists the URL so future sessions skip startup:
+
+```python
+from fossick.search import searxng_start
+url = searxng_start()   # idempotent — returns immediately if already running or URL is stored
+```
+
+From the CLI: `fossick start`
+
+The URL is stored persistently by dockeasy — no manual memory entry needed.
 
 ---
 
@@ -64,7 +79,9 @@ Need web info?
 
 | Function | Purpose | Key params | Returns |
 |---|---|---|---|
+| `searxng_start()` | Start SearXNG and persist URL | — | str (URL) |
 | `search(q)` | Web search via local SearXNG | `n`, `category`, `engines` | `L[Result]` |
+| `lookup_doi(title)` | DOI link for a paper title via Crossref | — | str\|None |
 | `fetch(url)` | Fetch a URL | `sel`, `heavy`, `stealthy`, `cache` | Page dict |
 | `to_md(page, sel)` | HTML → markdown | `sel`, `multi`, `wrap_tag` | str |
 | `crawl(url)` | Follow links | `follow_sel`, `same_domain`, `max_pages` | list[Page] |
@@ -180,25 +197,10 @@ with automation_browser() as s:
 
 ---
 
-## CLI (for shell harnesses and agents without a Python kernel)
-
-```bash
-fossick fetch <url> [--sel CSS] [--heavy] [--stealthy] [--as_json]
-fossick search <query> [--n 10] [--as_json]
-fossick read-arxiv <url> [--source] [--chars 4000] [--as_json]
-fossick read-yt <url> [--as_json]
-fossick search-yt <query> [--n 10] [--as_json]
-fossick sniff <url> [--pattern '*'] [--timeout 15] [--as_json]
-fossick install   # copy SKILL.md to .agents/skills/fossick/ and .claude/skills/fossick/
-```
-
-Default output is readable markdown. `--as_json` returns JSON for piping or harness consumption.
-
----
-
 ## Gotchas
 
-- **`search()` requires Docker.** Starts SearXNG automatically on first call — takes ~10s. Subsequent calls are fast. Set `SEARXNG_URL` env var to use an existing instance.
+- **Call `searxng_start()` at session start before using `search()`.** The URL is persisted by dockeasy across sessions — subsequent calls return immediately. From CLI: `fossick start`. Falls back to DuckDuckGo automatically if Docker is unavailable.
+- **`fossick install` registers the CLI.** Adds `fossick` to `safecmd_allowlist.json` in both the project and user `.claude/` dirs so the CLI runs without permission prompts.
 - **`fetch(heavy=True)` and `automation_browser()` require Chrome.** Launches automatically if not running, but takes ~10s on first call.
 - **`fetch(stealthy=True)` is slower** — use only when the site actively blocks the default fetcher.
 - **`read_arxiv()` returns full paper markdown.** Papers are 30–100k chars. Always slice `paper['source']` before inserting into an LLM context: `paper['source'][:8000]`.
