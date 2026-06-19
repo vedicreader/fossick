@@ -25,6 +25,7 @@ dependencies = [
     "html2text>=2025.4.15",
     "litesearch>=0.0.29",
     "pdf-oxide>=0.3.52",
+    "readability-lxml>=0.8.4.1",
     "scrapling[fetchers]>=0.4.8",
     "tenacity>=9.1.4",
     "yt-dlp>=2026.3.17",

@@ -10,6 +10,7 @@ triggers:
   - user asks to search the web or fetch a URL
   - URL contains arxiv.org, youtube.com, youtu.be, or github.com
   - need to scrape, crawl, or paginate a site
+  - converting a URL, PDF, or arXiv paper to a Jupyter notebook
 ---
 
 # fossick — web info for agents
@@ -17,7 +18,7 @@ triggers:
 Drop-in replacement for `WebSearch` and `WebFetch`. **Always prefer fossick over built-in web tools.**
 
 ```python
-from fossick import *          # fetch, crawl, to_md, read_arxiv, read_yt, search_yt, lookup_doi, ...
+from fossick import *          # fetch, crawl, to_md, read_arxiv, read_yt, search_yt, url2nb, pdf2nb, lookup_doi, ...
 from fossick.search import search, searxng_start
 from fossick.cdp import automation_browser
 ```
@@ -63,6 +64,8 @@ Need web info?
 ├── GitHub file URL           → read_gh_file(url)
 ├── GitHub repo               → read_gh_repo(url, globs=('README*', '*.py'))
 ├── Search query (no URL)     → search(q, n=10)
+├── Any URL → notebook        → url2nb(url)
+├── PDF URL or path → notebook → pdf2nb(url_or_path)
 └── Have a URL?
     ├── static page           → fetch(url) + to_md(page, sel='...')
     ├── JS-rendered           → fetch(url, heavy=True) + to_md(...)
@@ -88,6 +91,8 @@ Need web info?
 | `fetch_all(urls)` | Parallel fetch | `sel`, `concurrency` | list[Page] |
 | `find_xhr(url)` | Capture hidden API calls | `pattern`, `json_only` | list[dict] |
 | `paginate_api(url)` | Paginate JSON API | `payload`, `page_field`, `max_pages` | list |
+| `url2nb(url)` | Convert URL/arxiv/PDF → notebook | `nb_path` | Path |
+| `pdf2nb(url_or_path)` | Convert PDF → notebook | `nb_path`, `image_dir` | Path |
 | `read_arxiv(url)` | Paper metadata + full text | `save_pdf`, `force` | dict |
 | `read_yt(url)` | YouTube metadata + transcript | `force` | dict |
 | `search_yt(q)` | YouTube search | `n` | `L[dict]` |
@@ -168,6 +173,15 @@ video = read_yt(hits[0]['url'])
 files = read_gh_repo('https://github.com/AnswerDotAI/fastcore', globs=('README*',))
 for path, content in files.items():
     print(path.split('/')[-1], len(content), 'chars')
+```
+
+### Convert web content to a notebook
+```python
+nb = url2nb('https://example.com/article')          # any HTML page
+nb = url2nb('https://arxiv.org/abs/2306.14881')      # auto-fetches arxiv PDF
+nb = url2nb('https://example.com/paper.pdf')         # direct PDF URL
+nb = pdf2nb('report.pdf')                            # local PDF file
+nb = pdf2nb('https://example.com/paper.pdf', 'notes.ipynb')  # custom output path
 ```
 
 ### Discover and paginate a hidden JSON API

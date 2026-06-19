@@ -30,13 +30,28 @@ first call to
 ## Search
 
 [`search()`](https://vedicreader.github.io/fossick/cli.html#search)
-routes queries through a local SearXNG instance running in Docker. The
-first call starts the container; subsequent results are cached in Redis.
-No API key required, no requests leaving your machine.
+routes queries through a local SearXNG instance running in Docker.
+Results are cached in Redis. No API key required, no requests leaving
+your machine.
+
+Call
+[`searxng_start()`](https://vedicreader.github.io/fossick/search.html#searxng_start)
+once at the top of each session — it starts the Docker container if
+needed and persists the URL so future sessions skip startup.
+[`search()`](https://vedicreader.github.io/fossick/cli.html#search)
+calls it automatically, but an explicit call avoids startup lag on the
+first query.
 
 Intent routing picks the right engine automatically. Two or more signals
 from a category are required before routing away from Google and Brave,
 so a single generic word does not send a query to the wrong engine.
+
+``` python
+from fossick.search import searxng_start
+searxng_start()   # idempotent — returns immediately if already running
+```
+
+    'http://localhost:8080'
 
 ``` python
 results = search('fasthtml python web framework', n=5)
@@ -165,6 +180,23 @@ print(video['source'][:300])
 path = download_yt('https://www.youtube.com/watch?v=aircAruvnKk',
                    format='audio', save_dir='.')
 print(path)  # Path('But what is a neural network.mp3')
+```
+
+[`url2nb()`](https://vedicreader.github.io/fossick/core.html#url2nb)
+converts any URL — HTML page, arXiv paper, or PDF — to a Jupyter
+notebook.
+[`pdf2nb()`](https://vedicreader.github.io/fossick/core.html#pdf2nb)
+converts a PDF (local path or URL) to a notebook where each page becomes
+a markdown cell with an empty code cell below for annotations.
+
+``` python
+nb = url2nb('https://squiddev.medium.com/continuing-continuations-cps-in-python-47bba90c8d1e', cache=True)
+print(nb)   # Path('continuing-continuations-cps-in-python-47bba90c8d1e.ipynb')
+```
+
+``` python
+nb = pdf2nb('https://selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf', 'sdt.ipynb')
+print(nb)   # Path('/path/to/sdt.ipynb')
 ```
 
 ## Discover hidden APIs
