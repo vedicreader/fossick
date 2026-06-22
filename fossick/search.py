@@ -34,10 +34,9 @@ def _wait_for_searxng(url:str, timeout:int=30, interval:float=0.5):
 # %% ../nbs/02_search.ipynb #00000006
 def searxng_start(settings:Path=None) -> str:
     "Start SearXNG + Redis via Compose. `settings` overrides the bundled searxng_settings.yml. Idempotent."
-    url = env_get('SEARXNG_URL')
-    if url: return url
     try:
-        if http_get(_SEARXNG_URL).status_code == 200: return _SEARXNG_URL
+	    if (url:=env_get('SEARXNG_URL')) and http_get(url).status_code == 200: return url
+	    if http_get(_SEARXNG_URL).status_code == 200: return _SEARXNG_URL
     except Exception: pass
     _SEARXNG_DIR.mkdir(parents=True, exist_ok=True)
     f = __file__ if '__file__' in globals() else '.'
