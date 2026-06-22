@@ -4,6 +4,6 @@ project:
 website:
   title: "fossick"
   site-url: "https://vedicreader.github.io/fossick"
-  description: "simple web search"
+  description: "Web search, fetch, crawl, and browser automation for humans and agents"
   repo-branch: main
   repo-url: "https://github.com/vedicreader/fossick"
