@@ -186,7 +186,7 @@ def fetch_all(urls:list,           # URLs to fetch
 
 # %% ../nbs/00_core.ipynb #2e71536ab2d8458a
 def get_pdf(url:str):
-    "Fetch PDF from URL and return as PdfDocument"
+    'Fetch PDF from URL and return as PdfDocument'
     r = get_page(url)
     if r.status != 200: raise Exception(f"Failed to fetch PDF: {r.status}")
     return PdfDocument.from_bytes(r.body)
@@ -259,11 +259,23 @@ def _nb_stem(url):
 	stem = path or urlparse(url).netloc.split('.')[0]
 	return re.sub(r'[^\w-]', '_', stem)[:50]
 
+def _reflow(t):
+	paras = [p.strip() for p in re.split(r'\n\n+', t) if p.strip()]
+	out, buf = [], []
+	for p in paras:
+		if re.match(r'^#{1,6} |^[-*+] |^\d+\.', p):
+			if buf: out.append(' '.join(buf)); buf = []
+			out.append(p)
+		else:
+			buf.append(p)
+			if re.search(r'[.!?]\s*$', p): out.append(' '.join(buf)); buf = []
+	if buf: out.append(' '.join(buf))
+	return '\n\n'.join(out)
+
+def _text_segs(t): return [c.strip() for c in re.split(r'\n(?=#{1,3} )', t) if c.strip()]
+
 def _md2cells(md):
-	"Split markdown into cells; [code]...[/code] blocks from html2text become code cells"
-	def _text_segs(t):
-		if re.search(r'\n#{1,3} ', t): return L(re.split(r'\n(?=#{1,3} )', t)).filter(str.strip).map(str.strip)
-		return L(t.strip()).filter(str.strip)
+	'Split markdown into cells; [code]...[/code] blocks from html2text become code cells'
 	code_re = re.compile(r'\[code\]\n\n(.*?)\n\[/code\]', re.DOTALL)
 	segments, last_end = [], 0
 	for m in code_re.finditer(md):
@@ -276,14 +288,12 @@ def _md2cells(md):
 	cells = []
 	for i, (kind, content) in enumerate(segments):
 		if kind == 'code': cells.append(mk_cell(content, 'code'))
-		else:
-			cells.append(mk_cell(content, 'markdown'))
-			if i+1 >= len(segments) or segments[i+1][0] != 'code': cells.append(mk_cell(''))
+		else: cells.append(mk_cell(content, 'markdown'))
 	return cells
 
 @fdelegates(fetch)
 def url2nb(url, nb_path=None, **kwargs):
-	"Convert any URL (PDF, arxiv, or HTML page) to a Jupyter notebook"
+	'Convert any URL (PDF, arxiv, or HTML page) to a Jupyter notebook'
 	if url.endswith('.pdf'): return pdf2nb(url, nb_path=nb_path, **kwargs)
 	if 'arxiv.org' in url:
 		res = read_arxiv(url)
@@ -295,11 +305,11 @@ def url2nb(url, nb_path=None, **kwargs):
 
 @fdelegates(fetch)
 def pdf2nb(url_or_path, nb_path=None, image_dir='images', **kwargs):
-	"Convert PDF to a Jupyter notebook; one markdown cell per page + empty code cell"
+	'Convert PDF to a Jupyter notebook; one markdown cell per page + empty code cell'
 	url_or_path = str(url_or_path)
 	if not url_or_path.endswith('.pdf'): return None
 	if url_or_path.startswith('http'):
-		pdf = PdfDocument.from_bytes(fetch(url_or_path, **kwargs).body)
+		pdf = get_pdf(url_or_path)
 		stem = url_or_path.rsplit('/', 1)[-1].replace('.pdf', '')
 	else: pdf, stem = PdfDocument(url_or_path), Path(url_or_path).stem
 	nb_path = Path(nb_path or f'{stem}.ipynb').resolve()
@@ -307,12 +317,10 @@ def pdf2nb(url_or_path, nb_path=None, image_dir='images', **kwargs):
 	try:
 		os.chdir(nb_path.parent)
 		Path(image_dir).mkdir(exist_ok=True)
-		pages = L(range(pdf.page_count())).map(
-			lambda i: pdf.to_markdown(i, preserve_layout=True, include_images=True,
-			                          embed_images=False, image_output_dir=image_dir))
+		md = pdf.to_markdown_all(preserve_layout=True, include_images=True,
+          embed_images=False, image_output_dir=image_dir)
 	finally: os.chdir(cwd)
-	cells = pages.map(lambda p: [mk_cell(p, 'markdown'), mk_cell('')]).concat()
-	Notebook(new_nb(cells=cells), path=nb_path).save()
+	Notebook(new_nb(cells=_md2cells(md)), path=nb_path).save()
 	return nb_path
 
 # %% ../nbs/00_core.ipynb #9776e017

@@ -133,7 +133,7 @@ def _bridge():
 	    threading.Thread(target=_loop.run_forever, daemon=True).start()
 	return _loop
 
-def syncy(coro): return asyncio.run_coroutine_threadsafe(coro, _bridge()).result()
+def syncy(coro, tout=60): return asyncio.run_coroutine_threadsafe(coro, _bridge()).result(timeout=tout)
 
 # %% ../nbs/01_cdp.ipynb #71588caefe040302
 @patch
