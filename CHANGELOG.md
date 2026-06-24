@@ -2,6 +2,11 @@
 
 <!-- do not remove -->
 
+## 0.0.6
+liteparse for pdf ocr
+
+
+
 ## 0.0.5
 cdp result timeout, pdf2nb fix
 

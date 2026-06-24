@@ -11,14 +11,14 @@ __all__ = ['searxng_start', 'searxng_stop', 'Result', 'search']
 import os, time, atexit, shutil
 import httpx
 from fastcore.all import AttrDictDefault, L, Path
-from .core import save_path, http_get
+from .core import fossick_cache, http_get
 from dockeasy import env_get, env_set, Compose
 
 # %% ../nbs/02_search.ipynb #00000005
 _SEARXNG_URL   = 'http://localhost:8080'
 _SEARXNG_NAME  = 'fossick-searxng'
 _SEARXNG_NET   = 'fossick-net'
-_SEARXNG_DIR   = save_path('searxng')
+_SEARXNG_DIR   = fossick_cache('searxng')
 _COMPOSE_PATH  = str(_SEARXNG_DIR / 'docker-compose.yml')
 
 def _wait_for_searxng(url:str, timeout:int=30, interval:float=0.5):
