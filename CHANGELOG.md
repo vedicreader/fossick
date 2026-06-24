@@ -2,6 +2,11 @@
 
 <!-- do not remove -->
 
+## 0.0.7
+liteparse md fix
+
+
+
 ## 0.0.6
 liteparse for pdf ocr
 

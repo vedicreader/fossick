@@ -263,18 +263,12 @@ def _nb_stem(url):
 	stem = path or urlparse(url).netloc.split('.')[0]
 	return re.sub(r'[^\w-]', '_', stem)[:50]
 
-def _reflow(t):
-	paras = [p.strip() for p in re.split(r'\n\n+', t) if p.strip()]
-	out, buf = [], []
-	for p in paras:
-		if re.match(r'^#{1,6} |^[-*+] |^\d+\.', p):
-			if buf: out.append(' '.join(buf)); buf = []
-			out.append(p)
-		else:
-			buf.append(p)
-			if re.search(r'[.!?]\s*$', p): out.append(' '.join(buf)); buf = []
-	if buf: out.append(' '.join(buf))
-	return '\n\n'.join(out)
+def _clean_ocr_md(md):
+	md = re.sub(r'([a-z])-\n([a-z])', r'\1\2', md)
+	md = re.sub(r'([a-z])-\n([A-Z])', r'\1-\2', md)
+	md = re.sub(r'^ +', '', md, flags=re.M)
+	md = re.sub(r' {2,}', ' ', md)
+	return re.sub(r'\n{3,}', '\n\n', md)
 
 def _text_segs(t): return [c.strip() for c in re.split(r'\n(?=#{1,3} )', t) if c.strip()]
 
@@ -304,7 +298,8 @@ def pdf2md(pdf:PdfDocument, nb_path:Path, image_dir='images') -> str:
 	md = pdf.to_markdown_all(preserve_layout=True, include_images=True, embed_images=False, image_output_dir=str(imdir))
 	os.chdir(cwd)
 	if '> [OCR REQUIRED' not in md.strip(): return md
-	return LiteParse(ocr_enabled=True,dpi=300,num_workers=4, extract_links=True, output_format='markdown').parse(pdf.path)
+	md = LiteParse(ocr_enabled=True,dpi=300,num_workers=4, extract_links=True).parse(pdf.to_bytes()).text
+	return _clean_ocr_md(md)
 
 @fdelegates(fetch)
 def url2nb(url, nb_path=None, **kwargs):
