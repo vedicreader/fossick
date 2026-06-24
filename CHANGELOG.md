@@ -2,6 +2,11 @@
 
 <!-- do not remove -->
 
+## 0.0.8
+ssl skipping, urm2md idompotency
+
+
+
 ## 0.0.7
 liteparse md fix
 

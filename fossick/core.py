@@ -205,9 +205,9 @@ def get_pdf(url_or_path:str, save_path=None, **scrapling_kw):
 
 # %% ../nbs/00_core.ipynb #82eab014
 _arxin = Index(str(fossick_cache('arxiv_cache.db')))
-def _fetch_arxiv_meta(arxiv_id:str):
+def _fetch_arxiv_meta(arxiv_id:str, **kw):
     "Fetch and parse arxiv metadata for a given ID; result is cached to disk"
-    r = http_get(f'https://export.arxiv.org/api/query?id_list={arxiv_id}')
+    r = http_get(f'https://export.arxiv.org/api/query?id_list={arxiv_id}', **kw)
     if r.status_code != 200: raise Exception(f"Failed to fetch arxiv data: {r.status_code}")
     ns = {'a': 'http://www.w3.org/2005/Atom'}
     entry = etree.fromstring(r.content).find('a:entry', ns)
@@ -222,7 +222,8 @@ def _fetch_arxiv_meta(arxiv_id:str):
 def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
                save_pdf:bool=True, # if True, saves the downloaded PDF to disk
                save_dir:str='.', # directory in which to save the PDF
-               force:bool=False # if True, forces re-download of PDF even if it exists on disk
+               force:bool=False, # if True, forces re-download of PDF even if it exists on disk
+               **kw # http_get kwargs (e.g. verify=False to skip SSL verification, headers=... to set custom headers, etc.
                ):
     "Get paper information from arxiv URL or ID, optionally saving PDF to disk"
     arxiv_id = url.rsplit('/', 1)[-1]
@@ -232,9 +233,9 @@ def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
     pdf_path = Path(save_dir)/f'{arxiv_id}{ver_sfx}.pdf' if save_pdf else None
     if force: _arxin.pop(arxiv_id, None)
     if arxiv_id in _arxin: return _arxin[arxiv_id]
-    res = dict(_fetch_arxiv_meta(arxiv_id))
+    res = dict(_fetch_arxiv_meta(arxiv_id), **kw)
     if not res['pdf_url']: raise Exception("No PDF URL found in arxiv metadata")
-    doc = get_pdf(res['pdf_url'], save_path=pdf_path, force=force)
+    doc = get_pdf(res['pdf_url'], save_path=pdf_path, force=force, **kw)
     res |= dict(doc=doc)
     _arxin[arxiv_id] = res
     return res
@@ -302,25 +303,27 @@ def pdf2md(pdf:PdfDocument, nb_path:Path, image_dir='images') -> str:
 	return _clean_ocr_md(md)
 
 @fdelegates(fetch)
-def url2nb(url, nb_path=None, **kwargs):
+def url2nb(url, nb_path=None, force=False, **kwargs):
 	'Convert any URL (PDF, arxiv, or HTML page) to a Jupyter notebook'
 	if url.endswith('.pdf'): return pdf2nb(url, nb_path=nb_path, **kwargs)
+	nb_path = Path(nb_path or f'{_nb_stem(url)}.ipynb')
+	if nb_path.exists() and not force: return nb_path
 	if 'arxiv.org' in url:
 		res = read_arxiv(url)
 		return pdf2nb(str(res['pdf_path']), nb_path=nb_path)
 	md = to_md(fetch(url, **kwargs))
-	nb_path = Path(nb_path or f'{_nb_stem(url)}.ipynb')
 	Notebook(new_nb(cells=_md2cells(md)), path=nb_path).save()
 	return nb_path
 
 @fdelegates(fetch)
-def pdf2nb(url_or_path, nb_path=None, **kwargs):
+def pdf2nb(url_or_path, nb_path=None, force=False, **kwargs):
 	'Convert PDF to a Jupyter notebook; one markdown cell per page + empty code cell'
-	pdf = get_pdf(url_or_path, **kwargs)
-	if not pdf: raise Exception("Failed to fetch or parse PDF")
 	stem = Path(url_or_path).stem if not url_or_path.startswith('http') else url_or_path.rsplit('/', 1)[-1].split('.')[0]
 	pth = nb_path or f'{stem}.ipynb'
 	nb_path = Path(pth).resolve()
+	if nb_path.exists() and not force: return nb_path
+	pdf = get_pdf(url_or_path, **kwargs)
+	if not pdf: raise Exception("Failed to fetch or parse PDF")
 	text = pdf2md(pdf, nb_path=nb_path)
 	Notebook(new_nb(cells=_md2cells(text)), path=nb_path).save()
 	return nb_path

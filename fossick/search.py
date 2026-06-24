@@ -91,14 +91,14 @@ def _intent(q:str) -> tuple:
     return intent, _category_map.get(intent, 'general')
 
 # %% ../nbs/02_search.ipynb #00000010
-def _searxng(q:str, n:int=10, category:str=None, engines:str=None) -> L:
+def _searxng(q:str, n:int=10, category:str=None, engines:str=None, **kw) -> L:
     "Search via SearXNG JSON API. Returns L of Result."
     try:
         url = searxng_start()
         params = {'q': q, 'format': 'json', 'pageno': 1}
         if category: params['categories'] = category
         if engines:  params['engines']    = engines
-        r = http_get(f'{url}/search', params=params)
+        r = http_get(f'{url}/search', params=params, **kw)
         if r.status_code != 200: return L()
         mk_res = lambda x: Result(title=x.get('title', ''),
             url=x.get('url', ''),snippet=x.get('content', ''),
@@ -114,9 +114,10 @@ def search(q:str,
            n:int=10,           # max results
            category:str=None,  # override SearXNG category (general/science/it/news)
            engines:str=None,   # comma-sep engine names passed to SearXNG
+           **kw # extra args to http_get
           ) -> L:
     "Search the web. Returns L of Result sorted by relevance."
     if not q or not q.strip(): return L()
     intent, cat = _intent(q)
     cat = category or cat
-    return _searxng(q, n, category=cat, engines=engines)
+    return _searxng(q, n, category=cat, engines=engines, **kw)

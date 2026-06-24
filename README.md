@@ -56,7 +56,7 @@ searxng_start()   # idempotent — returns immediately if already running
     'http://localhost:8080'
 
 ``` python
-results = search('fasthtml python web framework', n=5)
+results = search('fasthtml python web framework', n=5, verify=False)
 for r in results: print(r.title, r.url)
 ```
 
@@ -81,7 +81,7 @@ PDFs from arXiv, and files from GitHub repos.
 
 ``` python
 # extract just the lead paragraphs — no nav, ads, or sidebars
-page = fetch('https://en.wikipedia.org/wiki/Web_scraping')
+page = fetch('https://en.wikipedia.org/wiki/Web_scraping', verify=False)
 print(to_md(page, sel='.mw-parser-output > p')[:400])
 ```
 
@@ -93,7 +93,7 @@ for documentation sites, blogs, and any multi-page content.
 
 ``` python
 pages = crawl('https://docs.python.org/3/library/functions.html',
-              follow_sel='a.reference.internal', same_domain=True, max_pages=3)
+              follow_sel='a.reference.internal', same_domain=True, max_pages=3, verify=False)
 print(f'{len(pages)} pages crawled')
 ```
 
@@ -109,7 +109,7 @@ fetches multiple URLs in parallel — faster than sequential
 
 ``` python
 urls = ['https://httpbin.org/get', 'https://httpbin.org/status/200', 'https://httpbin.org/json']
-pages = fetch_all(urls)
+pages = fetch_all(urls, verify=False)
 print([p.status for p in pages])
 ```
 
@@ -125,7 +125,7 @@ arxiv ID, abstract URL, or PDF URL. The PDF is saved to `save_dir`;
 results are cached in-process.
 
 ``` python
-paper = read_arxiv('2306.14881', save_dir='.')
+paper = read_arxiv('2306.14881', save_dir='.', verify=False)
 print(paper['title'])
 print()
 print(paper['summary'][:400])
@@ -210,7 +210,7 @@ converts a PDF (local path or URL) to a notebook where each page becomes
 a markdown cell with an empty code cell below for annotations.
 
 ``` python
-nb = url2nb('https://squiddev.medium.com/continuing-continuations-cps-in-python-47bba90c8d1e', cache=True)
+nb = url2nb('https://squiddev.medium.com/continuing-continuations-cps-in-python-47bba90c8d1e', verify=False)
 print(nb)   # Path('continuing-continuations-cps-in-python-47bba90c8d1e.ipynb')
 ```
 
@@ -219,7 +219,7 @@ print(nb)   # Path('continuing-continuations-cps-in-python-47bba90c8d1e.ipynb')
     continuing-continuations-cps-in-python-47bba90c8d1.ipynb
 
 ``` python
-nb = pdf2nb('https://selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf', 'sdt.ipynb')
+nb = pdf2nb('https://selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf', 'sdt.ipynb', verify=False)
 print(nb)   # Path('/path/to/sdt.ipynb')
 ```
 
