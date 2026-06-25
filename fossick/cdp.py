@@ -322,7 +322,7 @@ _AX_SKIP = {'none','generic','Section','InlineTextBox','StaticText',''}
 
 # %% ../nbs/01_cdp.ipynb #29df3393fc5ed587
 @patch
-async def annotate(page:Page, save_dir=None, prefix=None, stop=None):
+async def annotate(page:Page, save_dir=None, prefix=None, stop=None, tout=None):
 	"Click elements interactively; returns (screenshot, [{n, role, name, selector}]) with badges baked in."
 	stop, sid = stop or asyncio.Event(), page.sid
 	prefix = prefix or await page.eval('document.title')
@@ -334,14 +334,17 @@ async def annotate(page:Page, save_dir=None, prefix=None, stop=None):
 	ident = await page.page.addScriptToEvaluateOnNewDocument(source=ANNOTATE_JS)
 	await page.eval(ANNOTATE_JS)
 	await page.eval(ANNOTATE_BAR_JS)
+	loop = asyncio.get_event_loop()
+	dl = loop.time() + tout if tout else None
 	selected, img = [], None
 	try:
 		async with page.cdp.on('Runtime.bindingCalled') as q:
 			print('Click elements to annotate, ✓ Done when ready.')
 			while not stop.is_set():
-				get = asyncio.ensure_future(q.get())
-				halt = asyncio.ensure_future(stop.wait())
-				fin, pend = await asyncio.wait({get, halt}, return_when=asyncio.FIRST_COMPLETED)
+				rem = (dl - loop.time()) if dl else None
+				if rem is not None and rem <= 0: break
+				get, halt = asyncio.ensure_future(q.get()), asyncio.ensure_future(stop.wait())
+				fin, pend = await asyncio.wait({get, halt}, return_when=asyncio.FIRST_COMPLETED,timeout=rem)
 				for p in pend: p.cancel()
 				if get not in fin: break
 				m = get.result()

@@ -6,9 +6,9 @@ Docs: https://vedicreader.github.io/fossickcore.html.md"""
 
 # %% auto #0
 __all__ = ['http_get', 'http_post', 'fossick_cache', 'html2md', 'to_md', 'get_page', 'fetch', 'crawl', 'get_options', 'fetch_all',
-           'get_pdf', 'read_arxiv', 'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb', 'read_gh_repo', 'read_gh_file',
-           'compile_pattern', 'find_xhr', 'paginate_api', 'download_files', 'search_yt', 'read_yt', 'download_yt',
-           'repo_root', 'mv_skill_md']
+           'get_pdf', 'read_arxiv', 'lookup_doi', 'clean_md', 'ocr_parse', 'pdf2md', 'url2nb', 'pdf2nb', 'read_gh_repo',
+           'read_gh_file', 'compile_pattern', 'find_xhr', 'paginate_api', 'download_files', 'search_yt', 'read_yt',
+           'download_yt', 'repo_root', 'mv_skill_md']
 
 # %% ../nbs/00_core.ipynb #764d37b8
 import json
@@ -267,7 +267,7 @@ def _nb_stem(url):
 	stem = path or urlparse(url).netloc.split('.')[0]
 	return re.sub(r'[^\w-]', '_', stem)[:50]
 
-def _clean_ocr_md(md):
+def clean_md(md):
 	md = re.sub(r'([a-z])-\n([a-z])', r'\1\2', md)
 	md = re.sub(r'([a-z])-\n([A-Z])', r'\1-\2', md)
 	md = re.sub(r'^ +', '', md, flags=re.M)
@@ -293,20 +293,34 @@ def _md2cells(md):
 		else: cells.append(mk_cell(content, 'markdown'))
 	return cells
 
-def pdf2md(pdf:PdfDocument, # PdfDocument object
-           nb_path:Path, # Path to notebook file (used to determine image output dir)
-           image_dir='images' # subdir for extracted images
+def ocr_parse(pdf:PdfDocument, # PdfDocument object
+              **kw  # extra kwargs passed to LiteParse (e.g. dpi, num_workers, extract_links)
 ) -> str:
+	lp = LiteParse(ocr_enabled=True, dpi=300, num_workers=4, extract_links=True, **kw)
+	md = lp.parse(pdf.to_bytes()).text
+	md = clean_md(md)
+	return md
+
+@fdelegates(ocr_parse)
+def pdf2md(pdf:PdfDocument,  # PdfDocument object
+           out_path:str|Path,  # Path to notebook file (used to determine image output dir)
+           image_dir='images',  # subdir for extracted images
+           preserve_layout=False,  # if True, uses pdf-oxide's layout-preserving markdown; if False, uses LiteParse for better formatting
+           ocr_selection:str='auto'  # choosing ocr (auto, off, on). on forces ocr, off disables it, auto uses pdf-oxide's ocr detection
+           ) -> str:
 	'PdfDocument to markdown; if OCR is required, uses LiteParse for better formatting'
+	if ocr_selection == 'on': return ocr_parse(pdf)
 	cwd = os.getcwd()
-	os.chdir(nb_path.parent)
-	imdir = Path(nb_path.stem)/image_dir
+	out_path = Path(out_path).resolve()
+	os.chdir(out_path.parent)
+	imdir = Path(out_path.stem) / image_dir
 	Path(imdir).mkdir(exist_ok=True, parents=True)
-	md = pdf.to_markdown_all(preserve_layout=True, include_images=True, embed_images=False, image_output_dir=str(imdir))
+	md = pdf.to_markdown_all(preserve_layout=preserve_layout, include_images=True, embed_images=False, image_output_dir=str(imdir))
+	md = clean_md(md)
 	os.chdir(cwd)
-	if '> [OCR REQUIRED' not in md.strip(): return md
-	md = LiteParse(ocr_enabled=True,dpi=300,num_workers=4, extract_links=True).parse(pdf.to_bytes()).text
-	return _clean_ocr_md(md)
+	if ocr_selection == 'off': return md
+	if '> [OCR REQUIRED' in md.strip(): return ocr_parse(pdf)
+	return md
 
 @fdelegates(fetch)
 def url2nb(url, # URL to convert (PDF, arxiv, or HTML page)
@@ -329,7 +343,8 @@ def url2nb(url, # URL to convert (PDF, arxiv, or HTML page)
 def pdf2nb(url_or_path, # URL or local path to PDF
            nb_path=None, # optional path to save the notebook; defaults to <pdf-stem>.ipynb
            force=False, # if True, forces re-download and conversion even if notebook exists
-           **kwargs # extra kwargs passed to fetch() (e.g. verify=False to skip SSL verification)
+           ocr_selection:str='auto', # choosing ocr (auto, off, on). on forces ocr, off disables it, auto uses pdf-oxide's ocr detection
+           **kwargs, # extra kwargs passed to fetch() (e.g. verify=False to skip SSL verification)
 ) -> Path:
 	'Convert PDF to a Jupyter notebook; one markdown cell per page + empty code cell'
 	stem = Path(url_or_path).stem if not url_or_path.startswith('http') else url_or_path.rsplit('/', 1)[-1].split('.')[0]
@@ -338,7 +353,7 @@ def pdf2nb(url_or_path, # URL or local path to PDF
 	if nb_path.exists() and not force: return nb_path
 	pdf = get_pdf(url_or_path, **kwargs)
 	if not pdf: raise Exception("Failed to fetch or parse PDF")
-	text = pdf2md(pdf, nb_path=nb_path)
+	text = pdf2md(pdf, out_path=nb_path, ocr_selection=ocr_selection)
 	Notebook(new_nb(cells=_md2cells(text)), path=nb_path).save()
 	return nb_path
 
