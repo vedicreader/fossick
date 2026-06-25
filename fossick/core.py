@@ -112,7 +112,7 @@ def fetch(url:str,                # URL to fetch
           payload:dict=None,      # POST body (JSON) or GET query params
           heavy:bool=False,       # Full JS rendering via headless browser
           stealthy:bool=False,    # Anti-bot stealth fetcher (Cloudflare etc.)
-          capture_xhr:bool=False,
+          capture_xhr:bool=False, # Capture XHR calls made by the page (only works with heavy or stealthy)
           **kw,                   # Extra kwargs passed to scrapling (e.g. verify, headers)
          ) -> Response:
     'Fetch `url`, return Page dict {url, status, html, data, xhr} where html is raw response body'
@@ -140,8 +140,8 @@ def crawl(start_url:str,               # URL to start from
           same_domain:bool=True,       # Only follow links on same domain
           max_pages:int=10,            # Max pages to visit
           delay:float=0,               # Seconds to wait between requests (polite crawling)
-          heavy:bool=False,
-          stealthy:bool=False,
+          heavy:bool=False, # Full JS rendering via headless browser
+          stealthy:bool=False, # Anti-bot stealth fetcher (Cloudflare etc.)
           **kw,                        # Extra kwargs passed to scrapling (e.g. verify, timeout)
          ) -> list:
     'Crawl from `start_url`, following `follow_sel` links, return list of Page dicts'
@@ -178,8 +178,8 @@ def get_options(page_or_html,  # Page dict (from fetch) or raw HTML string
 def fetch_all(urls:list,           # URLs to fetch
               sel:str=None,         # CSS selector to extract per page (None = full page)
               concurrency:int=8,    # Max parallel fetches
-              heavy:bool=False,
-              stealthy:bool=False,
+              heavy:bool=False, # Full JS rendering via headless browser
+              stealthy:bool=False, # Anti-bot stealth fetcher (Cloudflare etc.)
               **kw                  # Extra kwargs passed to fetch()
              ) -> list:
     "Fetch a list of URLs in parallel; returns Page dicts in the same order as urls"
@@ -190,7 +190,10 @@ from liteparse import LiteParse
 from pdf_oxide import PdfDocument
 
 # %% ../nbs/00_core.ipynb #2e71536ab2d8458a
-def get_pdf(url_or_path:str, save_path=None, **scrapling_kw):
+def get_pdf(url_or_path:str, # URL or local path to PDF
+            save_path=None, # optional path to save the PDF (directory or full path)
+            **scrapling_kw # extra kwargs passed to scrapling fetcher (e.g. verify, headers, timeout)
+            ) -> PdfDocument|None:
     'Fetch PDF from URL and return as PdfDocument'
     if not url_or_path.endswith('.pdf'): return None
     pth = Path(url_or_path) if not url_or_path.startswith('http') else None
@@ -224,7 +227,7 @@ def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
                save_dir:str='.', # directory in which to save the PDF
                force:bool=False, # if True, forces re-download of PDF even if it exists on disk
                **kw # http_get kwargs (e.g. verify=False to skip SSL verification, headers=... to set custom headers, etc.
-               ):
+               )-> dict:
     "Get paper information from arxiv URL or ID, optionally saving PDF to disk"
     arxiv_id = url.rsplit('/', 1)[-1]
     ver = re.search(r'v(\d+)$', arxiv_id)
@@ -290,7 +293,10 @@ def _md2cells(md):
 		else: cells.append(mk_cell(content, 'markdown'))
 	return cells
 
-def pdf2md(pdf:PdfDocument, nb_path:Path, image_dir='images') -> str:
+def pdf2md(pdf:PdfDocument, # PdfDocument object
+           nb_path:Path, # Path to notebook file (used to determine image output dir)
+           image_dir='images' # subdir for extracted images
+) -> str:
 	'PdfDocument to markdown; if OCR is required, uses LiteParse for better formatting'
 	cwd = os.getcwd()
 	os.chdir(nb_path.parent)
@@ -303,7 +309,11 @@ def pdf2md(pdf:PdfDocument, nb_path:Path, image_dir='images') -> str:
 	return _clean_ocr_md(md)
 
 @fdelegates(fetch)
-def url2nb(url, nb_path=None, force=False, **kwargs):
+def url2nb(url, # URL to convert (PDF, arxiv, or HTML page)
+           nb_path=None, # optional path to save the notebook; defaults to <url-stem>.ipynb
+           force=False, # if True, forces re-download and conversion even if notebook exists
+           **kwargs # extra kwargs passed to fetch() (e.g. verify=False to skip SSL verification)
+)-> Path:
 	'Convert any URL (PDF, arxiv, or HTML page) to a Jupyter notebook'
 	if url.endswith('.pdf'): return pdf2nb(url, nb_path=nb_path, **kwargs)
 	nb_path = Path(nb_path or f'{_nb_stem(url)}.ipynb')
@@ -316,7 +326,11 @@ def url2nb(url, nb_path=None, force=False, **kwargs):
 	return nb_path
 
 @fdelegates(fetch)
-def pdf2nb(url_or_path, nb_path=None, force=False, **kwargs):
+def pdf2nb(url_or_path, # URL or local path to PDF
+           nb_path=None, # optional path to save the notebook; defaults to <pdf-stem>.ipynb
+           force=False, # if True, forces re-download and conversion even if notebook exists
+           **kwargs # extra kwargs passed to fetch() (e.g. verify=False to skip SSL verification)
+) -> Path:
 	'Convert PDF to a Jupyter notebook; one markdown cell per page + empty code cell'
 	stem = Path(url_or_path).stem if not url_or_path.startswith('http') else url_or_path.rsplit('/', 1)[-1].split('.')[0]
 	pth = nb_path or f'{stem}.ipynb'
@@ -355,7 +369,7 @@ def read_gh_repo(path_or_url:str,  # GitHub URL, SSH address, or local path
                  globs:tuple=None,  # file glob patterns (default: README*, pyproject.toml, *.py)
                  limit:int=None,    # max files to return
                  as_list:bool=False # return list of Paths instead of {path: content} dict
-                ):
+                )-> dict:
     'Read files from a GitHub repo filtered by glob patterns'
     ssh = _gh_ssh(path_or_url)
     repo_dir = _get_git_repo(ssh) if ssh else Path(path_or_url)
@@ -446,14 +460,14 @@ def download_files(url:str,
                    heavy:bool=False,
                    stealthy:bool=False,
                    **kw,                     # Extra kwargs passed to fetch/http_get (e.g. verify)
-                  ) -> L:
+                  ) -> list[Path]:
     "Download all hrefs matching pattern from url; optionally crawl linked pages first"
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
     rx = compile_pattern(pattern)
     pages = (crawl(url, follow_sel=follow_sel, same_domain=same_domain, max_pages=max_pages, delay=delay,
        heavy=heavy, stealthy=stealthy, **kw) if follow else [fetch(url, heavy=heavy, stealthy=stealthy, **kw)])
-    saved, seen = L(), set()
+    saved, seen = [], set()
     for pg in pages:
         for a in pg.css(file_sel):
             href = a.attrib.get('href', '')
@@ -487,12 +501,14 @@ def _parse_vtt(vtt:str) -> str:
     return ' '.join(lines)
 
 # %% ../nbs/00_core.ipynb #121b6c36
-def search_yt(q:str, n:int=10) -> L:
+def search_yt(q:str, # search query
+              n:int=10 # number of results to return
+) -> list:
     "Search YouTube; returns L of dicts: id, title, url, duration, view_count, channel, description, thumbnail"
     try:
         with yt_dlp.YoutubeDL({'quiet': True, 'extract_flat': True}) as ydl:
             info = ydl.extract_info(f'ytsearch{n}:{q}', download=False)
-        return L({'id': e.get('id'),
+        return [{'id': e.get('id'),
                   'title': e.get('title'),
                   'url': e.get('url') or f'https://www.youtube.com/watch?v={e.get("id")}',
                   'duration': e.get('duration'),
@@ -500,14 +516,16 @@ def search_yt(q:str, n:int=10) -> L:
                   'channel': e.get('channel'),
                   'description': e.get('description'),
                   'thumbnail': next((t['url'] for t in reversed(e.get('thumbnails', [])) if 'url' in t), None)}
-                 for e in info.get('entries', []))
+                 for e in info.get('entries', [])]
     except Exception as e:
         print(f'search_yt error: {e}')
-        return L()
+        return []
 
 # %% ../nbs/00_core.ipynb #7b7605a3
-def read_yt(url:str, force:bool=False) -> dict:
-    "Fetch YouTube metadata + English transcript (auto-captions); result disk-cached by video ID"
+def read_yt(url:str, # YouTube URL or video ID
+            force:bool=False # if True, forces re-fetching even if cached
+) -> dict:
+    'Fetch YouTube metadata + English transcript (auto-captions); result disk-cached by video ID'
     vid = _yt_id(url)
     if not force and vid in _yt_cache: return _yt_cache[vid]
     with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
@@ -529,8 +547,12 @@ def read_yt(url:str, force:bool=False) -> dict:
     return res
 
 # %% ../nbs/00_core.ipynb #ae3a464c
-def download_yt(url:str, format:str='audio', save_dir:str='.', quality:str=None) -> Path:
-    "Download YouTube media; format='audio'|'video'|yt-dlp format string. Returns Path to saved file."
+def download_yt(url:str, # YouTube URL or video ID
+                format:str='audio', # 'audio'|'video'|yt-dlp format string
+                save_dir:str='.', # directory to save file
+                quality:str=None # preferred audio quality (e.g. '192' for 192kbps, only used if format='audio')
+) -> Path:
+    'Download YouTube media; format=\'audio\'|\'video\'|yt-dlp format string. Returns Path to saved file.'
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
     outtmpl = str(save_dir / '%(title)s.%(ext)s')

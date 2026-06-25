@@ -32,7 +32,8 @@ def _wait_for_searxng(url:str, timeout:int=30, interval:float=0.5):
     raise RuntimeError(f'SearXNG did not start within {timeout}s at {url}. Is Docker running?')
 
 # %% ../nbs/02_search.ipynb #00000006
-def searxng_start(settings:Path=None) -> str:
+def searxng_start(settings:Path=None # override bundled searxng_settings.yml
+) -> str:
     "Start SearXNG + Redis via Compose. `settings` overrides the bundled searxng_settings.yml. Idempotent."
     try:
 	    if (url:=env_get('SEARXNG_URL')) and http_get(url).status_code == 200: return url
@@ -110,7 +111,7 @@ def _searxng(q:str, n:int=10, category:str=None, engines:str=None, **kw) -> L:
         return L()
 
 # %% ../nbs/02_search.ipynb #00000015
-def search(q:str,
+def search(q:str, # query string
            n:int=10,           # max results
            category:str=None,  # override SearXNG category (general/science/it/news)
            engines:str=None,   # comma-sep engine names passed to SearXNG
