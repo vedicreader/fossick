@@ -24,17 +24,11 @@ _plat_loc = dict(
            Path(os.environ.get('PROGRAMFILES(X86)','')) / 'Google/Chrome/Application/chrome.exe'],
     linux=['google-chrome', 'google-chrome-stable', 'chromium-browser', 'chromium'])
 
-def _linux_loc():
-    for name in _plat_loc['linux']:
-        p = Path(shutil.which(name) or Path('/usr/bin')/name)
-        if p.exists(): return p
-    return None
+def _linloc(): return first(_plat_loc['linux'], lambda n: Path(shutil.which(n) or '/usr/bin/%s' % n).exists())
 
-def _find_chrome(chrome_path=None):
+def _find_chrome(cp=None):
     'Find Chrome/Chromium binary across platforms; raises FileNotFoundError if absent'
-    if chrome_path: return chrome_path
-    sp = sys.platform
-    return _linux_loc() if sp == 'linux' else next(str(p) for p in _plat_loc[sp] if p.exists())
+    return cp if cp else _linloc() if (sp:=sys.platform) == 'linux' else str(first(_plat_loc[sp], lambda n:n.exists()))
 
 def _default_profile_dir():
     'Platform-appropriate CDP debug profile directory'

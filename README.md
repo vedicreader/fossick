@@ -26,45 +26,31 @@ state and `pg.fill_text()` / `pg.click_and_wait()` act on it.
 uv add fossick
 ```
 
-Search requires Docker. fossick starts SearXNG automatically on the
-first call to
-[`search()`](https://vedicreader.github.io/fossick/cli.html#search).
+Text/image/news search work out of the box (no Docker). JS rendering,
+`stealthy` fetching, and
+[`google()`](https://vedicreader.github.io/fossick/search.html#google)
+use a bundled headless browser.
 
 ## Search
 
-[`search()`](https://vedicreader.github.io/fossick/cli.html#search)
-routes queries through a local SearXNG instance running in Docker.
-Results are cached in Redis. No API key required, no requests leaving
-your machine.
+[`search()`](https://vedicreader.github.io/fossick/cli.html#search) runs
+a metasearch through [`ddgs`](https://github.com/deedy5/ddgs),
+aggregating many backends (Bing, Brave, DuckDuckGo, Startpage, Mojeek,
+Wikipedia, …) — no API key, no Docker.
+[`images()`](https://vedicreader.github.io/fossick/cli.html#images),
+[`news()`](https://vedicreader.github.io/fossick/cli.html#news), and
+`videos()` return the corresponding media.
 
-Call
-[`searxng_start()`](https://vedicreader.github.io/fossick/search.html#searxng_start)
-once at the top of each session — it starts the Docker container if
-needed and persists the URL so future sessions skip startup.
-[`search()`](https://vedicreader.github.io/fossick/cli.html#search)
-calls it automatically, but an explicit call avoids startup lag on the
-first query.
-
-Intent routing picks the right engine automatically. Two or more signals
-from a category are required before routing away from Google and Brave,
-so a single generic word does not send a query to the wrong engine.
+For real Google ranking when you specifically need it,
+[`google()`](https://vedicreader.github.io/fossick/search.html#google)
+uses a stealth browser to bypass the JavaScript/bot wall that blocks
+plain-HTTP scraping. Every result is a plain dict, and all functions
+share a local TTL cache so repeated queries return instantly.
 
 ``` python
-searxng_start()   # idempotent — returns immediately if already running
+results = search('fasthtml python web framework', n=5)
+for r in results: print(r['title'], r['href'])
 ```
-
-    'http://localhost:8080'
-
-``` python
-results = search('fasthtml python web framework', n=5, verify=False)
-for r in results: print(r.title, r.url)
-```
-
-    FastHTML - Modern web applications in pure Python https://fastht.ml/
-    GitHub - AnswerDotAI/fasthtml: The fastest way to create an HTML app https://github.com/answerdotai/fasthtml
-    FastHTML: a hypermedia-first python framework w/htmx available ootb https://www.reddit.com/r/htmx/comments/1efizmn/fasthtml_a_hypermediafirst_python_framework_whtmx/
-    First encounter with FastHTML: Building a FastHTML assistant https://medium.com/@mrsirsh/first-encounter-with-fasthtml-building-a-fasthtml-assistant-fe896d3a3e60
-    FastHTML Tutorial: Build Modern Web Applications with Pure Python https://www.youtube.com/watch?v=AxA8YH_UyBo
 
 ## Fetch and read
 
@@ -87,7 +73,7 @@ print(to_md(page, sel='.mw-parser-output > p')[:400])
 
     [2026-06-22 20:32:21] INFO: Fetched (200) <GET https://en.wikipedia.org/wiki/Web_scraping> (referer: https://www.google.com/)
 
-[`crawl()`](https://vedicreader.github.io/fossick/core.html#crawl)
+[`crawl()`](https://vedicreader.github.io/fossick/cli.html#crawl)
 follows links from a start URL, returning a list of Page dicts — useful
 for documentation sites, blogs, and any multi-page content.
 
@@ -135,10 +121,10 @@ print(paper['summary'][:400])
 
     Low-metallicity dwarf galaxies often show no or little CO emission, despite the intense star formation observed in local samples. Both simulations and resolved observations indicate that molecular gas in low-metallicity galaxies may reside in small dense clumps, surrounded by a substantial amount of more diffuse gas, not traced by CO. Constraining the relative importance of CO-bright versus CO-dar
 
-[`read_gh_repo()`](https://vedicreader.github.io/fossick/core.html#read_gh_repo)
+[`read_gh_repo()`](https://vedicreader.github.io/fossick/cli.html#read_gh_repo)
 clones or fetches a GitHub repo and returns `{path: content}` for
 matched files.
-[`read_gh_file()`](https://vedicreader.github.io/fossick/core.html#read_gh_file)
+[`read_gh_file()`](https://vedicreader.github.io/fossick/cli.html#read_gh_file)
 reads a single file from a GitHub blob URL.
 
 ``` python
@@ -205,7 +191,7 @@ print(path)  # Path('But what is a neural network.mp3')
 [`url2nb()`](https://vedicreader.github.io/fossick/cli.html#url2nb)
 converts any URL — HTML page, arXiv paper, or PDF — to a Jupyter
 notebook.
-[`pdf2nb()`](https://vedicreader.github.io/fossick/core.html#pdf2nb)
+[`pdf2nb()`](https://vedicreader.github.io/fossick/cli.html#pdf2nb)
 converts a PDF (local path or URL) to a notebook where each page becomes
 a markdown cell with an empty code cell below for annotations.
 
@@ -231,10 +217,10 @@ print(nb)   # Path('/path/to/sdt.ipynb')
 
 Most modern sites serve their data through undocumented JSON APIs rather
 than HTML.
-[`find_xhr()`](https://vedicreader.github.io/fossick/core.html#find_xhr)
+[`find_xhr()`](https://vedicreader.github.io/fossick/cli.html#find_xhr)
 visits a page with a headless browser and captures every network call
 the browser makes.
-[`paginate_api()`](https://vedicreader.github.io/fossick/core.html#paginate_api)
+[`paginate_api()`](https://vedicreader.github.io/fossick/cli.html#paginate_api)
 replays the request across all pages and collects the results.
 
 ``` python

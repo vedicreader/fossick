@@ -7,7 +7,7 @@ name = "fossick"
 dynamic = ["version"]
 description = "Web search, fetch, crawl, and browser automation for humans and agents"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {text = "Apache-2.0"}
 authors = [{name = "Karthik", email = "karthik.rajgopal@hotmail.com"}]
 keywords = ['nbdev']
@@ -18,8 +18,8 @@ classifiers = [
 
 dependencies = [
     "curl-cffi>=0.15.0",
+    "ddgs>=9.14.4",
     "diskcache>=5.6.3",
-    "dockeasy>=0.0.3",
     "fastcdp>=0.0.5",
     "fastcore>=1.12.31",
     "html2text>=2025.4.15",
@@ -27,7 +27,6 @@ dependencies = [
     "pdf-oxide>=0.3.67",
     "readability-lxml>=0.8.4.1",
     "scrapling[fetchers]>=0.4.8",
-    "tenacity>=9.1.4",
     "yt-dlp>=2026.3.17",
 ]
 
@@ -58,6 +57,7 @@ include = [
 
 [dependency-groups]
 dev = [
+    "ipykernel>=7.3.0",
     "koshas>=0.0.9",
     "nbdev>=3.0.12",
     "notebook>=7.5.5",

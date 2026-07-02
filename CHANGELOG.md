@@ -2,6 +2,11 @@
 
 <!-- do not remove -->
 
+## 0.0.11
+remove searx, use ddgs
+
+
+
 ## 0.0.10
 annotate tout
 
