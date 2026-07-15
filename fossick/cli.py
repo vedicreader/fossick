@@ -14,7 +14,7 @@ __all__ = ['CMDS', 'fetch', 'crawl', 'search', 'read_arxiv', 'lookup_doi', 'read
 Default output is readable markdown; pass --as-json for JSON (piping/harnesses)."""
 
 import json, sys
-from fastcore.script import call_parse
+from fastcore.script import call_parse, anno_parser
 from .core import (fetch as _fetch, to_md, read_arxiv as _read_arxiv,
                           read_yt as _read_yt, search_yt as _search_yt,
                           url2nb as _url2nb, pdf2nb as _pdf2nb, download_yt as _download_yt,
@@ -374,5 +374,9 @@ def main():
         print(f"Usage: fossick [{'  | '.join(CMDS)}]")
         sys.exit(0 if len(sys.argv) < 2 else 1)
     cmd = sys.argv.pop(1)
-    CMDS[cmd]()
+    func = CMDS[cmd]
+    raw  = getattr(func, '__wrapped__', func)      # unwrap @call_parse
+    args = anno_parser(raw).parse_args().__dict__  # parse remaining argv
+    args.pop('xtra', None); args.pop('pdb', None)  # fastcore-injected extras
+    raw(**args)
 

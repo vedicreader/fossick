@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.0.13
+cli fix
+
+
 ## 0.0.12
 fastcdp based setup
 
