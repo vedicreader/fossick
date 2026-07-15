@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.0.12
+fastcdp based setup
+
+
 ## 0.0.11
 remove searx, use ddgs
 
