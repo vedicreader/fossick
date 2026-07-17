@@ -40,6 +40,9 @@ fossick = "fossick.cli:main"
 [project.entry-points.nbdev]
 fossick = "fossick._modidx:d"
 
+[project.entry-points.pyskills]
+fossick = "fossick.skill"
+
 [tool.hatch.version]
 path = "fossick/__init__.py"
 

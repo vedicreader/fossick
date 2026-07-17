@@ -82,4 +82,5 @@ d = { 'settings': { 'branch': 'main',
                                 'fossick.search.extract': ('search.html#extract', 'fossick/search.py'),
                                 'fossick.search.get_ddgs': ('search.html#get_ddgs', 'fossick/search.py'),
                                 'fossick.search.google': ('search.html#google', 'fossick/search.py'),
-                                'fossick.search.search': ('search.html#search', 'fossick/search.py')}}}
+                                'fossick.search.search': ('search.html#search', 'fossick/search.py')},
+            'fossick.skill': {}}}
