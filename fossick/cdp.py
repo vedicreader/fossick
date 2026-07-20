@@ -4,13 +4,14 @@
 
 # %% auto #0
 __all__ = ['BUTTON_JS', 'HIDE', 'SHOW', 'ANNOTATE_JS', 'ANNOTATE_BAR_JS', 'ANNOTATE_CLEANUP_JS', 'cdp_setup', 'cdp_connect',
-           'syncy']
+           'cdp_ws', 'syncy', 'cdp_cookies', 'ax_diff']
 
 # %% ../nbs/01_cdp.ipynb #93f16b3aa77ce8ef
 import asyncio, json, base64, time, subprocess, sys, shutil, os, threading, socket, tempfile, re
-from fastcore.all import patch, store_attr, AttrDict, Path, first
+from fastcore.all import patch, store_attr, AttrDict, Path, first, L
 from fastcdp import *
 from .core import *
+from scrapling import Selector
 from importlib.resources import files as _pkg_files
 from functools import lru_cache, wraps
 from collections import defaultdict
@@ -22,12 +23,19 @@ def _debug_running(port, host='127.0.0.1'):
         s.settimeout(0.3)
         return s.connect_ex((host, port)) == 0
 
-async def cdp_setup(port=9223, user_data_dir=None, headless=False, timeout=15):
+def _chrome_flags(port, d, headless, extra_flags):
+    "Assemble Chrome launch flags; auto-adds --no-sandbox when running as root (containers/CI)"
+    args = [chrome_bin(), f'--remote-debugging-port={port}', f'--user-data-dir={d}',
+            '--no-first-run', '--no-default-browser-check']
+    if headless: args.append('--headless=new')
+    if hasattr(os, 'geteuid') and os.geteuid() == 0: args.append('--no-sandbox')
+    return args + list(extra_flags or [])
+
+async def cdp_setup(port=9223, user_data_dir=None, headless=False, timeout=15, extra_flags=None):
     "Start a persistent debug Chrome on `port` with its own profile, ready for `CDP.remote`"
     d = Path(user_data_dir) if user_data_dir else Path.home()/'.cache'/'fastcdp'/'cdp-chrome'
     d.mkdir(parents=True, exist_ok=True)
-    args = [chrome_bin(), f'--remote-debugging-port={port}', f'--user-data-dir={d}', '--no-first-run', '--no-default-browser-check']
-    if headless: args.append('--headless=new')
+    args = _chrome_flags(port, d, headless, extra_flags)
     subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     deadline = time.time() + timeout
     while not _debug_running(port):
@@ -35,12 +43,18 @@ async def cdp_setup(port=9223, user_data_dir=None, headless=False, timeout=15):
         await asyncio.sleep(0.1)
     return d
 
-async def cdp_connect(port=9223, user_data_dir=None, headless=False):
+async def cdp_connect(port=9223, user_data_dir=None, headless=False, extra_flags=None):
     "Connect to a debug Chrome on `port`; if none is running, set one up on a persistent profile and connect."
-    if not _debug_running(port): await cdp_setup(port, user_data_dir, headless)
+    if not _debug_running(port): await cdp_setup(port, user_data_dir, headless, extra_flags=extra_flags)
     cdp = await CDP.remote(port)
     cdp.ws.protocol.max_message_size = 2**30
     return cdp
+
+def cdp_ws(port=9223, headless=True, user_data_dir=None, extra_flags=None) -> str:
+    "Websocket debugger URL of the debug Chrome on `port`, starting one (headless by default) if needed. For scrapling's `cdp_url=`."
+    import httpx
+    if not _debug_running(port): syncy(cdp_setup(port, user_data_dir, headless, extra_flags=extra_flags))
+    return httpx.get(f'http://127.0.0.1:{port}/json/version').json()['webSocketDebuggerUrl']
 
 # %% ../nbs/01_cdp.ipynb #50ca53e6338fbf50
 _loop = None
@@ -86,6 +100,173 @@ async def calls(self:CDP, url=None, pattern='.*', tail=3):
                 body = await self.network.getResponseBody(requestId=rid, sid=page.sid)
                 out[rid]= out[rid] | dict(response_body=body)
     return out
+
+# %% ../nbs/01_cdp.ipynb #af3e7589fc4649cf
+async def _get_cookies(cdp, urls=None):
+    "Raw CDP cookies (dicts) from the running browser, optionally scoped to `urls`"
+    pg = first(await cdp.pages)
+    sid = await cdp.attach(pg['targetId']) if pg else None
+    kw = dict(urls=urls) if urls else {}
+    await cdp.network.enable(sid=sid)
+    ck = await cdp.network.getCookies(sid=sid, **kw)
+    return ck if isinstance(ck, list) else ck.get('cookies', ck)
+
+def cdp_cookies(url_or_domain=None, port=9223, as_dict=False):
+    "Export cookies from the running debug Chrome. Returns Playwright-format list (for scrapling `cookies=`), or `{name: value}` if `as_dict`."
+    urls = None
+    if url_or_domain:
+        u = url_or_domain if '://' in url_or_domain else f'https://{url_or_domain}'
+        urls = [u]
+    async def _run():
+        cdp = await cdp_connect(port=port)
+        return await _get_cookies(cdp, urls)
+    raw = syncy(_run())
+    if as_dict: return {c['name']: c['value'] for c in raw}
+    keep = ('name', 'value', 'domain', 'path', 'expires', 'httpOnly', 'secure', 'sameSite')
+    out = []
+    for c in raw:
+        d = {k: c[k] for k in keep if k in c}
+        if d.get('sameSite') not in ('Strict', 'Lax', 'None'): d.pop('sameSite', None)
+        if d.get('expires', 0) in (-1, 0): d.pop('expires', None)
+        out.append(d)
+    return out
+
+# %% ../nbs/01_cdp.ipynb #1dd86ba94c1944ac
+@patch
+async def html(self:Page):
+    "Live outerHTML of the page (post-JS), as a string"
+    return await self.eval('document.documentElement.outerHTML')
+
+@patch
+async def selector(self:Page):
+    "Live page as a scrapling `Selector` for CSS/xpath querying"
+    return Selector(await self.html(), url=await self.eval('location.href'))
+
+@patch
+async def md(self:Page, sel:str=None, **kw):
+    "Live page as clean markdown via fossick's `to_md` (optionally narrowed to CSS `sel`)"
+    return to_md(await self.html(), sel=sel, **kw)
+
+# %% ../nbs/01_cdp.ipynb #f91dc2c213ff4696
+_INTERACTIVE = {'button','link','textbox','searchbox','combobox','checkbox','radio','switch',
+                'tab','menuitem','menuitemcheckbox','menuitemradio','option','slider','spinbutton',
+                'listbox','textarea'}
+_STRUCT = {'heading','main','navigation','form','dialog','alert','article'}
+_EDITABLE = {'textbox','searchbox','combobox','textarea','spinbutton'}
+
+def _ax_lines(node, interactive, keep, out):
+    role = node.role
+    show = (role in _INTERACTIVE) if interactive else (role in keep)
+    if not interactive and role in _STRUCT: show = True
+    if show and node.backend_id:
+        ps = ' '.join(f'{k}={v}' for k, v in node.props.items()
+                      if v not in (False, None, '', 'false') and k in ('checked','selected','expanded','disabled','required','value','placeholder'))
+        nm = (node.name or '')[:80]
+        out.append(f'[#{node.backend_id}] {role} "{nm}"' + (f' ({ps})' if ps else ''))
+    for c in node.children: _ax_lines(c, interactive, keep, out)
+    return out
+
+@patch
+async def snapshot(page:Page, interactive=True, keep=None):
+    "Compact, LLM-ready view of the page: one line per actionable element as `[#backend_id] role \"name\"`. IDs feed `fill_text`/`click`."
+    tree = await page.ax_tree()
+    url = await page.eval('location.href'); title = await page.eval('document.title')
+    body = '\n'.join(_ax_lines(tree, interactive, keep or (_INTERACTIVE | _STRUCT), [])) if tree else '(empty)'
+    return f'# {title}\n{url}\n\n{body}'
+
+@patch
+async def type_text(page:Page, backendNodeId, text):
+    "Clear an input then type `text` (unlike raw `fill_text`, which appends)."
+    await page.js_node_run('this.value="";this.dispatchEvent(new Event("input",{bubbles:true}))', backendNodeId)
+    await page.fill_text(backendNodeId, str(text))
+
+@patch
+async def click_settle(page:Page, backendNodeId, timeout=8):
+    "Click, then best-effort wait for the page to settle — tolerates SPA clicks that don't navigate (unlike `click_and_wait`)."
+    await page.click(backendNodeId)
+    try: await asyncio.wait_for(page.wait_for_ready(timeout=timeout), timeout+1)
+    except Exception: pass
+
+@patch
+async def fill_form(page:Page, fields:dict, submit:str=None):
+    "Fill a form by field label/name: {label: value}. Native <select> uses its option values. Optionally click `submit` (by name) and wait. Returns snapshot()."
+    tree = await page.ax_tree()
+    for label, value in fields.items():
+        node = first(n for r in _EDITABLE for n in tree.find_all(role=r) if label.lower() in (n.name or '').lower())
+        if node is None: node = tree.find(name=label)
+        if node is None or not node.backend_id: raise ValueError(f'No editable field matching {label!r}')
+        if node.role in ('combobox','listbox') and node.find_all(role='option'):
+            await page.select_option(node.backend_id, value)
+        else:
+            await page.type_text(node.backend_id, value)
+    if submit:
+        tree = await page.ax_tree()
+        bid = tree.find_id(role='button', name=submit) or tree.find_id(role='link', name=submit)
+        if bid is None: raise ValueError(f'No button/link matching {submit!r}')
+        await page.click_settle(bid)
+    return await page.snapshot()
+
+# %% ../nbs/01_cdp.ipynb #ace1b843a9f64580
+def ax_diff(before:str, after:str) -> str:
+    "Line diff between two `snapshot()`s (ignoring backend ids, which churn on navigation) — what an action changed."
+    import difflib
+    strip = lambda s: [re.sub(r'^\[#\d+\]\s*', '', l) for l in s.splitlines()]
+    d = [l for l in difflib.unified_diff(strip(before), strip(after), lineterm='', n=0)
+         if l and l[0] in '+-' and not l.startswith(('+++','---'))]
+    return '\n'.join(d) or '(no change)'
+
+@patch
+async def node_for(page:Page, sel:str):
+    "backendNodeId of the first element matching CSS `sel` (bridge scrapling/CSS knowledge to CDP actions)."
+    doc = await page.DOM.getDocument(depth=0)
+    root = doc['root']['nodeId'] if isinstance(doc, dict) and 'root' in doc else doc['nodeId']
+    nid = await page.DOM.querySelector(nodeId=root, selector=sel)
+    if not nid: return None
+    return (await page.DOM.describeNode(nodeId=nid))['backendNodeId']
+
+@patch
+async def click_sel(page:Page, sel:str, wait=True):
+    "Click the element matching CSS `sel`."
+    bid = await page.node_for(sel)
+    if bid is None: raise ValueError(f'No element matching {sel!r}')
+    await (page.click_and_wait(bid) if wait else page.click(bid))
+
+@patch
+async def fill_sel(page:Page, sel:str, text:str):
+    "Clear and type `text` into the element matching CSS `sel`."
+    bid = await page.node_for(sel)
+    if bid is None: raise ValueError(f'No element matching {sel!r}')
+    await page.type_text(bid, text)
+
+# %% ../nbs/01_cdp.ipynb #bfcef09881584a93
+@patch
+async def act(page:Page, steps:list):
+    "Run a declarative flow; returns {read_label_or_index: markdown} for every ('read', sel) step. Re-reads the ax tree after nav.\n\nSteps: ('goto',url) ('fill',label,val) ('click',label) ('select',label,val) ('wait',text) ('wait_sel',css) ('read',css[,label])."
+    reads, tree = {}, None
+    async def _tree():
+        nonlocal tree; tree = await page.ax_tree(); return tree
+    for step in steps:
+        op = step[0]
+        if op == 'goto': await page.goto(step[1]); tree = None
+        elif op == 'fill':
+            if tree is None: await _tree()
+            bid = first(n.backend_id for r in _EDITABLE for n in tree.find_all(role=r) if step[1].lower() in (n.name or '').lower())
+            bid = bid or tree.find_id(name=step[1])
+            await page.type_text(bid, step[2])
+        elif op == 'click':
+            if tree is None: await _tree()
+            bid = tree.find_id(role='button', name=step[1]) or tree.find_id(role='link', name=step[1]) or tree.find_id(name=step[1])
+            await page.click_settle(bid); tree = None
+        elif op == 'select':
+            if tree is None: await _tree()
+            await page.select_option(tree.find_id(name=step[1]), step[2])
+        elif op == 'wait': await page.wait_for_text(step[1])
+        elif op == 'wait_sel': await page.wait_for_selector(step[1])
+        elif op == 'read':
+            label = step[2] if len(step) > 2 else step[1]
+            reads[label] = await page.md(sel=step[1])
+        else: raise ValueError(f'Unknown step op: {op!r}')
+    return reads
 
 # %% ../nbs/01_cdp.ipynb #17a77972670d74e8
 BUTTON_JS = r'''

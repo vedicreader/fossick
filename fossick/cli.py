@@ -7,7 +7,7 @@ Docs: https://vedicreader.github.io/fossick/cli.html.md"""
 # %% auto #0
 __all__ = ['CMDS', 'fetch', 'crawl', 'search', 'read_arxiv', 'lookup_doi', 'read_yt', 'search_yt', 'read_gh_file', 'read_gh_repo',
            'calls', 'find_xhr', 'paginate_api', 'collect', 'annotate', 'install', 'url2nb', 'pdf2nb', 'download_yt',
-           'images', 'news', 'videos', 'main']
+           'images', 'news', 'videos', 'research', 'ax', 'main']
 
 # %% ../nbs/03_cli.ipynb #d4e5f6a7
 """CLI for fossick — fetch, search, and read commands for LLM agents.
@@ -31,11 +31,13 @@ def fetch(
     sel:str=None,         # CSS selector to extract (None = full page)
     heavy:bool=False,     # JS rendering via headless browser
     stealthy:bool=False,  # Anti-bot stealth fetcher
+    session:bool=False,   # Route through the persistent debug Chrome (reuses its logged-in cookies)
+    auto:bool=False,      # Auto-escalate plain->heavy->stealthy->session on bot-block detection
     as_json:bool=False,   # Output JSON instead of markdown
 ):
     "Fetch a URL and print as markdown."
-    page = _fetch(url, sel=sel, heavy=heavy, stealthy=stealthy)
-    if as_json: print(json.dumps({'url': page['url'], 'status': page['status'], 'content': to_md(page)}))
+    page = _fetch(url, sel=sel, heavy=heavy, stealthy=stealthy, session=session, auto=auto)
+    if as_json: print(json.dumps({'url': page['url'], 'status': page['status'], 'tier': getattr(page,'tier',None), 'content': to_md(page)}))
     else: print(to_md(page))
 
 # %% ../nbs/03_cli.ipynb #4be7f5f8
@@ -343,10 +345,41 @@ def videos(query:str, n:int=20, region:str='us-en', as_json:bool=False):
     else:
         for r in results: print(f"{r.get('title','')}\n  {r.get('content','')}")
 
+# %% ../nbs/03_cli.ipynb #58d02882be2f4db8
+@call_parse
+def research(
+    query:str,            # search query
+    n:int=5,              # number of top results to read
+    google:bool=False,    # use direct Google ranking (stealth browser) instead of ddgs metasearch
+    sel:str=None,         # CSS selector to narrow each page before markdown
+    chars:int=4000,       # max markdown chars per source
+    as_json:bool=False,   # output JSON
+):
+    "Search, then read the top results into one cited markdown corpus."
+    res = _research(query, n=n, engine='google' if google else 'search', sel=sel, chars=chars)
+    if as_json: print(json.dumps(res, default=str)); return
+    print(f"# Research: {res['query']}\n")
+    print(res['digest'])
+
+@call_parse
+def ax(
+    url:str,              # URL to open in the debug Chrome
+    port:int=9223,        # debug Chrome remote-debugging port
+    full:bool=False,      # show the full accessibility tree instead of interactive-only
+):
+    "Open a URL in the persistent debug Chrome and print a compact, agent-ready accessibility snapshot."
+    from fossick.cdp import cdp_connect, syncy
+    async def _run():
+        cdp = await cdp_connect(port=port)
+        pg = await cdp.open_page(url)
+        return await pg.snapshot(interactive=not full)
+    print(syncy(_run()))
+
 # %% ../nbs/03_cli.ipynb #e1f2a3b4
 CMDS = {
     'fetch':        fetch,
     'search':       search,
+    'research':     research,
     'images':       images,
     'news':         news,
     'videos':       videos,
@@ -365,6 +398,7 @@ CMDS = {
     'paginate-api': paginate_api,
     'collect':      collect,
     'annotate':     annotate,
+    'ax':           ax,
     'install':      install,
 }
 
