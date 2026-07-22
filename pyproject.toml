@@ -30,12 +30,16 @@ dependencies = [
     "yt-dlp>=2026.3.17",
 ]
 
+[project.optional-dependencies]
+mcp = ["mcp>=1.2.0"]
+
 [project.urls]
 Repository = "https://github.com/vedicreader/fossick"
 Documentation = "https://vedicreader.github.io/fossick/"
 
 [project.scripts]
 fossick = "fossick.cli:main"
+fossick-mcp = "fossick.mcp:main"
 
 [project.entry-points.nbdev]
 fossick = "fossick._modidx:d"
@@ -59,6 +63,7 @@ include = [
 dev = [
     "ipykernel>=7.3.0",
     "koshas>=0.0.9",
+    "mcp>=1.2.0",
     "nbdev>=3.0.12",
     "notebook>=7.5.5",
 ]
