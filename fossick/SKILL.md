@@ -149,7 +149,7 @@ fossick install                                 # register SKILL.md + safecmd al
 
 - `search()`/`images()`/`news()` use ddgs — no Docker, no setup. Direct Google is IP-blocked for plain HTTP, so `google()` uses the stealth browser (slow) for real Google ranking.
 - `heavy`/`stealthy`/CDP need Chrome (~10s cold start); `stealthy` is slowest — only when a site actively blocks.
-- `session=True` / `find_xhr(session=True)` / `ax` drive a persistent debug Chrome (port 9223). Log in once (headful `cdp_connect(headless=False)`); cookies persist across runs. Root/containers auto-add `--no-sandbox`.
+- `session=True` / `find_xhr(session=True)` / `ax` drive a persistent debug Chrome (port 9223), launched **headless** on first use; cookies persist across runs. To log in by hand you need it **headed**, but `headless=` only takes effect at launch — so if a headless one is already running, quit it first, then relaunch: `syncy(cdp.quit()); syncy(cdp_setup(9223, headless=False))` (see *Managing the debug Chrome* in the cdp docs). Root/containers auto-add `--no-sandbox`.
 - `snapshot()` beats dumping `ax_tree()` for agents — interactive-only and re-read each call; `fill_form`/`act` take labels, not node IDs.
 - Always pass `sel=` to `to_md`/`fetch`/`crawl` — otherwise you get nav/ads.
 - `read_arxiv()['source']` is 30-100k chars — slice: `paper['source'][:8000]`.

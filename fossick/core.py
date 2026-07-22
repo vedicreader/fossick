@@ -111,8 +111,10 @@ http_get = bind(get_page, method='GET', verify=True, timeout=30)
 http_post = bind(get_page, method='POST', timeout=30)
 
 # %% ../nbs/00_core.ipynb #02355c8f
-_BLOCK_MARKERS = ('cf-chl', 'just a moment', 'attention required', 'captcha',
-                  'checking your browser', 'cf-browser-verification', 'access denied', 'enable javascript')
+_BLOCK_MARKERS = ('cf-chl', 'just a moment', 'attention required', 'checking your browser',
+                  'cf-browser-verification', 'cf-turnstile', 'access denied', 'enable javascript',
+                  'g-recaptcha', 'h-captcha', 'captcha-delivery',   # captcha *widgets*, not the bare word 'captcha'
+                  "making sure you're not a bot", 'id="anubis')     # Anubis proof-of-work wall
 
 def _blocked(page) -> bool:
     "Heuristic: did this response hit a bot wall / challenge page (so we should escalate)?"
@@ -174,12 +176,17 @@ def fetch(url:str,                # URL to fetch
 @contextmanager
 def browser_session(stealthy:bool=False, headless:bool=True, **init_kw):
     "Open ONE browser and yield a `fetch(url, sel=None, **)` func that reuses it across calls (skips per-URL relaunch)."
-    from scrapling.fetchers import DynamicSession, StealthySession
+    from scrapling.fetchers import AsyncDynamicSession, AsyncStealthySession
+    from fossick.cdp import syncy  # drive the async session on the one persistent background loop
     init_kw.pop('verify', None)
-    Sess = StealthySession if stealthy else DynamicSession
-    with Sess(headless=headless, **init_kw) as s:
-        def _f(u, sel=None, **fkw): return _finish(s.fetch(u, **fkw), sel)
+    Sess = AsyncStealthySession if stealthy else AsyncDynamicSession
+    s = Sess(headless=headless, **init_kw)
+    syncy(s.__aenter__())
+    try:
+        def _f(u, sel=None, **fkw): return _finish(syncy(s.fetch(u, **fkw)), sel)
         yield _f
+    finally: syncy(s.__aexit__(None, None, None))
+
 
 # %% ../nbs/00_core.ipynb #4eb76a6d
 def crawl(start_url:str,               # URL to start from

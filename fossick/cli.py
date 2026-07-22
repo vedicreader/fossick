@@ -21,7 +21,8 @@ from .core import (fetch as _fetch, to_md, read_arxiv as _read_arxiv,
                           crawl as _crawl, find_xhr as _find_xhr, paginate_api as _paginate_api,
                           read_gh_repo as _read_gh_repo, read_gh_file as _read_gh_file,
                           lookup_doi as _lookup_doi, mv_skill_md, repo_root)
-from .search import search as _search, images as _images, news as _news, videos as _videos, google as _google
+from .search import (search as _search, images as _images, news as _news,
+                            videos as _videos, google as _google, research as _research)
 
 
 # %% ../nbs/03_cli.ipynb #e5f6a7b8
