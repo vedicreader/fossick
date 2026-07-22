@@ -10,9 +10,9 @@ __all__ = ['mcp', 'web_search', 'research', 'lookup_doi', 'fetch_page', 'fetch_p
            'pdf_to_notebook', 'find_hidden_apis', 'replay_capture', 'paginate_api', 'browse', 'page_snapshot',
            'page_fill_form', 'page_act', 'page_markdown', 'capture_network', 'main']
 
-# %% ../nbs/04_mcp.ipynb #02ae62e1
+# %% ../nbs/04_mcp.ipynb #7d97c5fe
 """MCP server for fossick — search, fetch, read, hidden-API, and browser tools over stdio.
-Run with `fossick-mcp` (needs the `mcp` extra: `uv add 'fossick[mcp]'`).
+Run with `fossick-mcp` (the `mcp` package ships with fossick).
 
 Docs: https://vedicreader.github.io/fossick/mcp.html.md"""
 
@@ -27,10 +27,10 @@ from .search import search as _search, google as _google, research as _research
 
 try: from mcp.server.fastmcp import FastMCP
 except ImportError as e:
-    raise ImportError("fossick-mcp needs the optional `mcp` dependency — "
-                      "install with `uv add 'fossick[mcp]'` or `pip install 'fossick[mcp]'`") from e
+    raise ImportError("fossick-mcp needs the `mcp` package — reinstall fossick "
+                      "with `uv add fossick` or `pip install fossick`") from e
 
-# %% ../nbs/04_mcp.ipynb #ff9689e5
+# %% ../nbs/04_mcp.ipynb #e0efdabf
 mcp = FastMCP('fossick', instructions=(
     'Web toolkit. web_search/research for queries; fetch_page for URLs (heavy=JS, stealthy=anti-bot, '
     'session=logged-in Chrome, auto=escalate until not bot-blocked); read_arxiv/read_youtube/read_github_* '
@@ -49,7 +49,7 @@ def _jsonable(o):
     if hasattr(o, '__iter__'): return [_jsonable(x) for x in o]
     return str(o)
 
-# %% ../nbs/04_mcp.ipynb #6f2e6617
+# %% ../nbs/04_mcp.ipynb #140ccc86
 @mcp.tool()
 def web_search(query:str, n:int=10, category:str='text', region:str='us-en', google:bool=False) -> list:
     "Search the web via ddgs metasearch (no API key). category: text|images|news|videos|books. google=True gives real Google ranking via a stealth browser (slow — only when you need Google)."
@@ -66,7 +66,7 @@ def lookup_doi(title:str) -> str:
     "Return the doi.org URL for the first Crossref match on a paper title."
     return _lookup_doi(title) or "not found"
 
-# %% ../nbs/04_mcp.ipynb #b264535b
+# %% ../nbs/04_mcp.ipynb #e17bbad9
 @mcp.tool()
 def fetch_page(url:str, sel:str|None=None, heavy:bool=False, stealthy:bool=False, session:bool=False,
                auto:bool=False, max_chars:int=8000) -> dict:
@@ -90,7 +90,7 @@ def crawl_site(url:str, sel:str|None=None, follow_sel:str='a[href]', max_pages:i
     return [{'url': p['url'], 'status': p['status'], 'markdown': _trunc(to_md(p, sel=sel), max_chars)}
             for p in pages]
 
-# %% ../nbs/04_mcp.ipynb #2ab76abf
+# %% ../nbs/04_mcp.ipynb #1146a675
 @mcp.tool()
 def read_arxiv(url:str, include_source:bool=False, chars:int=8000, save_dir:str='.') -> dict:
     "arXiv paper (ID or any arXiv URL) -> {title, authors, published, summary, pdf_path}. include_source adds the full text (30-100k chars total — raise chars only when needed)."
@@ -137,7 +137,7 @@ def pdf_to_notebook(src:str, path:str|None=None, ocr:str='auto') -> str:
     "Convert a PDF (URL or local path) to a notebook — one markdown cell per page. ocr: auto|on|off."
     return str(_pdf2nb(src, nb_path=path, ocr_selection=ocr))
 
-# %% ../nbs/04_mcp.ipynb #80aadff9
+# %% ../nbs/04_mcp.ipynb #effa9ab5
 _captures = []   # replayable request captures from the last find_hidden_apis/capture_network call
 
 def _stash(caps):
@@ -173,7 +173,7 @@ def paginate_api(url:str, payload:dict|None=None, page_field:str='pageNumber', s
                           results_field=results_field, method=method, max_pages=max_pages, page_start=page_start)
     return _jsonable(items[:max_items])
 
-# %% ../nbs/04_mcp.ipynb #c8fcc049
+# %% ../nbs/04_mcp.ipynb #55612593
 _browser = {'page': None}   # current debug-Chrome page driven by browse/page_* tools
 
 def _page():
@@ -228,7 +228,7 @@ def capture_network(url:str, pattern:str='.*', tail:int=3, port:int=9223, previe
              'response_preview': _trunc(str(r.get('response_body') or ''), preview_chars)}
             for i, r in enumerate(vals)]
 
-# %% ../nbs/04_mcp.ipynb #2c2b82b3
+# %% ../nbs/04_mcp.ipynb #2adadd9f
 def main():
     "Entry point for the `fossick-mcp` console script. stdio by default; pass --http for Streamable HTTP."
     mcp.run(transport='streamable-http' if '--http' in sys.argv[1:] else 'stdio')

@@ -398,19 +398,18 @@ if _debug_running(9223):                       # a headless instance may already
 syncy(cdp_setup(9223, headless=False))         # headed: log in by hand, then use session=True
 ```
 
-
 ## MCP server
 
-`fossick-mcp` exposes the whole toolkit over the Model Context Protocol, so Claude Code, Claude Desktop, Codex, and any other MCP client can drive fossick directly — search, fetch, readers, hidden-API discovery, and the logged-in debug Chrome (`browse` / `page_*` tools).
+`fossick-mcp` exposes the whole toolkit over the Model Context Protocol, so Claude Code, Claude Desktop, Codex, and any other MCP client can drive fossick directly — search, fetch, readers, hidden-API discovery, and the logged-in debug Chrome ([`browse`](https://vedicreader.github.io/fossick/mcp.html#browse) / `page_*` tools).
 
 ``` sh
-uv add 'fossick[mcp]'        # or: pip install 'fossick[mcp]'
+uv add 'fossick'        # or: pip install 'fossick'
 ```
 
 **Claude Code**
 
 ``` sh
-claude mcp add fossick -- uvx --from 'fossick[mcp]' fossick-mcp
+claude mcp add fossick -- uvx --from 'fossick' fossick-mcp
 ```
 
 **Codex** (`~/.codex/config.toml`)
@@ -418,13 +417,13 @@ claude mcp add fossick -- uvx --from 'fossick[mcp]' fossick-mcp
 ``` toml
 [mcp_servers.fossick]
 command = "uvx"
-args = ["--from", "fossick[mcp]", "fossick-mcp"]
+args = ["--from", "fossick", "fossick-mcp"]
 ```
 
 **Claude Desktop** (`claude_desktop_config.json`)
 
 ``` json
-{"mcpServers": {"fossick": {"command": "uvx", "args": ["--from", "fossick[mcp]", "fossick-mcp"]}}}
+{"mcpServers": {"fossick": {"command": "uvx", "args": ["--from", "fossick", "fossick-mcp"]}}}
 ```
 
 The server speaks stdio by default (`fossick-mcp --http` for Streamable HTTP). Tools mirror the Python/CLI API — see the [mcp docs](https://vedicreader.github.io/fossick/mcp.html) for the full list.

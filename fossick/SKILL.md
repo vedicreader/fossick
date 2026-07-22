@@ -145,6 +145,16 @@ fossick annotate <url> [--save_dir .]
 fossick install                                 # register SKILL.md + safecmd allowlist
 ```
 
+## MCP server
+
+`fossick-mcp` exposes the whole toolkit over the Model Context Protocol — every Python/CLI function is an MCP tool, so any MCP client (Claude Code, Claude Desktop, Codex) can drive fossick. The `mcp` package ships with fossick, so a plain install is all you need.
+
+```sh
+claude mcp add fossick -- uvx --from fossick fossick-mcp   # Claude Code; uv run fossick-mcp if already a project dep
+```
+
+Tools mirror the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl_site`, `read_arxiv`/`read_youtube`/`search_youtube`/`download_youtube`/`read_github_file`/`read_github_repo`, `url_to_notebook`/`pdf_to_notebook`, `find_hidden_apis`/`replay_capture`/`paginate_api`, and `browse`/`page_snapshot`/`page_fill_form`/`page_act`/`page_markdown`/`capture_network` for the persistent logged-in debug Chrome. stdio by default; `fossick-mcp --http` for Streamable HTTP.
+
 ## Gotchas
 
 - `search()`/`images()`/`news()` use ddgs — no Docker, no setup. Direct Google is IP-blocked for plain HTTP, so `google()` uses the stealth browser (slow) for real Google ranking.
