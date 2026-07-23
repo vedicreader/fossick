@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="web search, fetch, crawl, and browser automation for Python and AI agents">
+
+<title>fossick</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-61796a25695e3e25c1376d6769e8e901.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="fossick">
+<meta property="og:description" content="web search, fetch, crawl, and browser automation for Python and AI agents">
+<meta property="og:site_name" content="fossick">
+<meta name="twitter:title" content="fossick">
+<meta name="twitter:description" content="web search, fetch, crawl, and browser automation for Python and AI agents">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fossick</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">fossick</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">fossick</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cdp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">CDP — network sniffing and replay</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./search.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">search</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">cli</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./mcp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">mcp</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#install" id="toc-install" class="nav-link active" data-scroll-target="#install">Install</a></li>
+  <li><a href="#search" id="toc-search" class="nav-link" data-scroll-target="#search">Search</a></li>
+  <li><a href="#fetch-and-read" id="toc-fetch-and-read" class="nav-link" data-scroll-target="#fetch-and-read">Fetch and read</a></li>
+  <li><a href="#discover-hidden-apis" id="toc-discover-hidden-apis" class="nav-link" data-scroll-target="#discover-hidden-apis">Discover hidden APIs</a></li>
+  <li><a href="#browser-automation" id="toc-browser-automation" class="nav-link" data-scroll-target="#browser-automation">Browser automation</a></li>
+  <li><a href="#setup-the-persistent-debug-chrome" id="toc-setup-the-persistent-debug-chrome" class="nav-link" data-scroll-target="#setup-the-persistent-debug-chrome">Setup — the persistent debug Chrome</a></li>
+  <li><a href="#cli" id="toc-cli" class="nav-link" data-scroll-target="#cli">CLI</a></li>
+  <li><a href="#mcp-server" id="toc-mcp-server" class="nav-link" data-scroll-target="#mcp-server">MCP server</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.html.md"><i class="bi bi-file-code"></i>Markdown</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">fossick</h1>
+</div>
+
+<div>
+  <div class="description">
+    web search, fetch, crawl, and browser automation for Python and AI agents
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>fossick covers the web-interaction stack that keeps coming up in Python and agent workflows: private local search, reading any page from a static blog to a JS-heavy SPA behind bot detection, and direct Chrome automation for authenticated sites, form filling, and multi-step flows.</p>
+<p>The modules compose naturally. <a href="https://vedicreader.github.io/fossick/cli.html#search"><code>search()</code></a> finds URLs; <a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch()</code></a> reads them — handling JavaScript rendering and anti-bot evasion automatically. For YouTube, arXiv papers, or GitHub repos, dedicated readers return structured data. When the page requires a real login session or interactive interaction, <a href="https://vedicreader.github.io/fossick/cdp.html#cdp_connect"><code>cdp_connect()</code></a> attaches to a running Chrome browser: <code>pg.snapshot()</code> hands an agent a compact map of the page and <code>pg.fill_form()</code> / <code>pg.act()</code> drive it.</p>
+<section id="install" class="level2">
+<h2 class="anchored" data-anchor-id="install">Install</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add fossick</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Text/image/news search work out of the box (no Docker). JS rendering, <code>stealthy</code> fetching, and <a href="https://vedicreader.github.io/fossick/search.html#google"><code>google()</code></a> use a bundled headless browser.</p>
+</section>
+<section id="search" class="level2">
+<h2 class="anchored" data-anchor-id="search">Search</h2>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#search"><code>search()</code></a> runs a metasearch through <a href="https://github.com/deedy5/ddgs"><code>ddgs</code></a>, aggregating many backends (Bing, Brave, DuckDuckGo, Startpage, Mojeek, Wikipedia, …) — no API key, no Docker. <a href="https://vedicreader.github.io/fossick/cli.html#images"><code>images()</code></a>, <a href="https://vedicreader.github.io/fossick/cli.html#news"><code>news()</code></a>, and <a href="https://vedicreader.github.io/fossick/cli.html#videos"><code>videos()</code></a> return the corresponding media.</p>
+<p>For real Google ranking when you specifically need it, <a href="https://vedicreader.github.io/fossick/search.html#google"><code>google()</code></a> uses a stealth browser to bypass the JavaScript/bot wall that blocks plain-HTTP scraping. Every result is a plain dict, and all functions share a local TTL cache so repeated queries return instantly.</p>
+<div id="4b87d63f" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> search(<span class="st">'fasthtml python web framework'</span>, n<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> results: <span class="bu">print</span>(r[<span class="st">'title'</span>], r[<span class="st">'href'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="fetch-and-read" class="level2">
+<h2 class="anchored" data-anchor-id="fetch-and-read">Fetch and read</h2>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch()</code></a> returns a page dict with the raw HTML, parsed JSON if the response was JSON, and any XHR calls the page made. <a href="https://vedicreader.github.io/fossick/core.html#to_md"><code>to_md()</code></a> converts HTML to clean markdown, optionally narrowing to a CSS selector first. Pass <code>heavy=True</code> for JavaScript-rendered pages or <code>stealthy=True</code> for sites with anti-bot detection.</p>
+<p>fossick also pulls transcripts and metadata from YouTube, papers and PDFs from arXiv, and files from GitHub repos.</p>
+<p>Pass <code>auto=True</code> to let <a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch()</code></a> escalate on its own — plain HTTP first, then a headless browser, then the stealth fetcher, then the logged-in debug Chrome — stopping at the first response that isn’t a bot wall (the winning tier is on <code>page.tier</code>). Pass <code>session=True</code> to route the fetch through your persistent debug Chrome so it reuses that browser’s logged-in cookies — read authenticated pages with no login code.</p>
+<div id="9149a2c0" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># extract just the lead paragraphs — no nav, ads, or sidebars</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>page <span class="op">=</span> fetch(<span class="st">'https://en.wikipedia.org/wiki/Web_scraping'</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(to_md(page, sel<span class="op">=</span><span class="st">'.mw-parser-output &gt; p'</span>)[:<span class="dv">400</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[2026-06-22 20:32:21] INFO: Fetched (200) &lt;GET https://en.wikipedia.org/wiki/Web_scraping&gt; (referer: https://www.google.com/)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code></code></pre>
+</div>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#crawl"><code>crawl()</code></a> follows links from a start URL, returning a list of Page dicts — useful for documentation sites, blogs, and any multi-page content.</p>
+<div id="e902165c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>pages <span class="op">=</span> crawl(<span class="st">'https://docs.python.org/3/library/functions.html'</span>,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>              follow_sel<span class="op">=</span><span class="st">'a.reference.internal'</span>, same_domain<span class="op">=</span><span class="va">True</span>, max_pages<span class="op">=</span><span class="dv">3</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span><span class="bu">len</span>(pages)<span class="sc">}</span><span class="ss"> pages crawled'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[2026-06-22 20:32:23] INFO: Fetched (200) &lt;GET https://docs.python.org/3/library/functions.html&gt; (referer: https://www.google.com/)
+[2026-06-22 20:32:23] INFO: Fetched (200) &lt;GET https://docs.python.org/3/reference/datamodel.html#object.__abs__&gt; (referer: https://www.google.com/)
+[2026-06-22 20:32:23] INFO: Fetched (200) &lt;GET https://docs.python.org/3/glossary.html#term-asynchronous-iterator&gt; (referer: https://www.google.com/)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>3 pages crawled</code></pre>
+</div>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/core.html#fetch_all"><code>fetch_all()</code></a> fetches multiple URLs in parallel — faster than sequential <a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch()</code></a> calls.</p>
+<div id="1eb7c7a9" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>urls <span class="op">=</span> [<span class="st">'https://httpbin.org/get'</span>, <span class="st">'https://httpbin.org/status/200'</span>, <span class="st">'https://httpbin.org/json'</span>]</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>pages <span class="op">=</span> fetch_all(urls, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>([p.status <span class="cf">for</span> p <span class="kw">in</span> pages])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[2026-06-22 20:32:26] INFO: Fetched (503) &lt;GET https://httpbin.org/json&gt; (referer: https://www.google.com/)
+[2026-06-22 20:32:26] INFO: Fetched (503) &lt;GET https://httpbin.org/get&gt; (referer: https://www.google.com/)
+[2026-06-22 20:32:26] INFO: Fetched (503) &lt;GET https://httpbin.org/status/200&gt; (referer: https://www.google.com/)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[503, 503, 503]</code></pre>
+</div>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#research"><code>research()</code></a> closes the loop from question to answer: it searches, reads the top results in parallel (auto-escalating past bot walls), and returns one cited markdown corpus — <code>{query, sources, digest}</code> — ready to hand to an LLM.</p>
+<div id="08fd13c2beed40a5" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>notes <span class="op">=</span> research(<span class="st">'retrieval augmented generation best practices'</span>, n<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(notes[<span class="st">'digest'</span>][:<span class="dv">500</span>])          <span class="co"># cited markdown, one ## section per source</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>([s[<span class="st">'href'</span>] <span class="cf">for</span> s <span class="kw">in</span> notes[<span class="st">'sources'</span>]])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#read_arxiv"><code>read_arxiv()</code></a> fetches paper metadata and converts the full PDF to markdown. Pass an arxiv ID, abstract URL, or PDF URL. The PDF is saved to <code>save_dir</code>; results are cached in-process.</p>
+<div id="85992ec5" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>paper <span class="op">=</span> read_arxiv(<span class="st">'2306.14881'</span>, save_dir<span class="op">=</span><span class="st">'.'</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(paper[<span class="st">'title'</span>])</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(paper[<span class="st">'summary'</span>][:<span class="dv">400</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Modeling the molecular gas content and CO-to-H2 conversion factors in low-metallicity star-forming dwarf galaxies
+
+Low-metallicity dwarf galaxies often show no or little CO emission, despite the intense star formation observed in local samples. Both simulations and resolved observations indicate that molecular gas in low-metallicity galaxies may reside in small dense clumps, surrounded by a substantial amount of more diffuse gas, not traced by CO. Constraining the relative importance of CO-bright versus CO-dar</code></pre>
+</div>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#read_gh_repo"><code>read_gh_repo()</code></a> clones or fetches a GitHub repo and returns <code>{path: content}</code> for matched files. <a href="https://vedicreader.github.io/fossick/cli.html#read_gh_file"><code>read_gh_file()</code></a> reads a single file from a GitHub blob URL.</p>
+<div id="df162d0b" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>files <span class="op">=</span> read_gh_repo(<span class="st">'https://github.com/vedicreader/kosha'</span>, globs<span class="op">=</span>(<span class="st">'README*'</span>,))</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> path, content <span class="kw">in</span> files.items():</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(path.split(<span class="st">'/'</span>)[<span class="op">-</span><span class="dv">1</span>], <span class="ss">f'(</span><span class="sc">{</span><span class="bu">len</span>(content)<span class="sc">}</span><span class="ss"> chars)'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>README.md (164718 chars)</code></pre>
+</div>
+</div>
+<div id="4bd6901e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> read_gh_file(<span class="st">'https://github.com/vedicreader/kosha/blob/main/pyproject.toml'</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(txt[:<span class="dv">300</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "koshas"
+dynamic = ["version"]
+description = "kosha (कोश) — a treasury of your repo and environment context for coding agents. FTS5 + vector search + call graph, no LLMs required."
+readme = "README.md"
+requir</code></pre>
+</div>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#search_yt"><code>search_yt()</code></a> searches YouTube and returns metadata for each result. <a href="https://vedicreader.github.io/fossick/cli.html#read_yt"><code>read_yt()</code></a> fetches the full English transcript and metadata for a known video URL.</p>
+<div id="20166bd4" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>hits <span class="op">=</span> search_yt(<span class="st">'3blue1brown neural networks'</span>, n<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> h <span class="kw">in</span> hits: <span class="bu">print</span>(h[<span class="st">'title'</span>], <span class="st">'</span><span class="ch">\n</span><span class="st">  '</span>, h[<span class="st">'url'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>But what is a neural network? | Deep learning chapter 1 
+   https://www.youtube.com/watch?v=aircAruvnKk
+Gradient descent, how neural networks learn | Deep Learning Chapter 2 
+   https://www.youtube.com/watch?v=IHZwWFHWa-w
+Backpropagation, intuitively | Deep Learning Chapter 3 
+   https://www.youtube.com/watch?v=Ilg3gGewQ5U</code></pre>
+</div>
+</div>
+<div id="f8e39f74" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>video <span class="op">=</span> read_yt(<span class="st">'https://www.youtube.com/watch?v=aircAruvnKk'</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(video[<span class="st">'title'</span>])</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(video[<span class="st">'source'</span>][:<span class="dv">300</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>But what is a neural network? | Deep learning chapter 1
+[Music] This is a three. It's sloppily written and rendered at an extremely low resolution of 28x 28 pixels. But your brain has no trouble recognizing it as a three. And I want you to take a moment to appreciate how crazy it is that brains can do this so effortlessly. I mean this, this, and this are</code></pre>
+</div>
+</div>
+<div id="1e99dbea" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> download_yt(<span class="st">'https://www.youtube.com/watch?v=aircAruvnKk'</span>,</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>                   <span class="bu">format</span><span class="op">=</span><span class="st">'audio'</span>, save_dir<span class="op">=</span><span class="st">'.'</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(path)  <span class="co"># Path('But what is a neural network.mp3')</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>WARNING: [youtube] [jsc] Remote components challenge solver script (deno) and NPM package (deno) were skipped. These may be required to solve JS challenges. You can enable these downloads with  --remote-components ejs:github  (recommended) or  --remote-components ejs:npm , respectively. For more information and alternatives, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
+WARNING: [youtube] aircAruvnKk: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                                       
+   But what is a neural network？ ｜ Deep learning chapter 1.mp3</code></pre>
+</div>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#url2nb"><code>url2nb()</code></a> converts any URL — HTML page, arXiv paper, or PDF — to a Jupyter notebook. <a href="https://vedicreader.github.io/fossick/cli.html#pdf2nb"><code>pdf2nb()</code></a> converts a PDF (local path or URL) to a notebook where each page becomes a markdown cell with an empty code cell below for annotations.</p>
+<div id="bf60b5fa" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>nb <span class="op">=</span> url2nb(<span class="st">'https://squiddev.medium.com/continuing-continuations-cps-in-python-47bba90c8d1e'</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(nb)   <span class="co"># Path('continuing-continuations-cps-in-python-47bba90c8d1e.ipynb')</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[2026-06-22 20:37:55] INFO: Fetched (200) &lt;GET https://squiddev.medium.com/continuing-continuations-cps-in-python-47bba90c8d1e&gt; (referer: https://www.google.com/)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>continuing-continuations-cps-in-python-47bba90c8d1.ipynb</code></pre>
+</div>
+</div>
+<div id="f078265d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>nb <span class="op">=</span> pdf2nb(<span class="st">'https://selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf'</span>, <span class="st">'sdt.ipynb'</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(nb)   <span class="co"># Path('/path/to/sdt.ipynb')</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[2026-06-22 20:37:57] INFO: Fetched (200) &lt;GET https://selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf&gt; (referer: https://www.google.com/)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>/Users/71293/code/personal/orgs/fossick/nbs/sdt.ipynb</code></pre>
+</div>
+</div>
+</section>
+<section id="discover-hidden-apis" class="level2">
+<h2 class="anchored" data-anchor-id="discover-hidden-apis">Discover hidden APIs</h2>
+<p>Most modern sites serve their data through undocumented JSON APIs rather than HTML. <a href="https://vedicreader.github.io/fossick/cli.html#find_xhr"><code>find_xhr()</code></a> visits a page with a headless browser and captures every network call the browser makes. <a href="https://vedicreader.github.io/fossick/cli.html#paginate_api"><code>paginate_api()</code></a> replays the request across all pages and collects the results.</p>
+<p>For sites behind a login, pass <code>find_xhr(url, session=True)</code> to capture the calls through your authenticated debug Chrome. Each result carries a <code>capture</code> you can hand to <a href="https://vedicreader.github.io/fossick/core.html#replay_xhr"><code>replay_xhr()</code></a>, which re-issues the request as a fast plain-HTTP call — reusing the browser’s cookies — turning any logged-in site’s internal API into a data feed.</p>
+<div id="78df51bb" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>posts <span class="op">=</span> paginate_api(</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'https://jsonplaceholder.typicode.com/posts'</span>,</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    payload<span class="op">=</span>{<span class="st">'_page'</span>: <span class="dv">1</span>, <span class="st">'_limit'</span>: <span class="dv">10</span>},</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    page_field<span class="op">=</span><span class="st">'_page'</span>,</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    size_field<span class="op">=</span><span class="st">'_limit'</span>,</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    method<span class="op">=</span><span class="st">'GET'</span>,</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span><span class="bu">len</span>(posts)<span class="sc">}</span><span class="ss"> posts collected'</span>)</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(posts[<span class="dv">0</span>][<span class="st">'title'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=1&amp;_limit=10&gt; (referer: https://www.google.com/)
+[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=2&amp;_limit=10&gt; (referer: https://www.google.com/)
+[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=3&amp;_limit=10&gt; (referer: https://www.google.com/)
+[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=4&amp;_limit=10&gt; (referer: https://www.google.com/)
+[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=5&amp;_limit=10&gt; (referer: https://www.google.com/)
+[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=6&amp;_limit=10&gt; (referer: https://www.google.com/)
+[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=7&amp;_limit=10&gt; (referer: https://www.google.com/)
+[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=8&amp;_limit=10&gt; (referer: https://www.google.com/)
+[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=9&amp;_limit=10&gt; (referer: https://www.google.com/)
+[2026-05-28 16:37:16] INFO: Fetched (200) &lt;GET https://jsonplaceholder.typicode.com/posts?_page=10&amp;_limit=10&gt; (referer: https://www.google.com/)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>100 posts collected
+sunt aut facere repellat provident occaecati excepturi optio reprehenderit</code></pre>
+</div>
+</div>
+<div id="b0a60e5f" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># on JavaScript-heavy sites, intercept the hidden API with a headless browser</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Woolworths uses a GraphQL endpoint — find_xhr captures whatever calls the page makes</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>apis <span class="op">=</span> find_xhr(<span class="st">'https://www.woolworths.com.au/shop/browse/fruit-veg'</span>, pattern<span class="op">=</span><span class="st">'*woolworths.com.au/graphql*'</span>)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span><span class="bu">len</span>(apis)<span class="sc">}</span><span class="ss"> GraphQL calls captured'</span>)</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> a <span class="kw">in</span> apis:</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    data <span class="op">=</span> a.get(<span class="st">'data'</span>, {}).get(<span class="st">'data'</span>, a.get(<span class="st">'data'</span>, {}))</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(a[<span class="st">'url'</span>], <span class="bu">list</span>(data.keys()) <span class="cf">if</span> <span class="bu">isinstance</span>(data, <span class="bu">dict</span>) <span class="cf">else</span> <span class="bu">type</span>(data).<span class="va">__name__</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/shop/browse/fruit-veg&gt; (referer: https://www.google.com/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/apis/ui/settings&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/api/ui/v2/bootstrap&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (201) &lt;GET https://www.woolworths.com.au/ZbnWGh/bzsy/4o7V/Z91V/IVtmZUtEk/z1D9kLGuuLOkth/GBAqNwE/CCVe/VHhbPWMB&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/auth/heartbeat&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/Shop/DynamicContent2Panel?scheduleKey=/shop/browse/fruit-veg-bottom&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/akam/13/pixel_7c8f4533&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/apis/ui/PiesCategoriesWithSpecials&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/apis/ui/CarouselProducts&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://dpm.demdex.net/id?d_visid_ver=5.5.0&amp;d_fieldgroup=AAM&amp;d_rtbd=json&amp;d_ver=2&amp;d_orgid=4353388057AC8D357F000101%40AdobeOrg&amp;d_nsid=0&amp;d_mid=79911006971859101769087842756079938574&amp;ts=1779950011997&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://woolworthsfoodgroup.tt.omtrdc.net/rest/v1/delivery?client=woolworthsfoodgroup&amp;sessionId=6d7dd35c357c4bc5899443d02236000a&amp;version=2.10.1&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://woolworthsfoodgroup.tt.omtrdc.net/rest/v1/delivery?client=woolworthsfoodgroup&amp;sessionId=6d7dd35c357c4bc5899443d02236000a&amp;version=2.10.1&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://c.go-mpulse.net/api/config.json?key=LUX5F-TAXLZ-RZV9P-BT522-JCQBY&amp;d=www.woolworths.com.au&amp;t=5933167&amp;v=1.792.80&amp;sl=0&amp;si=1af4e374-018a-4eb6-a2cd-9036acda867a-tfqi7v&amp;plugins=AK,ConfigOverride,Continuity,PageParams,AutoXHR,SPA,History,Angular,Backbone,Ember,RT,PaintTiming,NavigationTiming,ResourceTiming,Memory,Akamai,EventTiming,BFCache,LOGN&amp;acao=&amp;ak.ai=249936&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://cdn0.woolworths.media/wowssr/assets/tga-sku.json&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (201) &lt;GET https://www.woolworths.com.au/ZbnWGh/bzsy/4o7V/Z91V/IVtmZUtEk/z1D9kLGuuLOkth/GBAqNwE/CCVe/VHhbPWMB&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/apis/ui/browse/category&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/shop/__embedded/browse/fruit-veg?HasTobaccoItems=false&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://cdn0.woolworths.media/wowssr/syd2/a10/browser/assets/navigation/chevron-right.svg&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://cdn0.woolworths.media/wowssr/syd2/a10/browser/assets/navigation/chevron-right.svg&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://api.woolworthsrewards.com.au/cx/nhp/availability/offers/v1/check/adType&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://ct.pinterest.com/user/?event=viewcategory&amp;ed=%7B%22page_name%22%3A%22ww-sm%3Ashop%3Abrowse%3Afruit-veg%22%2C%22page_type%22%3A%22Browse%22%2C%22event%22%3A%22category_view%22%7D&amp;tid=2614249904607&amp;cb=1779950013056&amp;dep=2%2CPAGE_LOAD&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://ct.pinterest.com/user/?event=viewcategory&amp;ed=%7B%22page_name%22%3A%22ww-sm%3Ashop%3Abrowse%3Afruit-veg%22%2C%22page_type%22%3A%22Browse%22%2C%22event%22%3A%22category_view%22%7D&amp;tid=2614249904607&amp;cb=1779950013059&amp;dep=5%2CEVENT_TAGS_ABSENT&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://collect-ap-southeast-2.tealiumiq.com/woolworths/main/2/i.gif&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://api.woolworthsrewards.com.au/cx/nhp/availability/offers/v1/check/adType&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://api.woolworthsrewards.com.au/cx/nhp/availability/offers/v1/check/adType&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://api.woolworthsrewards.com.au/cx/nhp/availability/offers/v1/check/adType&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://woolworthsfoodgroup.sc.omtrdc.net/b/ss/wfg-wx-global-prod/1/JS-2.23.0/s02037651164270&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&amp;sessionId=6d7dd35c357c4bc5899443d02236000a&amp;version=2.10.2&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&amp;sessionId=6d7dd35c357c4bc5899443d02236000a&amp;version=2.10.2&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://cdn0.woolworths.media/wowssr/assets/tga-sku.json&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&amp;sessionId=6d7dd35c357c4bc5899443d02236000a&amp;version=2.10.2&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&amp;sessionId=6d7dd35c357c4bc5899443d02236000a&amp;version=2.10.2&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://ct.pinterest.com/v3/?event=viewcategory&amp;ed=%7B%22page_name%22%3A%22ww-sm%3Ashop%3Abrowse%3Afruit-veg%22%2C%22page_type%22%3A%22Browse%22%2C%22event%22%3A%22category_view%22%7D&amp;tid=2614249904607&amp;cb=1779950013487&amp;dep=5%2CEVENT_TAGS_ABSENT&amp;pd=%7B%22pin_unauth%22%3A%22dWlkPVpERTNabU0yTldVdE1tSmtOUzAwTmpNd0xUa3hOVFV0TnpRek5EWmpPR05qWVRSaw%22%7D&amp;ad=%7B%22loc%22%3A%22https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg%22%2C%22ref%22%3A%22https%3A%2F%2Fwww.google.com%2F%22%2C%22if%22%3Afalse%2C%22sh%22%3A720%2C%22sw%22%3A1280%2C%22mh%22%3A%22948ee93e%22%2C%22is_eu%22%3Afalse%2C%22architecture%22%3A%22x86%22%2C%22bitness%22%3A%2264%22%2C%22brands%22%3A%5B%7B%22brand%22%3A%22Chromium%22%2C%22version%22%3A%22147%22%7D%2C%7B%22brand%22%3A%22Not.A%2FBrand%22%2C%22version%22%3A%228%22%7D%5D%2C%22mobile%22%3Afalse%2C%22model%22%3A%22%22%2C%22platform%22%3A%22macOS%22%2C%22platformVersion%22%3A%2210.15.7%22%2C%22uaFullVersion%22%3A%22147.0.7727.15%22%2C%22ecm_enabled%22%3Atrue%7D&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/apis/ui/PiesCategoriesWithSpecials&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (204) &lt;GET https://analytics.google.com/g/collect?v=2&amp;tid=G-YBVRJYN9JL&amp;gtm=45je65r0h2v878538926za200zd878538926&amp;_p=1779950012256&amp;_gaz=1&amp;gcd=13l3l3l3l1l1&amp;npa=0&amp;dma=0&amp;gdid=dYmQxMT&amp;_eu=AAAAAGA&amp;are=1&amp;cid=1692319501.1779950014&amp;frm=0&amp;lps=1&amp;pscdl=noapi&amp;rcb=11&amp;sr=1280x720&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uam=&amp;uamb=0&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;ul=en-gb&amp;gaf=2&amp;_s=1&amp;tag_exp=0~115938466~115938468&amp;sid=1779950013&amp;sct=1&amp;seg=0&amp;dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;dr=https%3A%2F%2Fwww.google.com%2F&amp;dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;en=page_view&amp;_fv=1&amp;_nsi=1&amp;_ss=2&amp;_ee=1&amp;ep.tealium_event=category_view&amp;ep.cart_value=0&amp;ep.collect_event=true&amp;ep.filter_sort_by=Relevance&amp;ep.tile_id=1%2C2%2C3%2C0%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%2C13%2C14%2C15%2C16%2C17%2C18%2C19%2C20%2C21%2C22%2C23%2C24%2C25%2C26%2C27%2C28%2C29%2C30%2C31%2C32%2C33%2C34%2C35%2C36%2C37%2C38%2C39%2C40%2C41%2C42%2C43&amp;ep.tealium_visitor_id=019e6d49c759001da3b4760abd0b05075003306d007e8&amp;ep.site_section=shop%3Abrowse&amp;ep.site_name=ww-sm&amp;ep.pfd_items_in_cart=false&amp;ep.page_type=Browse&amp;ep.page_number=1&amp;ep.item_count=44&amp;ep.item_unavailable_count=44&amp;ep.item_min_days_to_delivery=none%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone&amp;ep.item_max_days_to_delivery=none%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone&amp;epn.first_contentful_paint_all=612&amp;epn.first_contentful_paint_first=612&amp;epn.first_paint_all=528&amp;epn.first_paint_first=528&amp;up.store_id=3221&amp;tfd=2993&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (204) &lt;GET https://analytics.google.com/g/collect?v=2&amp;tid=G-YBVRJYN9JL&amp;gtm=45je65r0h2v878538926za200zd878538926&amp;_p=1779950012256&amp;gcd=13l3l3l3l1l1&amp;npa=0&amp;dma=0&amp;gdid=dYmQxMT&amp;_eu=AAAAAGQ&amp;are=1&amp;cid=1692319501.1779950014&amp;frm=0&amp;lps=1&amp;pscdl=noapi&amp;rcb=11&amp;sr=1280x720&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uam=&amp;uamb=0&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;ul=en-gb&amp;gaf=2&amp;_s=2&amp;tag_exp=0~115938466~115938468&amp;sid=1779950013&amp;sct=1&amp;seg=0&amp;dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;dr=https%3A%2F%2Fwww.google.com%2F&amp;dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;tfd=2997&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (204) &lt;GET https://bat.bing.com/p/insights/c/k&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/apis/ui/products/829107,381923,120080,139238,259450,265225,187314,154340,262783,134681,702151,54899,318163,134034,524336,318290,210687,193753,139645,139897?excludeUnavailable=true&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/graphql&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.google.com/rmkt/collect/969624659/?random=1779950014085&amp;cv=11&amp;fst=1779950014085&amp;fmt=8&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=gtag.config&amp;gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115616985~115938466~115938469~116701382&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=1&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;data=event%3Dgtag.config&amp;gcp=5&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.google.com/rmkt/collect/706996958/?random=1779950014157&amp;cv=11&amp;fst=1779950014157&amp;fmt=8&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=gtag.config&amp;gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938469~116701382~118228215&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=17&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;_tu=IA&amp;data=event%3Dgtag.config&amp;gcp=5&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://securepubads.g.doubleclick.net/gampad/ads?pvsid=6705090101095288&amp;correlator=2894177363389820&amp;eid=31097658%2C31098733%2C31065644%2C31087490%2C95391587&amp;output=ldjh&amp;gdfp_req=1&amp;vrg=202605210101&amp;ptt=17&amp;impl=fif&amp;iu_parts=22073989984%2Cwoolworths%2Cfruit-veg&amp;enc_prev_ius=%2F0%2F1%2F2&amp;prev_iu_szs=1600x200&amp;ifi=1&amp;dids=ad-unit-496500&amp;adfs=2652548239&amp;sfv=1-0-45&amp;sc=1&amp;cookie_enabled=1&amp;abxe=1&amp;dt=1779950014226&amp;lmt=1779950014&amp;adxs=57&amp;adys=221&amp;biw=1280&amp;bih=720&amp;scr_x=0&amp;scr_y=0&amp;btvi=0&amp;ucis=1&amp;oid=2&amp;u_his=2&amp;u_h=720&amp;u_w=1280&amp;u_ah=720&amp;u_aw=1280&amp;u_cd=24&amp;u_sd=2&amp;u_tz=600&amp;dmc=32&amp;bc=31&amp;nvt=1&amp;uach=WyJtYWNPUyIsIjEwLjE1LjciLCJ4ODYiLCIiLCIxNDcuMC43NzI3LjE1IixudWxsLDAsbnVsbCwiNjQiLFtbIkNocm9taXVtIiwiMTQ3LjAuNzcyNy4xNSJdLFsiTm90LkEvQnJhbmQiLCI4LjAuMC4wIl1dLDBd&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;vis=1&amp;psz=1167x0&amp;msz=1167x0&amp;fws=4&amp;ohw=1280&amp;dlt=1779950011072&amp;idt=3115&amp;prev_scp=InventoryType%3DBanner&amp;adks=3579162148&amp;frm=20&amp;eoidce=1&amp;pgls=CAk.~CAo.&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.google.com/ccm/collect?rcb=1&amp;frm=0&amp;auid=1550109597.1779950014&amp;dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;en=page_view&amp;dr=www.google.com&amp;dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;scrsrc=www.googletagmanager.com&amp;lps=1&amp;rnd=295323522.1779950014&amp;navt=n&amp;npa=0&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115616985~115938466~115938469~116701382&amp;apve=1&amp;apvf=f&amp;apvc=1&amp;tids=AW-969624659&amp;tid=AW-969624659&amp;tft=1779950014102&amp;tfd=3358&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.google.com/ccm/collect?rcb=18&amp;frm=0&amp;auid=1550109597.1779950014&amp;dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;en=page_view&amp;dr=www.google.com&amp;dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;scrsrc=www.googletagmanager.com&amp;lps=1&amp;rnd=295323522.1779950014&amp;navt=n&amp;npa=0&amp;gdid=dYmQxMT&amp;gtm=45fe65r0h2v9181639601za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938469~116701382~118689382&amp;apve=1&amp;apvf=f&amp;apvc=0&amp;tids=DC-8348316&amp;tid=DC-8348316&amp;tft=1779950014133&amp;tfd=3389&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.google.com/ccm/collect?rcb=17&amp;frm=0&amp;auid=1550109597.1779950014&amp;dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;en=page_view&amp;dr=www.google.com&amp;dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;scrsrc=www.googletagmanager.com&amp;lps=1&amp;rnd=295323522.1779950014&amp;navt=n&amp;npa=0&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;_tu=IA&amp;gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938469~116701382~118228215&amp;apve=1&amp;apvf=f&amp;apvc=0&amp;tids=AW-706996958&amp;tid=AW-706996958&amp;tft=1779950014170&amp;tfd=3426&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://securepubads.g.doubleclick.net/gampad/ads?pvsid=6705090101095288&amp;correlator=2894177363389820&amp;eid=31097658%2C31098733%2C31065644%2C31087490%2C95391587&amp;output=ldjh&amp;gdfp_req=1&amp;vrg=202605210101&amp;ptt=17&amp;impl=fif&amp;iu_parts=22073989984%2Ccontent-card%2Cfruit-veg&amp;enc_prev_ius=%2F0%2F1%2F2&amp;prev_iu_szs=320x50&amp;fluid=height&amp;ifi=2&amp;dids=ad-unit-1952885819&amp;adfs=208333102&amp;sfv=1-0-45&amp;sc=1&amp;cookie_enabled=1&amp;abxe=1&amp;dt=1779950014233&amp;lmt=1779950014&amp;adxs=56&amp;adys=3517&amp;biw=1280&amp;bih=720&amp;scr_x=0&amp;scr_y=0&amp;btvi=1&amp;ucis=2&amp;oid=2&amp;u_his=2&amp;u_h=720&amp;u_w=1280&amp;u_ah=720&amp;u_aw=1280&amp;u_cd=24&amp;u_sd=2&amp;u_tz=600&amp;dmc=32&amp;bc=31&amp;nvt=1&amp;uach=WyJtYWNPUyIsIjEwLjE1LjciLCJ4ODYiLCIiLCIxNDcuMC43NzI3LjE1IixudWxsLDAsbnVsbCwiNjQiLFtbIkNocm9taXVtIiwiMTQ3LjAuNzcyNy4xNSJdLFsiTm90LkEvQnJhbmQiLCI4LjAuMC4wIl1dLDBd&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;vis=1&amp;psz=224x392&amp;msz=224x392&amp;fws=4&amp;ohw=1280&amp;dlt=1779950011072&amp;idt=3115&amp;prev_scp=InventoryType%3DContent%2520Card&amp;adks=1961169011&amp;frm=20&amp;eoidce=1&amp;pgls=CAk.~CAo.&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.googleadservices.com/pagead/set_partitioned_cookie?rcb=1&amp;frm=0&amp;apvc=1&amp;auid=1550109597.1779950014&amp;dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;tid=AW-969624659&amp;en=page_view&amp;ref=www.google.com&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;scrsrc=www.googletagmanager.com&amp;lps=1&amp;rnd=295323522.1779950014&amp;navt=n&amp;npa=0&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115616985~115938466~115938469~116701382&amp;tft=1779950014091&amp;tfd=3347&amp;apve=1&amp;apvf=f&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.googleadservices.com/pagead/conversion/969624659/?random=1779950014099&amp;cv=11&amp;fst=1779950014099&amp;fmt=7&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=conversion&amp;gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115616985~115938466~115938469~116701382&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=1&amp;label=c7avCOOr79EBENOYrc4D&amp;capi=1&amp;gtm_ee=1&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;value=1&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;gcl_ctr=1~0~0~0&amp;data=event%3Dconversion&amp;category=acrcp_v1_512&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.googleadservices.com/pagead/conversion/706996958/?random=1779950014167&amp;cv=11&amp;fst=1779950014167&amp;fmt=7&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=conversion&amp;gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938469~116701382~118228215&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=17&amp;label=oQFKCJCy0dQBEN7Vj9EC&amp;capi=1&amp;gtm_ee=1&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;value=1&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;ec_mode=a&amp;gcl_ctr=2~0~0~0&amp;data=event%3Dconversion&amp;category=acrcp_v1_512&amp;em=tv.1&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&amp;sessionId=6d7dd35c357c4bc5899443d02236000a&amp;version=2.10.2&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&amp;sessionId=6d7dd35c357c4bc5899443d02236000a&amp;version=2.10.2&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
+[2026-05-28 16:34:05] INFO: Fetched (302) &lt;GET https://ad.doubleclick.net/activity;src=8348316;type=supcat;cat=supcfv;rcb=18;ord=7098498947355;npa=0;auiddc=1550109597.1779950014;u4=%2Fshop%2Fbrowse%2Ffruit-veg;u9=381923%2C785544%2C948491%2C%2C948511%2C133211%2C134034%2C141410%2C105919%2C120080%2C144329%2C781403%2C781401%2C948507%2C208895%2C157649%2C134681%2C137130%2C135306%2C170225%2C147071%2C135344%2C144607%2C829107%2C144497%2C130935%2C135369%2C165262%2C187314%2C169067%2C259450%2C149620%2C137102%2C155003%2C154340%2C138801%2C169438%2C259514%2C524322%2C267084%2C147603%2C149864%2C144336%2C139238;u10=%2Fshop%2Fproductdetails%2F381923%2Fkanzi-apple%2C%2Fshop%2Fproductdetails%2F785544%2Fkanzi-apple-punnet%2C%2Fshop%2Fproductdetails%2F948491%2Fgourmet-garden-cold-blend-pastes-garlic%2C%2Fshop%2Fproductdetails%2Fundefined%2Fundefined%2C%2Fshop%2Fproductdetails%2F948511%2Fgourmet-garden-paste-ginger%2C%2Fshop%2Fproductdetails%2F133211%2Fcavendish-bananas%2C%2Fshop%2Fproductdetails%2F134034%2Fgourmet-tomato%2C%2Fshop%2Fproductdetails%2F141410%2Fmandarin-imperial%2C%2Fshop%2Fproductdetails%2F105919%2Ffresh-pink-lady-apples%2C%2Fshop%2Fproductdetails%2F120080%2Fhass-avocado%2C%2Fshop%2Fproductdetails%2F144329%2Fonion-brown%2C%2Fshop%2Fproductdetails%2F781403%2Fgourmet-garden-parsley-lightly-dried-sachet%2C%2Fshop%2Fproductdetails%2F781401%2Fgourmet-garden-basil-lightly-dried-sachet%2C%2Fshop%2Fproductdetails%2F948507%2Fgourmet-garden-paste-chilli-mild%2C%2Fshop%2Fproductdetails%2F208895%2Fpotato-white-washed%2C%2Fshop%2Fproductdetails%2F157649%2Feat-later-cavendish-bananas%2C%2Fshop%2Fproductdetails%2F134681%2Ffresh-broccoli%2C%2Fshop%2Fproductdetails%2F137130%2Flebanese-cucumbers%2C%2Fshop%2Fproductdetails%2F135306%2Fred-capsicum%2C%2Fshop%2Fproductdetails%2F170225%2Ffresh-zucchini-green%2C%2Fshop%2Fproductdetails%2F147071%2Fsweet-potato-gold%2C%2Fshop%2Fproductdetails%2F135344%2Fcarrot-fresh%2C%2Fshop%2Fproductdetails%2F144607%2Fstrawberries-punnet%2C%2Fshop%2Fproductdetails%2F829107%2Fmandarin-amorette-seedless%2C%2Fshop%2Fproductdetails%2F144497%2Fonion-red%2C%2Fshop%2Fproductdetails%2F130935%2Ffresh-granny-smith-apples%2C%2Fshop%2Fproductdetails%2F135369%2Fwoolworths-australian-grown-carrots%2C%2Fshop%2Fproductdetails%2F165262%2Fdriscoll-s-raspberries-punnet%2C%2Fshop%2Fproductdetails%2F187314%2Fwoolworths-broccolini-bunch%2C%2Fshop%2Fproductdetails%2F169067%2Fwoolworths-qukes-baby-cucumbers-punnet%2C%2Fshop%2Fproductdetails%2F259450%2Forange-navel%2C%2Fshop%2Fproductdetails%2F149620%2Fwoolworths-cherry-tomatoes-punnet%2C%2Fshop%2Fproductdetails%2F137102%2Fwoolworths-continental-cucumbers%2C%2Fshop%2Fproductdetails%2F155003%2Fapple-royal-gala%2C%2Fshop%2Fproductdetails%2F154340%2Ficeberg-lettuce%2C%2Fshop%2Fproductdetails%2F138801%2Fwhite-seedless-grapes-bag-approx-900g%2C%2Fshop%2Fproductdetails%2F169438%2Ftruss-tomatoes%2C%2Fshop%2Fproductdetails%2F259514%2Flemon-loose%2C%2Fshop%2Fproductdetails%2F524322%2Fwoolworths-baby-leaf-spinach%2C%2Fshop%2Fproductdetails%2F267084%2Fwoolworths-sungold-kiwifruit-gold%2C%2Fshop%2Fproductdetails%2F147603%2Fspring-onion-bunch%2C%2Fshop%2Fproductdetails%2F149864%2Ftomato-roma-red%2C%2Fshop%2Fproductdetails%2F144336%2Fwoolworths-onion-brown-bag%2C%2Fshop%2Fproductdetails%2F139238%2Fkiwi-fruit-green;u11=1.03%2C5.90%2C4.00%2C0.00%2C4.00%2C0.81%2C0.65%2C0.53%2C1.31%2C2.00%2C0.63%2C4.00%2C4.00%2C4.00%2C0.95%2C0.81%2C1.49%2C1.53%2C2.48%2C1.18%2C1.56%2C0.36%2C0.00%2C0.47%2C0.89%2C1.31%2C1.70%2C4.50%2C3.70%2C3.00%2C1.29%2C3.20%2C2.70%2C1.26%2C3.30%2C6.00%2C1.25%2C1.56%2C3.30%2C1.53%2C3.00%2C0.80%2C3.60%2C0.96;gdid=dYmQxMT;uaa=x86;uab=64;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0;uamb=0;uam=;uap=macOS;uapv=10.15.7;uaw=0;pscdl=noapi;frm=0;_tu=IFA;gtm=45fe65r0h2v9181639601za200zb878538926zd878538926xec;gcd=13l3l3l3l1l1;dma=0;dc_fmt=6;tag_exp=0~115938466~115938469~116701382~118689382;epver=2;dc_random=1779950014_Zyp9TjrtzrtIKjfB1hqW4ZEz6dJUB74mLA;~oref=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg?&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://adservice.google.com/ddm/fls/z/src=8348316;type=supcat;cat=supcfv;rcb=18;ord=7098498947355;npa=0;auiddc=*;u4=%2Fshop%2Fbrowse%2Ffruit-veg;u9=381923%2C785544%2C948491%2C%2C948511%2C133211%2C134034%2C141410%2C105919%2C120080%2C144329%2C781403%2C781401%2C948507%2C208895%2C157649%2C134681%2C137130%2C135306%2C170225%2C147071%2C135344%2C144607%2C829107%2C144497%2C130935%2C135369%2C165262%2C187314%2C169067%2C259450%2C149620%2C137102%2C155003%2C154340%2C138801%2C169438%2C259514%2C524322%2C267084%2C147603%2C149864%2C144336%2C139238;u10=%2Fshop%2Fproductdetails%2F381923%2Fkanzi-apple%2C%2Fshop%2Fproductdetails%2F785544%2Fkanzi-apple-punnet%2C%2Fshop%2Fproductdetails%2F948491%2Fgourmet-garden-cold-blend-pastes-garlic%2C%2Fshop%2Fproductdetails%2Fundefined%2Fundefined%2C%2Fshop%2Fproductdetails%2F948511%2Fgourmet-garden-paste-ginger%2C%2Fshop%2Fproductdetails%2F133211%2Fcavendish-bananas%2C%2Fshop%2Fproductdetails%2F134034%2Fgourmet-tomato%2C%2Fshop%2Fproductdetails%2F141410%2Fmandarin-imperial%2C%2Fshop%2Fproductdetails%2F105919%2Ffresh-pink-lady-apples%2C%2Fshop%2Fproductdetails%2F120080%2Fhass-avocado%2C%2Fshop%2Fproductdetails%2F144329%2Fonion-brown%2C%2Fshop%2Fproductdetails%2F781403%2Fgourmet-garden-parsley-lightly-dried-sachet%2C%2Fshop%2Fproductdetails%2F781401%2Fgourmet-garden-basil-lightly-dried-sachet%2C%2Fshop%2Fproductdetails%2F948507%2Fgourmet-garden-paste-chilli-mild%2C%2Fshop%2Fproductdetails%2F208895%2Fpotato-white-washed%2C%2Fshop%2Fproductdetails%2F157649%2Feat-later-cavendish-bananas%2C%2Fshop%2Fproductdetails%2F134681%2Ffresh-broccoli%2C%2Fshop%2Fproductdetails%2F137130%2Flebanese-cucumbers%2C%2Fshop%2Fproductdetails%2F135306%2Fred-capsicum%2C%2Fshop%2Fproductdetails%2F170225%2Ffresh-zucchini-green%2C%2Fshop%2Fproductdetails%2F147071%2Fsweet-potato-gold%2C%2Fshop%2Fproductdetails%2F135344%2Fcarrot-fresh%2C%2Fshop%2Fproductdetails%2F144607%2Fstrawberries-punnet%2C%2Fshop%2Fproductdetails%2F829107%2Fmandarin-amorette-seedless%2C%2Fshop%2Fproductdetails%2F144497%2Fonion-red%2C%2Fshop%2Fproductdetails%2F130935%2Ffresh-granny-smith-apples%2C%2Fshop%2Fproductdetails%2F135369%2Fwoolworths-australian-grown-carrots%2C%2Fshop%2Fproductdetails%2F165262%2Fdriscoll-s-raspberries-punnet%2C%2Fshop%2Fproductdetails%2F187314%2Fwoolworths-broccolini-bunch%2C%2Fshop%2Fproductdetails%2F169067%2Fwoolworths-qukes-baby-cucumbers-punnet%2C%2Fshop%2Fproductdetails%2F259450%2Forange-navel%2C%2Fshop%2Fproductdetails%2F149620%2Fwoolworths-cherry-tomatoes-punnet%2C%2Fshop%2Fproductdetails%2F137102%2Fwoolworths-continental-cucumbers%2C%2Fshop%2Fproductdetails%2F155003%2Fapple-royal-gala%2C%2Fshop%2Fproductdetails%2F154340%2Ficeberg-lettuce%2C%2Fshop%2Fproductdetails%2F138801%2Fwhite-seedless-grapes-bag-approx-900g%2C%2Fshop%2Fproductdetails%2F169438%2Ftruss-tomatoes%2C%2Fshop%2Fproductdetails%2F259514%2Flemon-loose%2C%2Fshop%2Fproductdetails%2F524322%2Fwoolworths-baby-leaf-spinach%2C%2Fshop%2Fproductdetails%2F267084%2Fwoolworths-sungold-kiwifruit-gold%2C%2Fshop%2Fproductdetails%2F147603%2Fspring-onion-bunch%2C%2Fshop%2Fproductdetails%2F149864%2Ftomato-roma-red%2C%2Fshop%2Fproductdetails%2F144336%2Fwoolworths-onion-brown-bag%2C%2Fshop%2Fproductdetails%2F139238%2Fkiwi-fruit-green;u11=1.03%2C5.90%2C4.00%2C0.00%2C4.00%2C0.81%2C0.65%2C0.53%2C1.31%2C2.00%2C0.63%2C4.00%2C4.00%2C4.00%2C0.95%2C0.81%2C1.49%2C1.53%2C2.48%2C1.18%2C1.56%2C0.36%2C0.00%2C0.47%2C0.89%2C1.31%2C1.70%2C4.50%2C3.70%2C3.00%2C1.29%2C3.20%2C2.70%2C1.26%2C3.30%2C6.00%2C1.25%2C1.56%2C3.30%2C1.53%2C3.00%2C0.80%2C3.60%2C0.96;gdid=dYmQxMT;uaa=x86;uab=64;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0;uamb=0;uam=;uap=macOS;uapv=10.15.7;uaw=0;pscdl=noapi;frm=0;_tu=IFA;gtm=45fe65r0h2v9181639601za200zb878538926zd878538926xec;gcd=13l3l3l3l1l1;dma=0;dc_fmt=6;tag_exp=0~115938466~115938469~116701382~118689382;epver=2;dc_random=1779950014_Zyp9TjrtzrtIKjfB1hqW4ZEz6dJUB74mLA;~oref=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
+[2026-05-28 16:34:05] INFO: Fetched (302) &lt;GET https://googleads.g.doubleclick.net/pagead/viewthroughconversion/969624659/?random=1642705173&amp;cv=11&amp;fst=1779950014099&amp;fmt=8&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=conversion&amp;gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115616985~115938466~115938469~116701382&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=1&amp;label=c7avCOOr79EBENOYrc4D&amp;capi=1&amp;gtm_ee=1&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;value=1&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;gcl_ctr=1~0~0~0&amp;data=event%3Dconversion&amp;category=acrcp_v1_512&amp;ct_cookie_present=false&amp;crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCJfUsQIIyduxAgjU5rECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZdHJpZ2dlcj1uYXZpZ2F0aW9uLXNvdXJjZVoDCgEBYgMKAQM&amp;cerd=CgTbib4t&amp;fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhobfHYtttOOJTBc6uSC3s125TuRVBtghkEkbBuRObgtSNn2SWGquExoC7W8&amp;pscrd=IhMIpofOwq7blAMVosiEAB2AIBfGOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUWkkxTktlZlZ2Vmh6Q0NOR1RUdEFDZWFNUjlrNC1XMU5ySktGcUFXWURZUWVZb205bmJDd3oMCAliCAgAEAAYACAA&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
+[2026-05-28 16:34:05] INFO: Fetched (302) &lt;GET https://www.google.com/pagead/1p-conversion/969624659/?random=1642705173&amp;cv=11&amp;fst=1779950014099&amp;fmt=8&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=conversion&amp;gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115616985~115938466~115938469~116701382&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=1&amp;label=c7avCOOr79EBENOYrc4D&amp;capi=1&amp;gtm_ee=1&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;value=1&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;gcl_ctr=1~0~0~0&amp;data=event%3Dconversion&amp;category=acrcp_v1_512&amp;ct_cookie_present=false&amp;crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCJfUsQIIyduxAgjU5rECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZdHJpZ2dlcj1uYXZpZ2F0aW9uLXNvdXJjZVoDCgEBYgMKAQM&amp;cerd=CgTbib4t&amp;fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhobfHYtttOOJTBc6uSC3s125TuRVBtghkEkbBuRObgtSNn2SWGquExoC7W8&amp;pscrd=IhMIpofOwq7blAMVosiEAB2AIBfGOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUWkkxTktlZlZ2Vmh6Q0NOR1RUdEFDZWFNUjlrNC1XMU5ySktGcUFXWURZUWVZb205bmJDd3oMCAliCAgAEAAYACAA&amp;is_vtc=1&amp;cid=CAQS-QEABaugfaBQnVt35jFlNlcJ0OJ61sjJvZH33IrWyQpfvm286tbikEv7ponCGi9Lbn421fo29MkHQO9kHh0MzvjPJkZm2yRHIrRLRP-BFXqvI3lK7Fm4xWtUs8_SjHGvlkAIDSFXVy2Sv41vUd7Sg8zJT1fFAPyLs36phTGDw-8RyCqLCRGTGPofLSVBiJwSwtBOhd6cpal3vj15YfVeAtmqSN7hnmxozgxsav4tIjOSkhv2C18YL6f5F9Rce5ltXIMU2rsJIR12Q07eMsdu8y8xDrVXWlT0PKJA-CFzhgoBRNvGVx6nImuJjJw9AfwYNEAREHoo5dCXv0c&amp;random=1782424608&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.google.com.au/pagead/1p-conversion/969624659/?random=1642705173&amp;cv=11&amp;fst=1779950014099&amp;fmt=8&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=conversion&amp;gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115616985~115938466~115938469~116701382&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=1&amp;label=c7avCOOr79EBENOYrc4D&amp;capi=1&amp;gtm_ee=1&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;value=1&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;gcl_ctr=1~0~0~0&amp;data=event%3Dconversion&amp;category=acrcp_v1_512&amp;ct_cookie_present=false&amp;crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCJfUsQIIyduxAgjU5rECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZdHJpZ2dlcj1uYXZpZ2F0aW9uLXNvdXJjZVoDCgEBYgMKAQM&amp;cerd=CgTbib4t&amp;fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhobfHYtttOOJTBc6uSC3s125TuRVBtghkEkbBuRObgtSNn2SWGquExoC7W8&amp;is_vtc=1&amp;cid=CAQS-QEABaugfaBQnVt35jFlNlcJ0OJ61sjJvZH33IrWyQpfvm286tbikEv7ponCGi9Lbn421fo29MkHQO9kHh0MzvjPJkZm2yRHIrRLRP-BFXqvI3lK7Fm4xWtUs8_SjHGvlkAIDSFXVy2Sv41vUd7Sg8zJT1fFAPyLs36phTGDw-8RyCqLCRGTGPofLSVBiJwSwtBOhd6cpal3vj15YfVeAtmqSN7hnmxozgxsav4tIjOSkhv2C18YL6f5F9Rce5ltXIMU2rsJIR12Q07eMsdu8y8xDrVXWlT0PKJA-CFzhgoBRNvGVx6nImuJjJw9AfwYNEAREHoo5dCXv0c&amp;random=1782424608&amp;ipr=y&amp;pscrd=IhMIpofOwq7blAMVosiEAB2AIBfGOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUWkkxTktlZlZ2Vmh6Q0NOR1RUdEFDZWFNUjlrNC1XMU5ySktGcUFXWURZUWVZb205bmJDd3oMCAliCAgAEAAYACAAggEacAGIAQGQAQGYAQGyAQcIrMbcARABwgECCAE&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://chatwidget.woolworths.com.au/configs/wowo.json?q=www.woolworths.com.au-1038.0.0-&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
+[2026-05-28 16:34:05] INFO: Fetched (302) &lt;GET https://googleads.g.doubleclick.net/pagead/viewthroughconversion/706996958/?random=332136726&amp;cv=11&amp;fst=1779950014167&amp;fmt=8&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=conversion&amp;gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938469~116701382~118228215&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=17&amp;label=oQFKCJCy0dQBEN7Vj9EC&amp;capi=1&amp;gtm_ee=1&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;value=1&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;ec_mode=a&amp;gcl_ctr=2~0~0~0&amp;data=event%3Dconversion&amp;category=acrcp_v1_512&amp;em=tv.1&amp;ct_cookie_present=false&amp;crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCMnjsQIIl9SxAgjJ27ECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZbm90LWV2ZW50LXNvdXJjZSwgdHJpZ2dlcloDCgEBYgMKAQM&amp;cerd=CgSg870t&amp;fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhgU-mr1Suf59DFLqpGm7r6LKinpwUfbF8N6UD3ipqP4Kuo6tvV1wdhoCQHk&amp;pscrd=IhMI8ZPOwq7blAMVUOSEAB03qRUoOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUa0hvYnlFVXcya0pRLVFyY3NxVGk4b1NSeHc5NkUwT2FjclNqZTRNbDYyMmVSbTlURTNiVXoMCAliCAgAEAAYACAA&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
+[2026-05-28 16:34:05] INFO: Fetched (302) &lt;GET https://www.google.com/pagead/1p-conversion/706996958/?random=332136726&amp;cv=11&amp;fst=1779950014167&amp;fmt=8&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=conversion&amp;gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938469~116701382~118228215&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=17&amp;label=oQFKCJCy0dQBEN7Vj9EC&amp;capi=1&amp;gtm_ee=1&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;value=1&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;ec_mode=a&amp;gcl_ctr=2~0~0~0&amp;data=event%3Dconversion&amp;category=acrcp_v1_512&amp;em=tv.1&amp;ct_cookie_present=false&amp;crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCMnjsQIIl9SxAgjJ27ECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZbm90LWV2ZW50LXNvdXJjZSwgdHJpZ2dlcloDCgEBYgMKAQM&amp;cerd=CgSg870t&amp;fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhgU-mr1Suf59DFLqpGm7r6LKinpwUfbF8N6UD3ipqP4Kuo6tvV1wdhoCQHk&amp;pscrd=IhMI8ZPOwq7blAMVUOSEAB03qRUoOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUa0hvYnlFVXcya0pRLVFyY3NxVGk4b1NSeHc5NkUwT2FjclNqZTRNbDYyMmVSbTlURTNiVXoMCAliCAgAEAAYACAA&amp;is_vtc=1&amp;cid=CAQS-QEABaugfURudwOH2jnIhzEw6bRGF0rlF3zWBwhW4qKPkDHdBjBaUBrSqdBSS5XlOgRY8TBWEqBaQI9aKZUtUm4vINpnronQ6vZ_j49b89wHWf70lsLPQJ2k7w-Ki4emI20e7dImPAvFpp6R4d7NjxCrBMZs7J-0Gfftm6QCZmquF67HEcUzPFlVVxVlNJtZZ4x_DQEl61YmWJxH9-ikjpxjsIW5DNqhC7_lm0JTuVZi_LkPOK6juqwv5K8aPE4FLXMUKuLm9ODJOXOnZMIlJR2OqE5MbJaX4Flx7xnhRLbo4e7osRuSgqwRnxMBU_VT9TAOG49rVbX64pA&amp;random=796175616&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.google.com.au/pagead/1p-conversion/706996958/?random=332136726&amp;cv=11&amp;fst=1779950014167&amp;fmt=8&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=conversion&amp;gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938469~116701382~118228215&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&amp;ref=https%3A%2F%2Fwww.google.com%2F&amp;rcb=17&amp;label=oQFKCJCy0dQBEN7Vj9EC&amp;capi=1&amp;gtm_ee=1&amp;frm=0&amp;tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&amp;did=dYmQxMT&amp;gdid=dYmQxMT&amp;value=1&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=1550109597.1779950014&amp;uaa=x86&amp;uab=64&amp;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&amp;uamb=0&amp;uam=&amp;uap=macOS&amp;uapv=10.15.7&amp;uaw=0&amp;ec_mode=a&amp;gcl_ctr=2~0~0~0&amp;data=event%3Dconversion&amp;category=acrcp_v1_512&amp;em=tv.1&amp;ct_cookie_present=false&amp;crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCMnjsQIIl9SxAgjJ27ECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZbm90LWV2ZW50LXNvdXJjZSwgdHJpZ2dlcloDCgEBYgMKAQM&amp;cerd=CgSg870t&amp;fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhgU-mr1Suf59DFLqpGm7r6LKinpwUfbF8N6UD3ipqP4Kuo6tvV1wdhoCQHk&amp;is_vtc=1&amp;cid=CAQS-QEABaugfURudwOH2jnIhzEw6bRGF0rlF3zWBwhW4qKPkDHdBjBaUBrSqdBSS5XlOgRY8TBWEqBaQI9aKZUtUm4vINpnronQ6vZ_j49b89wHWf70lsLPQJ2k7w-Ki4emI20e7dImPAvFpp6R4d7NjxCrBMZs7J-0Gfftm6QCZmquF67HEcUzPFlVVxVlNJtZZ4x_DQEl61YmWJxH9-ikjpxjsIW5DNqhC7_lm0JTuVZi_LkPOK6juqwv5K8aPE4FLXMUKuLm9ODJOXOnZMIlJR2OqE5MbJaX4Flx7xnhRLbo4e7osRuSgqwRnxMBU_VT9TAOG49rVbX64pA&amp;random=796175616&amp;ipr=y&amp;pscrd=IhMI8ZPOwq7blAMVUOSEAB03qRUoOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUa0hvYnlFVXcya0pRLVFyY3NxVGk4b1NSeHc5NkUwT2FjclNqZTRNbDYyMmVSbTlURTNiVXobCAlY6caxAljpxrECWOnGsQJiCAgAEAAYACAAggEacAGIAQGQAQGYAQGyAQcIiaXdARABwgECCAE&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/graphql&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://nebula-cdn.kampyle.com/au/wau/68738/onsite/onsiteData1778571097953.json&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://nebula-cdn.kampyle.com/au/wau/68738/forms/3725/formData1762328011276_en.json&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://nebula-cdn.kampyle.com/au/wau/68738/forms/3726/formData1762328029477_en.json&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://nebula-cdn.kampyle.com/au/wau/68738/forms/7952/formDataV2_1762329178994_en.json&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://analytics-fe.digital-cloud-syd1.medallia.com.au/api/web/events&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://analytics-fe.digital-cloud-syd1.medallia.com.au/api/web/events&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://analytics-fe.digital-cloud-syd1.medallia.com.au/api/web/events&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://ep1.adtrafficquality.google/getconfig/sodar?sv=200&amp;tid=gpt&amp;tv=m202605210101&amp;st=env&amp;sjk=6705090101095288&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://analytics-fe.digital-cloud-syd1.medallia.com.au/api/web/events&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://insight.adsrvr.org/track/realtimeconversion&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (200) &lt;GET https://www.woolworths.com.au/ZbnWGh/bzsy/4o7V/Z91V/IVtmZUtEk/kJD9kLGu/IjwzNwE/HFIm/ImVmBVN0&gt; (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
+[2026-05-28 16:34:05] INFO: Fetched (439) &lt;GET https://dc.services.visualstudio.com/v2/track&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (439) &lt;GET https://dc.services.visualstudio.com/v2/track&gt; (referer: https://www.woolworths.com.au/)
+[2026-05-28 16:34:05] INFO: Fetched (439) &lt;GET https://dc.services.visualstudio.com/v2/track&gt; (referer: https://www.woolworths.com.au/)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2 GraphQL calls captured
+https://www.woolworths.com.au/graphql ['products']
+https://www.woolworths.com.au/graphql ['products']</code></pre>
+</div>
+</div>
+</section>
+<section id="browser-automation" class="level2">
+<h2 class="anchored" data-anchor-id="browser-automation">Browser automation</h2>
+<p><a href="https://vedicreader.github.io/fossick/cdp.html#cdp_connect"><code>cdp_connect()</code></a> attaches to a running Chrome browser over the DevTools Protocol. The browser uses a persistent debug profile so cookies and SSO sessions survive across runs. Log in once to any enterprise or authenticated site; every subsequent call reuses that session.</p>
+<p><code>pg.snapshot()</code> gives an LLM a compact, interactive-elements-only view of the page — one <code>[#id] role "name"</code> line per button, link, and field — far smaller than the full <code>ax_tree()</code>. Act on it with <code>pg.fill_form({label: value}, submit='Sign in')</code>, <code>pg.click_settle()</code>, or the CSS bridges <code>pg.click_sel()</code> / <code>pg.fill_sel()</code>. <code>pg.act([...])</code> runs a whole declarative flow (<code>goto</code> / <code>fill</code> / <code>click</code> / <code>select</code> / <code>read</code>) in one call, and <code>ax_diff(before, after)</code> shows exactly what an action changed. <code>pg.md()</code> pulls the live, post-JavaScript page straight into fossick’s markdown pipeline. <a href="https://vedicreader.github.io/fossick/cdp.html#syncy"><code>syncy()</code></a> runs any async CDP call synchronously.</p>
+<p><code>snapshot()</code> re-reads the tree for you, so IDs are always fresh. When you need the raw tree, print the full <code>ax_tree()</code> output — never truncate — and re-read it after each navigation, since backend IDs change.</p>
+<div id="9fee3d39" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fossick.cdp <span class="im">import</span> cdp_connect, syncy</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>cdp <span class="op">=</span> syncy(cdp_connect())</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>pg  <span class="op">=</span> syncy(cdp.open_page(<span class="st">'https://example.com/login'</span>))</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Compact, agent-ready view — just the actionable elements</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(syncy(pg.snapshot()))</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Fill the form by label and submit — no manual node IDs, waits handled for you</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(syncy(pg.fill_form({<span class="st">'Email'</span>: <span class="st">'user@example.com'</span>, <span class="st">'Password'</span>: <span class="st">'secret'</span>}, submit<span class="op">=</span><span class="st">'Sign in'</span>)))</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Or drive a whole flow declaratively, collecting what you read</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> syncy(pg.act([</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>    (<span class="st">'goto'</span>, <span class="st">'https://example.com/search'</span>),</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>    (<span class="st">'fill'</span>, <span class="st">'Search'</span>, <span class="st">'web scraping'</span>),</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>    (<span class="st">'click'</span>, <span class="st">'Search'</span>),</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>    (<span class="st">'read'</span>, <span class="st">'.results'</span>)]))</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(out[<span class="st">'.results'</span>][:<span class="dv">400</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="setup-the-persistent-debug-chrome" class="level2">
+<h2 class="anchored" data-anchor-id="setup-the-persistent-debug-chrome">Setup — the persistent debug Chrome</h2>
+<p><code>fetch(url, session=True)</code> and the CDP tools use a long-lived Chrome with remote debugging on port 9223 — you don’t have to start it yourself. <code>fetch(session=True)</code>, <a href="https://vedicreader.github.io/fossick/cdp.html#cdp_ws"><code>cdp_ws()</code></a>, and <a href="https://vedicreader.github.io/fossick/cdp.html#cdp_connect"><code>cdp_connect()</code></a> launch one <strong>headless</strong> on first use, on a persistent profile (<code>~/.cache/fastcdp/cdp-chrome</code>), so cookies and SSO sessions survive across runs.</p>
+<p>To log in by hand (Cloudflare / SSO / Anubis) you need a <strong>headed</strong> window. A running Chrome can’t switch modes, so quit it and relaunch with <code>headless=False</code> — see <em>Managing the debug Chrome</em> in the <a href="cdp.html">cdp docs</a>. To keep one always-on at login, install the bundled service file for your OS (<code>chrome_debug.plist</code> for launchd, <code>chrome_debug.service</code> for systemd, <code>chrome_debug_task.xml</code> for Task Scheduler).</p>
+</section>
+<section id="cli" class="level2">
+<h2 class="anchored" data-anchor-id="cli">CLI</h2>
+<p>fossick ships a <code>fossick</code> command for shell scripts and agent harnesses that don’t have a Python kernel. All commands accept <code>--as_json</code> to return JSON instead of markdown.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb39"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># fetch a page as markdown (--auto escalates plain-&gt;heavy-&gt;stealthy-&gt;session; --session uses the logged-in Chrome)</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> fetch https://en.wikipedia.org/wiki/Web_scraping <span class="at">--sel</span> <span class="st">'.mw-parser-output &gt; p'</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="co"># research: search, then read the top results into one cited markdown corpus</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> research <span class="st">"retrieval augmented generation best practices"</span> <span class="at">--n</span> 5</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a><span class="co"># compact, agent-ready accessibility snapshot of a live page in the debug Chrome</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> ax https://example.com</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a><span class="co"># web search</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> search <span class="st">"fasthtml python framework"</span> <span class="at">--n</span> 5</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a><span class="co"># read an arxiv paper (summary only by default; --source for full text)</span></span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> read-arxiv 2306.14881</span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a><span class="co"># YouTube transcript</span></span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> read-yt https://www.youtube.com/watch<span class="pp">?</span>v=aircAruvnKk</span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a><span class="co"># search YouTube</span></span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> search-yt <span class="st">"3blue1brown neural networks"</span> <span class="at">--n</span> 3</span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a><span class="co"># download YouTube audio or video</span></span>
+<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> download-yt https://www.youtube.com/watch<span class="pp">?</span>v=aircAruvnKk <span class="at">--format</span> audio</span>
+<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a><span class="co"># convert a URL, PDF, or arXiv paper to a Jupyter notebook</span></span>
+<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> url2nb https://arxiv.org/abs/2306.14881</span>
+<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-28"><a href="#cb39-28" aria-hidden="true" tabindex="-1"></a><span class="co"># capture outgoing network requests fired by a page (uses real Chrome session)</span></span>
+<span id="cb39-29"><a href="#cb39-29" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> calls https://example.com <span class="at">--pattern</span> <span class="st">'*api*'</span> <span class="at">--as_json</span></span>
+<span id="cb39-30"><a href="#cb39-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-31"><a href="#cb39-31" aria-hidden="true" tabindex="-1"></a><span class="co"># interactive screenshot capture — overlays a button in Chrome, ✓ Done to finish</span></span>
+<span id="cb39-32"><a href="#cb39-32" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> collect https://example.com <span class="at">--save_dir</span> shots</span>
+<span id="cb39-33"><a href="#cb39-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-34"><a href="#cb39-34" aria-hidden="true" tabindex="-1"></a><span class="co"># click elements to annotate them with AX role + selector; saves labeled screenshot</span></span>
+<span id="cb39-35"><a href="#cb39-35" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> annotate https://example.com <span class="at">--save_dir</span> shots</span>
+<span id="cb39-36"><a href="#cb39-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-37"><a href="#cb39-37" aria-hidden="true" tabindex="-1"></a><span class="co"># install SKILL.md to .agents/skills/fossick/ and .claude/skills/fossick/</span></span>
+<span id="cb39-38"><a href="#cb39-38" aria-hidden="true" tabindex="-1"></a><span class="ex">fossick</span> install</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="22de339c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fossick.cdp <span class="im">import</span> cdp_setup, cdp_connect, syncy, _debug_running</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Start a persistent debug Chrome you can log into; fetch(url, session=True) reuses it afterwards.</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> _debug_running(<span class="dv">9223</span>):                       <span class="co"># a headless instance may already be running</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    cdp <span class="op">=</span> syncy(cdp_connect(port<span class="op">=</span><span class="dv">9223</span>))</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>: syncy(cdp.quit())                     <span class="co"># quit() drops the socket -&gt; ConnectionClosedOK</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span>: <span class="cf">pass</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>syncy(cdp_setup(<span class="dv">9223</span>, headless<span class="op">=</span><span class="va">False</span>))         <span class="co"># headed: log in by hand, then use session=True</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="mcp-server" class="level2">
+<h2 class="anchored" data-anchor-id="mcp-server">MCP server</h2>
+<p><code>fossick-mcp</code> exposes the whole toolkit over the Model Context Protocol, so Claude Code, Claude Desktop, Codex, and any other MCP client can drive fossick directly — search, fetch, readers, hidden-API discovery, and the logged-in debug Chrome (<a href="https://vedicreader.github.io/fossick/mcp.html#browse"><code>browse</code></a> / <code>page_*</code> tools).</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb41"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add <span class="st">'fossick'</span>        <span class="co"># or: pip install 'fossick'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Claude Code</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb42"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="ex">claude</span> mcp add fossick <span class="at">--</span> uvx <span class="at">--from</span> <span class="st">'fossick'</span> fossick-mcp</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Codex</strong> (<code>~/.codex/config.toml</code>)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb43"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[mcp_servers.fossick]</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="dt">command</span> <span class="op">=</span> <span class="st">"uvx"</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="dt">args</span> <span class="op">=</span> <span class="op">[</span><span class="st">"--from"</span><span class="op">,</span> <span class="st">"fossick"</span><span class="op">,</span> <span class="st">"fossick-mcp"</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Claude Desktop</strong> (<code>claude_desktop_config.json</code>)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb44"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">"mcpServers"</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">"fossick"</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">"command"</span><span class="fu">:</span> <span class="st">"uvx"</span><span class="fu">,</span> <span class="dt">"args"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"--from"</span><span class="ot">,</span> <span class="st">"fossick"</span><span class="ot">,</span> <span class="st">"fossick-mcp"</span><span class="ot">]</span><span class="fu">}}}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The server speaks stdio by default (<code>fossick-mcp --http</code> for Streamable HTTP). Tools mirror the Python/CLI API — see the <a href="https://vedicreader.github.io/fossick/mcp.html">mcp docs</a> for the full list.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/vedicreader\.github\.io\/fossick");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

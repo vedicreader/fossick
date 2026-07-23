@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Simple CLI for LLM agents — fetch, search, and read commands.">
+
+<title>cli – fossick</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-61796a25695e3e25c1376d6769e8e901.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="cli – fossick">
+<meta property="og:description" content="Simple CLI for LLM agents — fetch, search, and read commands.">
+<meta property="og:site_name" content="fossick">
+<meta name="twitter:title" content="cli – fossick">
+<meta name="twitter:description" content="Simple CLI for LLM agents — fetch, search, and read commands.">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fossick</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./cli.html">cli</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fossick</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cdp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">CDP — network sniffing and replay</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./search.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">search</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">cli</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./mcp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">mcp</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#fetch" id="toc-fetch" class="nav-link active" data-scroll-target="#fetch">fetch</a></li>
+  <li><a href="#crawl" id="toc-crawl" class="nav-link" data-scroll-target="#crawl">crawl</a></li>
+  <li><a href="#search" id="toc-search" class="nav-link" data-scroll-target="#search">search</a></li>
+  <li><a href="#read_arxiv" id="toc-read_arxiv" class="nav-link" data-scroll-target="#read_arxiv">read_arxiv</a></li>
+  <li><a href="#lookup_doi" id="toc-lookup_doi" class="nav-link" data-scroll-target="#lookup_doi">lookup_doi</a></li>
+  <li><a href="#read_yt" id="toc-read_yt" class="nav-link" data-scroll-target="#read_yt">read_yt</a></li>
+  <li><a href="#search_yt" id="toc-search_yt" class="nav-link" data-scroll-target="#search_yt">search_yt</a></li>
+  <li><a href="#read_gh_file" id="toc-read_gh_file" class="nav-link" data-scroll-target="#read_gh_file">read_gh_file</a></li>
+  <li><a href="#read_gh_repo" id="toc-read_gh_repo" class="nav-link" data-scroll-target="#read_gh_repo">read_gh_repo</a></li>
+  <li><a href="#calls" id="toc-calls" class="nav-link" data-scroll-target="#calls">calls</a></li>
+  <li><a href="#find_xhr" id="toc-find_xhr" class="nav-link" data-scroll-target="#find_xhr">find_xhr</a></li>
+  <li><a href="#paginate_api" id="toc-paginate_api" class="nav-link" data-scroll-target="#paginate_api">paginate_api</a></li>
+  <li><a href="#collect" id="toc-collect" class="nav-link" data-scroll-target="#collect">collect</a></li>
+  <li><a href="#annotate" id="toc-annotate" class="nav-link" data-scroll-target="#annotate">annotate</a></li>
+  <li><a href="#install" id="toc-install" class="nav-link" data-scroll-target="#install">install</a></li>
+  <li><a href="#url2nb" id="toc-url2nb" class="nav-link" data-scroll-target="#url2nb">url2nb</a></li>
+  <li><a href="#pdf2nb" id="toc-pdf2nb" class="nav-link" data-scroll-target="#pdf2nb">pdf2nb</a></li>
+  <li><a href="#download_yt" id="toc-download_yt" class="nav-link" data-scroll-target="#download_yt">download_yt</a></li>
+  <li><a href="#videos" id="toc-videos" class="nav-link" data-scroll-target="#videos">videos</a></li>
+  <li><a href="#news" id="toc-news" class="nav-link" data-scroll-target="#news">news</a></li>
+  <li><a href="#images" id="toc-images" class="nav-link" data-scroll-target="#images">images</a></li>
+  <li><a href="#ax" id="toc-ax" class="nav-link" data-scroll-target="#ax">ax</a></li>
+  <li><a href="#research" id="toc-research" class="nav-link" data-scroll-target="#research">research</a></li>
+  <li><a href="#main" id="toc-main" class="nav-link" data-scroll-target="#main">main</a></li>
+  <li><a href="#tests" id="toc-tests" class="nav-link" data-scroll-target="#tests">Tests</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="cli.html.md"><i class="bi bi-file-code"></i>Markdown</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">cli</h1>
+</div>
+
+<div>
+  <div class="description">
+    Simple CLI for LLM agents — fetch, search, and read commands.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L28" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="fetch" class="level3">
+<h3 class="anchored" data-anchor-id="fetch">fetch</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># URL to fetch</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># CSS selector to extract (None = full page)</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    heavy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># JS rendering via headless browser</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Anti-bot stealth fetcher</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    session:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Route through the persistent debug Chrome (reuses its logged-in cookies)</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    auto:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Auto-escalate plain-&gt;heavy-&gt;stealthy-&gt;session on bot-block detection</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Output JSON instead of markdown</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Fetch a URL and print as markdown.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L44" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="crawl" class="level3">
+<h3 class="anchored" data-anchor-id="crawl">crawl</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> crawl(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># start URL</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># CSS selector to extract per page</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    follow_sel:<span class="bu">str</span><span class="op">=</span><span class="st">'a[href]'</span>, <span class="co"># CSS selector for links to follow</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    max_pages:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, <span class="co"># max pages to visit</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    same_domain:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># only follow same-domain links</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    heavy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># JS rendering via headless browser</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># anti-bot stealth fetcher</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Crawl from a URL following links; prints each page as markdown.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L66" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="search" class="level3">
+<h3 class="anchored" data-anchor-id="search">search</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    query:<span class="bu">str</span>, <span class="co"># search query</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    n:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, <span class="co"># number of results</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    region:<span class="bu">str</span><span class="op">=</span><span class="st">'us-en'</span>, <span class="co"># ddgs region (us-en, uk-en, ru-ru, ...)</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    google:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># use direct Google via stealth browser instead of ddgs metasearch</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Search the web (ddgs metasearch, or direct Google with –google); prints title, URL, and snippet.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L84" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="read_arxiv" class="level3">
+<h3 class="anchored" data-anchor-id="read_arxiv">read_arxiv</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_arxiv(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># arXiv URL or paper ID</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    source:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># include full paper text</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    chars:<span class="bu">int</span><span class="op">=</span><span class="dv">4000</span>, <span class="co"># max source chars to include</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># re-download even if cached</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Fetch arXiv paper metadata, authors, and summary.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L106" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="lookup_doi" class="level3">
+<h3 class="anchored" data-anchor-id="lookup_doi">lookup_doi</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lookup_doi(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    title:<span class="bu">str</span>, <span class="co"># paper title to look up</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the doi.org URL for the first Crossref match on a paper title.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L117" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="read_yt" class="level3">
+<h3 class="anchored" data-anchor-id="read_yt">read_yt</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_yt(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># YouTube URL or video ID</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># re-fetch even if cached</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Fetch YouTube metadata and full transcript.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L132" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="search_yt" class="level3">
+<h3 class="anchored" data-anchor-id="search_yt">search_yt</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search_yt(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    query:<span class="bu">str</span>, <span class="co"># search query</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    n:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, <span class="co"># number of results</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Search YouTube; prints title, URL, and channel.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L149" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="read_gh_file" class="level3">
+<h3 class="anchored" data-anchor-id="read_gh_file">read_gh_file</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_gh_file(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># GitHub blob URL of the file</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Read the raw contents of a single GitHub file.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L161" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="read_gh_repo" class="level3">
+<h3 class="anchored" data-anchor-id="read_gh_repo">read_gh_repo</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_gh_repo(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># GitHub repo URL, SSH address, or local path</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    globs:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># comma-sep glob patterns (default: README*,pyproject.toml,*.py)</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    limit:<span class="bu">int</span><span class="op">=</span><span class="va">None</span>, <span class="co"># max files to return</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Read files from a GitHub repo filtered by glob patterns.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L179" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="calls" class="level3">
+<h3 class="anchored" data-anchor-id="calls">calls</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calls(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># URL to navigate to</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    pattern:<span class="bu">str</span><span class="op">=</span><span class="st">'.*'</span>, <span class="co"># regex/glob to filter request URLs</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    tail:<span class="bu">int</span><span class="op">=</span><span class="dv">3</span>, <span class="co"># seconds to wait after navigation</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Capture outgoing network requests fired by a page.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L201" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="find_xhr" class="level3">
+<h3 class="anchored" data-anchor-id="find_xhr">find_xhr</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_xhr(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># URL to visit with a headless browser</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    pattern:<span class="bu">str</span><span class="op">=</span><span class="st">'*'</span>, <span class="co"># glob/regex to filter captured XHR URLs</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Discover hidden JSON/XHR API calls a page makes.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L218" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="paginate_api" class="level3">
+<h3 class="anchored" data-anchor-id="paginate_api">paginate_api</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> paginate_api(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># API endpoint URL</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    payload:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># request body/params as a JSON string</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    page_field:<span class="bu">str</span><span class="op">=</span><span class="st">'pageNumber'</span>, <span class="co"># payload key to increment per page</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    results_field:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># response key with the items list (auto-detect if None)</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    method:<span class="bu">str</span><span class="op">=</span><span class="st">'POST'</span>, <span class="co"># HTTP method</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    max_pages:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, <span class="co"># max pages to fetch</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Paginate a JSON API and print all collected items as JSON.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L234" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="collect" class="level3">
+<h3 class="anchored" data-anchor-id="collect">collect</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> collect(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># URL to open in Chrome</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    save_dir:<span class="bu">str</span><span class="op">=</span><span class="st">'.'</span>, <span class="co"># directory to save screenshots</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    tout:<span class="bu">int</span><span class="op">=</span><span class="va">None</span>, <span class="co"># stop after this many seconds</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    count:<span class="bu">int</span><span class="op">=</span><span class="va">None</span>, <span class="co"># stop after this many screenshots</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    every_n:<span class="bu">int</span><span class="op">=</span><span class="va">None</span>, <span class="co"># auto-capture every N seconds</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Open a URL in Chrome and capture screenshots interactively.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L253" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="annotate" class="level3">
+<h3 class="anchored" data-anchor-id="annotate">annotate</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> annotate(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># URL to open in Chrome</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    save_dir:<span class="bu">str</span><span class="op">=</span><span class="st">'.'</span>, <span class="co"># directory to save annotated screenshot</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON list of selected elements</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Open a URL in Chrome, click elements to annotate them, save labeled screenshot.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L272" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="install" class="level3">
+<h3 class="anchored" data-anchor-id="install">install</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> install():</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Install fossick SKILL.md to .agents/skills/fossick/ and .claude/skills/fossick/.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L278" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="url2nb" class="level3">
+<h3 class="anchored" data-anchor-id="url2nb">url2nb</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> url2nb(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># URL to convert (HTML page, PDF, or arXiv)</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    path:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># output notebook path (default: derived from URL)</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON with notebook path</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Convert a URL (HTML, PDF, or arXiv) to a Jupyter notebook.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L291" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="pdf2nb" class="level3">
+<h3 class="anchored" data-anchor-id="pdf2nb">pdf2nb</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pdf2nb(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># PDF URL or local path</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    path:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># output notebook path (default: derived from PDF)</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    ocr:<span class="bu">str</span><span class="op">=</span><span class="st">'auto'</span>, <span class="co"># OCR mode: auto | on | off</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># re-convert even if notebook exists</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON with notebook path</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Convert a PDF (URL or local path) to a Jupyter notebook.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L306" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="download_yt" class="level3">
+<h3 class="anchored" data-anchor-id="download_yt">download_yt</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> download_yt(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># YouTube URL or video ID</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">format</span>:<span class="bu">str</span><span class="op">=</span><span class="st">'audio'</span>, <span class="co"># audio | video | yt-dlp format string</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    save_dir:<span class="bu">str</span><span class="op">=</span><span class="st">'.'</span>, <span class="co"># directory to save to</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON with saved path</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Download YouTube audio or video.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L340" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="videos" class="level3">
+<h3 class="anchored" data-anchor-id="videos">videos</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> videos(</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    query:<span class="bu">str</span>, n:<span class="bu">int</span><span class="op">=</span><span class="dv">20</span>, region:<span class="bu">str</span><span class="op">=</span><span class="st">'us-en'</span>, as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Video search via ddgs; prints title and video URL.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L328" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="news" class="level3">
+<h3 class="anchored" data-anchor-id="news">news</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> news(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    query:<span class="bu">str</span>, n:<span class="bu">int</span><span class="op">=</span><span class="dv">20</span>, region:<span class="bu">str</span><span class="op">=</span><span class="st">'us-en'</span>, as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>News search via ddgs; prints date, title, and URL.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L320" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="images" class="level3">
+<h3 class="anchored" data-anchor-id="images">images</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> images(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    query:<span class="bu">str</span>, n:<span class="bu">int</span><span class="op">=</span><span class="dv">20</span>, region:<span class="bu">str</span><span class="op">=</span><span class="st">'us-en'</span>, as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Image search via ddgs; prints title and image URL.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L364" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="ax" class="level3">
+<h3 class="anchored" data-anchor-id="ax">ax</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ax(</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># URL to open in the debug Chrome</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    port:<span class="bu">int</span><span class="op">=</span><span class="dv">9223</span>, <span class="co"># debug Chrome remote-debugging port</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    full:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># show the full accessibility tree instead of interactive-only</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Open a URL in the persistent debug Chrome and print a compact, agent-ready accessibility snapshot.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L349" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="research" class="level3">
+<h3 class="anchored" data-anchor-id="research">research</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> research(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    query:<span class="bu">str</span>, <span class="co"># search query</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    n:<span class="bu">int</span><span class="op">=</span><span class="dv">5</span>, <span class="co"># number of top results to read</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    google:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># use direct Google ranking (stealth browser) instead of ddgs metasearch</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># CSS selector to narrow each page before markdown</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    chars:<span class="bu">int</span><span class="op">=</span><span class="dv">4000</span>, <span class="co"># max markdown chars per source</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    as_json:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># output JSON</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Search, then read the top results into one cited markdown corpus.</em></p>
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L404" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="main" class="level3">
+<h3 class="anchored" data-anchor-id="main">main</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Entry point for the <code>fossick</code> CLI command.</em></p>
+</section>
+<section id="tests" class="level2">
+<h2 class="anchored" data-anchor-id="tests">Tests</h2>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#research"><code>research</code></a>/<a href="https://vedicreader.github.io/fossick/cli.html#ax"><code>ax</code></a> should be registered in <code>CMDS</code> and <a href="https://vedicreader.github.io/fossick/cli.html#research"><code>research</code></a> importable (it raised <code>NameError</code> before the import fix). The <code>eval:false</code> cell then runs the <a href="https://vedicreader.github.io/fossick/cli.html#research"><code>research</code></a> command end-to-end against live services.</p>
+<div id="1aa51b48" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># regression guard: research/ax registered and research importable</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co"># (fossick research raised NameError before _research was added to the search import)</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> inspect</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> CMDS[<span class="st">'research'</span>] <span class="kw">is</span> research <span class="kw">and</span> CMDS[<span class="st">'ax'</span>] <span class="kw">is</span> ax</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _research <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> {<span class="st">'session'</span>,<span class="st">'auto'</span>} <span class="op">&lt;=</span> <span class="bu">set</span>(inspect.signature(fetch.__wrapped__).parameters)</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> {<span class="st">'url'</span>,<span class="st">'port'</span>,<span class="st">'full'</span>} <span class="op">&lt;=</span> <span class="bu">set</span>(inspect.signature(ax.__wrapped__).parameters)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="c1a10a01" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># end-to-end: the research CLI runs against live services and prints a cited corpus</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> io</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> contextlib <span class="im">import</span> redirect_stdout</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>buf <span class="op">=</span> io.StringIO()</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> redirect_stdout(buf): research.__wrapped__(<span class="st">'what is the raft consensus algorithm'</span>, n<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> buf.getvalue()</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> out.startswith(<span class="st">'# Research:'</span>) <span class="kw">and</span> <span class="st">'http'</span> <span class="kw">in</span> out</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(out[:<span class="dv">300</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/vedicreader\.github\.io\/fossick");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
