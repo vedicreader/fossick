@@ -2,6 +2,16 @@
 
 <!-- do not remove -->
 
+## 0.0.15
+
+New Features:
+
+  MCP server
+  - fossick-mcp — exposes the whole toolkit over the Model Context Protocol, so Claude Code, Claude Desktop, Codex, and any MCP client can drive fossick directly.
+  - 23 tools mirroring the Python/CLI API: web_search/research, fetch_page/fetch_pages/crawl_site, the arXiv/YouTube/GitHub/notebook readers, find_hidden_apis/replay_capture/paginate_api, and browse/page_* for the persistent logged-in debug Chrome.
+  - stdio by default; fossick-mcp --http for Streamable HTTP. mcp now ships as a core dependency — no extra to install.
+
+
 ## 0.0.14
 
 New Features:
