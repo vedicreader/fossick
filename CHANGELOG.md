@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.0
+fixes scrapling bug fix
+
 ## 0.0.15
 
 New Features:
@@ -110,5 +113,3 @@ pypi release
 
 ## 0.0.1
 Initial release of fossick
-
-
