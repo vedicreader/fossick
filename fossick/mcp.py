@@ -8,7 +8,9 @@ Docs: https://vedicreader.github.io/fossick/mcp.html.md"""
 __all__ = ['mcp', 'web_search', 'research', 'lookup_doi', 'fetch_page', 'fetch_pages', 'crawl_site', 'read_arxiv', 'read_youtube',
            'search_youtube', 'download_youtube', 'read_github_file', 'read_github_repo', 'url_to_notebook',
            'pdf_to_notebook', 'find_hidden_apis', 'replay_capture', 'paginate_api', 'browse', 'page_snapshot',
-           'page_fill_form', 'page_act', 'page_markdown', 'capture_network', 'main']
+           'page_fill_form', 'page_act', 'page_markdown', 'capture_network', 'shop_open', 'shop_search',
+           'shop_products', 'shop_goto', 'shop_add', 'shop_cart', 'shop_set_qty', 'shop_remove', 'shop_dismiss',
+           'shop_fields', 'shop_fill', 'shop_set_field', 'main']
 
 # %% ../nbs/04_mcp.ipynb #7d97c5fe
 """MCP server for fossick — search, fetch, read, hidden-API, and browser tools over stdio.
@@ -35,7 +37,10 @@ mcp = FastMCP('fossick', instructions=(
     'Web toolkit. web_search/research for queries; fetch_page for URLs (heavy=JS, stealthy=anti-bot, '
     'session=logged-in Chrome, auto=escalate until not bot-blocked); read_arxiv/read_youtube/read_github_* '
     'for those sites; find_hidden_apis + replay_capture/paginate_api to turn a page into a JSON data feed; '
-    'browse + page_* tools drive a persistent logged-in Chrome for interactive/authenticated flows.'))
+    'browse + page_* tools drive a persistent logged-in Chrome for interactive/authenticated flows; '
+    'shop_* tools drive a shopping cart on any storefront — shop_open, shop_search, shop_add '
+    '(verified: it tells you whether the cart actually changed), shop_cart, shop_fields/shop_fill '
+    'for checkout forms.'))
 
 def _trunc(s, n):
     'Clip `s` to `n` chars with an explicit truncation marker.'
@@ -227,6 +232,83 @@ def capture_network(url:str, pattern:str='.*', tail:int=3, port:int=9223, previe
     return [{'capture_id': i, 'url': r['url'], 'method': r.get('method'),
              'response_preview': _trunc(str(r.get('response_body') or ''), preview_chars)}
             for i, r in enumerate(vals)]
+
+# %% ../nbs/04_mcp.ipynb #4b8929362c9a40c3
+_cart = {'shop': None}   # the shopping session the shop_* tools drive
+
+def _sh(url=None, port=9223):
+    "The current shopping session, opening one at `url` if there is none."
+    from fossick.shop import shop as _open
+    if url is not None or _cart['shop'] is None:
+        if url is None: raise ValueError('no shop open — call shop_open(url) first')
+        _cart['shop'] = _open(url, port=port)
+    return _cart['shop']
+
+@mcp.tool()
+def shop_open(url:str, port:int=9223) -> dict:
+    "Open a store in the persistent debug Chrome and report the platform, anything blocking (cookie banner, login, store/postcode) and the current cart. Later shop_* tools act on this session."
+    s = _sh(url, port=port)
+    return {'url': s.url, 'platform': s.platform(), 'blockers': s.blockers(), 'cart': _jsonable(s.cart())}
+
+@mcp.tool()
+def shop_search(query:str, limit:int=25) -> list:
+    "Search the open store and return numbered products [{i, title, price, url, add, qty, oos}]. Pass i (or the title) to shop_add."
+    return _jsonable(_sh().search(query, limit=limit))
+
+@mcp.tool()
+def shop_products(limit:int=25) -> list:
+    "Products on the current page, numbered for shop_add (use after navigating to a category or product page)."
+    return _jsonable(_sh().products(limit))
+
+@mcp.tool()
+def shop_goto(url:str) -> dict:
+    "Navigate the shopping session to a URL (a category or product page) and list what is on it."
+    s = _sh()
+    s.goto(url)
+    return {'url': s.url, 'blockers': s.blockers(), 'products': _jsonable(s.products(25))}
+
+@mcp.tool()
+def shop_add(item:str, qty:int=1, variant:str|None=None) -> dict:
+    "Add a product to the cart by index or title, then verify it landed. ok=True only when the cart actually changed; ok=None means the site exposes no signal to check; need='variant' means pick one of the returned variants."
+    return _jsonable(_sh().add(item, qty=qty, variant=variant))
+
+@mcp.tool()
+def shop_cart(page:bool=False) -> dict:
+    "The current cart. page=True opens the cart page first, which is what gives you line items to change or remove."
+    s = _sh()
+    return _jsonable(s.cart_page() if page else s.cart(lines=True))
+
+@mcp.tool()
+def shop_set_qty(line:int, qty:int) -> dict:
+    "Set the quantity of a cart line (index from shop_cart(page=True)). Verified."
+    return _jsonable(_sh().set_qty(line, qty))
+
+@mcp.tool()
+def shop_remove(line:int) -> dict:
+    "Remove a cart line (index from shop_cart(page=True)). Verified."
+    return _jsonable(_sh().remove(line))
+
+@mcp.tool()
+def shop_dismiss() -> dict:
+    "Click through cookie/consent banners and closable modals blocking the store."
+    s = _sh()
+    return {'clicked': s.dismiss(), 'blockers': s.blockers()}
+
+@mcp.tool()
+def shop_fields() -> list:
+    "Every visible form field on the current page with its label, autocomplete token, current value and select options — the ground truth for filling a checkout, so no field name has to be guessed."
+    return _jsonable(_sh().fields())
+
+@mcp.tool()
+def shop_fill(profile:dict, submit:str|None=None, confirm:bool=False) -> dict:
+    "Fill a checkout form from a profile dict (first_name, last_name, email, phone, address1, address2, city, state, postcode, country, company, notes, card_*), matching fields by autocomplete token first, then re-read the form to confirm what stuck. submit= clicks that button; a payment button also needs confirm=True."
+    return _jsonable(_sh().fill(profile, submit=submit, confirm=confirm))
+
+@mcp.tool()
+def shop_set_field(i:int, value:str) -> dict:
+    "Set one form field by its index from shop_fields — for options a profile has no key for (size, colour, delivery window)."
+    return _jsonable(_sh().set(i, value))
+
 
 # %% ../nbs/04_mcp.ipynb #2adadd9f
 def main():

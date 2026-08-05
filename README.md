@@ -337,6 +337,43 @@ out = syncy(pg.act([
 print(out['.results'][:400])
 ```
 
+## Shopping carts
+
+`fossick.shop` is the cart layer on top of that browser: an agent finds products, adds them, and — the part that usually goes wrong — *knows whether the add worked*. There are no per-site selectors to write. Products are found by deriving card boundaries from the page’s own link structure, so the same code reads a Shopify collection, an Amazon results page and a bespoke Rails storefront; where a site has a real cart API (Shopify’s `/cart.js`) it is used instead of clicking.
+
+Every mutating call reads the cart before and after and reports the evidence: `ok=True` with `how='count'`, `'subtotal'`, `'lines'` or a confirmation toast. `ok=None` means the page exposes no cart signal to check against — an agent should never turn that into “added it”. Ambiguity is handed back rather than guessed: an unmatched name raises with the titles that were on offer, and a product needing a size returns `need='variant'` with the variants that are actually in stock.
+
+``` python
+from fossick.shop import shop
+
+s = shop('https://members.ceresfairfood.org.au')      # opens in the persistent debug Chrome
+s.search('apples')[:2]                                # [{'i': 0, 'title': 'Apples Fuji IPM 500g', 'price': 5.5, ...}]
+
+# add by index or by title; the result says what actually changed in the cart
+s.add('Apples Fuji Organic 500g', qty=2)
+# {'ok': True, 'how': 'count', 'qty': 2, 'qty_set': '2',
+#  'before': {'count': 0, ...}, 'after': {'count': 2, ...}}
+
+s.cart_page()                                         # {'count': 2, 'subtotal': 13.0, 'lines': [...]}
+s.set_qty(0, 3); s.remove(0)
+```
+
+Checkout forms are read before they are filled. `s.fields()` returns every visible input with its label, `autocomplete` token, current value and `<select>` options — ground truth, so nothing has to be guessed from a field name. `s.fill(profile)` maps a plain dict onto them (by autocomplete token first, since that is a spec rather than a hunch), then re-reads the form to report which values actually stuck. It will not press a payment button: `submit=` accepts a button name, but anything that reads like paying needs `confirm=True` as well.
+
+`s.blockers()` names what is standing in the way — `cookie-banner`, `location-required`, `login-required`, `captcha` — and `s.dismiss()` clicks through the consent ones. Logging in and choosing a delivery store stay a human’s job, done once; the persistent profile keeps them.
+
+``` python
+s.goto('https://example.com/checkout')
+s.fields()      # [{'i': 7, 'label': 'Suburb', 'autocomplete': 'address-level2', ...}, ...]
+
+s.fill(dict(email='sam@example.com', first_name='Sam', last_name='Nguyen',
+            address1='12 Smith St', city='Brunswick', state='Victoria', postcode='3056'))
+# {'filled': {'city': {'i': 7, 'label': 'Suburb', 'got': 'Brunswick', 'confirmed': True}, ...},
+#  'failed': {}, 'unmatched': []}
+
+s.fill({}, submit='Place order')     # ShopError: looks like it completes a payment — pass confirm=True
+```
+
 ## Setup — the persistent debug Chrome
 
 `fetch(url, session=True)` and the CDP tools use a long-lived Chrome with remote debugging on port 9223 — you don’t have to start it yourself. `fetch(session=True)`, [`cdp_ws()`](https://vedicreader.github.io/fossick/cdp.html#cdp_ws), and [`cdp_connect()`](https://vedicreader.github.io/fossick/cdp.html#cdp_connect) launch one **headless** on first use, on a persistent profile (`~/.cache/fastcdp/cdp-chrome`), so cookies and SSO sessions survive across runs.
@@ -384,6 +421,11 @@ fossick collect https://example.com --save_dir shots
 # click elements to annotate them with AX role + selector; saves labeled screenshot
 fossick annotate https://example.com --save_dir shots
 
+# drive a shopping cart — list, add (verified), read the cart. State persists across calls.
+fossick shop https://members.ceresfairfood.org.au --search apples
+fossick shop https://members.ceresfairfood.org.au --add 'Apples Fuji Organic 500g' --qty 2
+fossick shop https://members.ceresfairfood.org.au --cart
+
 # install SKILL.md to .agents/skills/fossick/ and .claude/skills/fossick/
 fossick install
 ```
@@ -400,7 +442,7 @@ syncy(cdp_setup(9223, headless=False))         # headed: log in by hand, then us
 
 ## MCP server
 
-`fossick-mcp` exposes the whole toolkit over the Model Context Protocol, so Claude Code, Claude Desktop, Codex, and any other MCP client can drive fossick directly — search, fetch, readers, hidden-API discovery, and the logged-in debug Chrome ([`browse`](https://vedicreader.github.io/fossick/mcp.html#browse) / `page_*` tools).
+`fossick-mcp` exposes the whole toolkit over the Model Context Protocol, so Claude Code, Claude Desktop, Codex, and any other MCP client can drive fossick directly — search, fetch, readers, hidden-API discovery, the logged-in debug Chrome ([`browse`](https://vedicreader.github.io/fossick/mcp.html#browse) / `page_*` tools), and shopping carts (`shop_open`, `shop_search`, `shop_add`, `shop_cart`, `shop_fields`, `shop_fill`).
 
 ``` sh
 uv add 'fossick'        # or: pip install 'fossick'

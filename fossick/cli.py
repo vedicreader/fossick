@@ -7,7 +7,7 @@ Docs: https://vedicreader.github.io/fossick/cli.html.md"""
 # %% auto #0
 __all__ = ['CMDS', 'fetch', 'crawl', 'search', 'read_arxiv', 'lookup_doi', 'read_yt', 'search_yt', 'read_gh_file', 'read_gh_repo',
            'calls', 'find_xhr', 'paginate_api', 'collect', 'annotate', 'install', 'url2nb', 'pdf2nb', 'download_yt',
-           'images', 'news', 'videos', 'research', 'ax', 'main']
+           'images', 'news', 'videos', 'research', 'ax', 'shop', 'main']
 
 # %% ../nbs/03_cli.ipynb #d4e5f6a7
 """CLI for fossick — fetch, search, and read commands for LLM agents.
@@ -376,6 +376,50 @@ def ax(
         return await pg.snapshot(interactive=not full)
     print(syncy(_run()))
 
+# %% ../nbs/03_cli.ipynb #ac8ae705f0b91156
+@call_parse
+def shop(
+    url:str,              # store URL to open in the persistent debug Chrome
+    search:str=None,      # search the store for this term and list the products it found
+    add:str=None,         # add a product by index (from a previous --search) or by title
+    qty:int=1,            # quantity to add
+    variant:str=None,     # variant/size to pick, for products that need one
+    cart:bool=False,      # print the cart (with its lines) instead
+    fields:bool=False,    # print the form fields on this page (checkout ground truth)
+    port:int=9223,        # debug Chrome remote-debugging port
+    as_json:bool=False,   # output JSON
+):
+    "Drive a shopping cart: list products, add one, read the cart. Cart state persists across calls."
+    from fossick.shop import shop as _shop, ShopError
+    s = _shop(url, port=port)
+    try:
+        if search is not None: out = s.search(search)
+        elif add is not None:  out = s.add(add, qty=qty, variant=variant)
+        elif cart:             out = s.cart_page()
+        elif fields:           out = s.fields()
+        else:                  out = s.products()
+    except ShopError as e:                       # a refusal is a message, not a stack trace
+        print(f'error: {e}', file=sys.stderr)
+        sys.exit(1)
+    if as_json: print(json.dumps(out, default=str)); return
+    if isinstance(out, list) and out and 'title' in out[0]:
+        for p in out:
+            flags = ' '.join(f for f in ('[no add]' if not p['add'] else '', '[out of stock]' if p['oos'] else '',
+                                         f"[qty: {p['qty']}]" if p['qty'] else '') if f)
+            print(f"{p['i']:>3}  {p['price'] if p['price'] is not None else '?':>9}  {(p['title'] or '')[:70]}  {flags}")
+    elif isinstance(out, list):
+        for f in out: print(f"{f['i']:>3}  {f['type'] or f['tag']:<10} {f['autocomplete'] or '-':<16} {f['label'][:40]}")
+    elif 'ok' in out:
+        print(f"ok={out['ok']}  how={out.get('how')}")
+        if out.get('error'): print('error:', out['error'])
+        if out.get('variants'): print('variants:', [v['name'] for v in out['variants']][:12])
+        for k in ('before', 'after'):
+            if out.get(k): print(f"{k}: count={out[k].get('count')} subtotal={out[k].get('subtotal')}")
+    else:
+        print(f"cart: {out.get('count')} items, subtotal {out.get('subtotal')} ({out.get('source')})")
+        for l in (out.get('lines') or []): print(f"  {l['i']:>3}  {l.get('price')}  {(l.get('title') or l.get('text') or '')[:60]}")
+
+
 # %% ../nbs/03_cli.ipynb #e1f2a3b4
 CMDS = {
     'fetch':        fetch,
@@ -400,6 +444,7 @@ CMDS = {
     'collect':      collect,
     'annotate':     annotate,
     'ax':           ax,
+    'shop':         shop,
     'install':      install,
 }
 

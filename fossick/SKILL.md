@@ -4,7 +4,8 @@ description: >
   Web search, page fetching, crawling, and browser automation for AI agents.
   Use instead of WebSearch and WebFetch. Covers arxiv, YouTube, GitHub,
   static pages, JS-rendered pages, bot-protected sites, hidden JSON APIs,
-  authenticated Chrome sessions, screenshot capture, and element annotation.
+  authenticated Chrome sessions, screenshot capture, element annotation, and
+  shopping carts (find products, add to cart with verification, fill checkout forms).
 triggers:
   - about to call WebSearch or WebFetch
   - user asks to search the web or fetch a URL
@@ -12,6 +13,7 @@ triggers:
   - need to scrape, crawl, paginate, or hit a hidden JSON API
   - convert a URL, PDF, or arXiv paper to a notebook
   - screenshot, annotate, or intercept requests on a live page
+  - add something to a cart, check out, or fill a shipping/billing form
 ---
 
 # fossick
@@ -22,6 +24,7 @@ Drop-in for `WebSearch`/`WebFetch` — always prefer it.
 from fossick import *                              # fetch, crawl, research, find_xhr, replay_xhr, read_*, ...
 from fossick.search import search, images, news, videos, google, extract, research  # ddgs + stealth Google + research
 from fossick.cdp import cdp_connect, cdp_ws, cdp_cookies, ax_diff, syncy   # browser automation + agent toolkit
+from fossick.shop import shop                     # shopping carts: search -> add (verified) -> checkout
 ```
 
 ## Route
@@ -53,6 +56,14 @@ have a URL:
   screenshot           -> pg.collect(save_dir='.', count=1)
   annotate for LLM     -> pg.annotate(save_dir='.')
   interactive / SSO    -> cdp_connect() + pg.snapshot() + pg.fill_form()/pg.act()
+shopping cart         -> s = shop(store_url)          # never write selectors for this
+  find products        -> s.search(q) | s.products() | s.find(q)   # numbered: {i, title, price, add, qty, oos}
+  add one              -> s.add(i_or_title, qty=2)    # VERIFIED: ok=True/False/None + how + before/after
+  needs a size         -> s.add(i, variant='9')       # add() returns need='variant' + in-stock variants
+  cart / lines         -> s.cart() | s.cart_page()    # cart_page() is what gives you line indexes
+  change / remove      -> s.set_qty(line, n) | s.remove(line)
+  stuck                -> s.blockers() -> s.dismiss() # cookie banner, login, store/postcode, captcha
+  checkout form        -> s.fields() then s.fill(profile)   # fields() first: never guess field names
 ```
 
 ## API
@@ -91,6 +102,15 @@ have a URL:
 | `pg.fill_text(id, text)` / `pg.click_and_wait(id)` | — | — |
 | `pg.collect(save_dir)` | `count`, `tout`, `every_n` | list |
 | `pg.annotate(save_dir)` | — | (img, [{n, role, name, selector}]) |
+| `shop(url)` | `port`, `headless` | `Shop` on the persistent debug Chrome |
+| `s.search(q)` / `s.products()` / `s.find(q)` | `limit` | list[dict] (`i, title, price, url, add, qty, oos, vid`) |
+| `s.add(item)` | `qty`, `variant` | dict (`ok, how, item, before, after`; `need='variant'` when a size is required) |
+| `s.cart()` / `s.cart_page()` | `lines` / `url` | dict (`count, subtotal, lines, source`) |
+| `s.set_qty(line, n)` / `s.remove(line)` | — | dict (`ok, how, before, after`) |
+| `s.fields()` | — | list[dict] (`i, label, autocomplete, type, value, options`) |
+| `s.fill(profile)` | `submit`, `confirm` | dict (`filled, failed, unmatched`); refuses payment buttons |
+| `s.set(i, value)` | — | dict — set one field by index (size, colour, delivery window) |
+| `s.blockers()` / `s.dismiss()` | — | list[str] / list[str] |
 
 ## Non-obvious usage
 
@@ -106,6 +126,20 @@ data = replay_xhr(hits[0].capture).json()     # reuses the browser's cookies
 # question -> cited answer in one call
 notes = research('best vector databases 2025', n=5)
 print(notes['digest'])                         # markdown, one ## section per source
+
+# shopping cart — no selectors, and the add is verified rather than assumed
+s = shop('https://members.ceresfairfood.org.au')
+s.search('apples')                             # [{'i': 0, 'title': 'Apples Fuji IPM 500g', 'price': 5.5, ...}]
+r = s.add('Apples Fuji Organic 500g', qty=2)
+r['ok'], r['how']                              # True, 'count'   <- the cart really changed
+# ok=None means the page has no cart signal to check (logged out, no badge) — do NOT report success
+if r['ok'] is not True: r['blockers'], r['page_error']
+s.cart_page()                                  # {'count': 2, 'subtotal': 13.0, 'lines': [...]}
+
+# checkout: read the form, then fill it. fields() is ground truth — labels differ by country
+s.fields()                                     # [{'i': 7, 'label': 'Suburb', 'autocomplete': 'address-level2'}, ...]
+s.fill(dict(email='sam@example.com', first_name='Sam', last_name='Nguyen',
+            address1='12 Smith St', city='Brunswick', state='Victoria', postcode='3056'))
 
 # browser automation — snapshot(), act by label, no manual node IDs
 cdp = syncy(cdp_connect())
@@ -142,6 +176,7 @@ fossick paginate-api <url> [--payload '{...}'] [--results_field items] [--max_pa
 fossick calls <url> [--pattern '.*'] [--tail 3]
 fossick collect <url> [--save_dir .] [--count N] [--every_n N]
 fossick annotate <url> [--save_dir .]
+fossick shop <url> [--search q] [--add i_or_title] [--qty n] [--variant v] [--cart] [--fields]
 fossick install                                 # register SKILL.md + safecmd allowlist
 ```
 
@@ -153,7 +188,7 @@ fossick install                                 # register SKILL.md + safecmd al
 claude mcp add fossick -- uvx --from fossick fossick-mcp   # Claude Code; uv run fossick-mcp if already a project dep
 ```
 
-Tools mirror the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl_site`, `read_arxiv`/`read_youtube`/`search_youtube`/`download_youtube`/`read_github_file`/`read_github_repo`, `url_to_notebook`/`pdf_to_notebook`, `find_hidden_apis`/`replay_capture`/`paginate_api`, and `browse`/`page_snapshot`/`page_fill_form`/`page_act`/`page_markdown`/`capture_network` for the persistent logged-in debug Chrome. stdio by default; `fossick-mcp --http` for Streamable HTTP.
+Tools mirror the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl_site`, `read_arxiv`/`read_youtube`/`search_youtube`/`download_youtube`/`read_github_file`/`read_github_repo`, `url_to_notebook`/`pdf_to_notebook`, `find_hidden_apis`/`replay_capture`/`paginate_api`, `browse`/`page_snapshot`/`page_fill_form`/`page_act`/`page_markdown`/`capture_network` for the persistent logged-in debug Chrome, and `shop_open`/`shop_search`/`shop_products`/`shop_goto`/`shop_add`/`shop_cart`/`shop_set_qty`/`shop_remove`/`shop_fields`/`shop_fill`/`shop_set_field`/`shop_dismiss` for shopping carts. stdio by default; `fossick-mcp --http` for Streamable HTTP.
 
 ## Gotchas
 
@@ -164,3 +199,11 @@ Tools mirror the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl
 - Always pass `sel=` to `to_md`/`fetch`/`crawl` — otherwise you get nav/ads.
 - `read_arxiv()['source']` is 30-100k chars — slice: `paper['source'][:8000]`.
 - `annotate` is interactive — needs a visible browser, not headless pipelines.
+- `s.add()` returns `ok=True` only when a cart signal actually moved. `ok=None` means the page exposes
+  none to check — report that, never "added". Read `how`, `page_error` and `blockers` before retrying.
+- Cart line indexes come from the **cart page**: `s.cart_page()` then `s.set_qty()`/`s.remove()`.
+- Call `s.fields()` before `s.fill()`; label wording is site- and country-specific ("Suburb" vs "City").
+- `s.fill(submit=...)` refuses payment-looking buttons unless you also pass `confirm=True`. Don't pass it
+  unless the user asked you to place the order.
+- Supermarkets (Coles/Woolworths) need a store/suburb and often a login, and block datacentre IPs —
+  run them through a debug Chrome on a real machine and set that up by hand once.
