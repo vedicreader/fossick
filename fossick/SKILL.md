@@ -64,6 +64,7 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
   change / remove      -> s.set_qty(line, n) | s.remove(line)
   stuck                -> s.blockers() -> s.dismiss() # cookie banner, login, store/postcode, captcha
   checkout form        -> s.fields() then s.fill(profile)   # fields() first: never guess field names
+  one odd field        -> s.fill({'7': 'Large'})     # numeric key = that fields() index
 ```
 
 ## API
@@ -109,7 +110,7 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `s.set_qty(line, n)` / `s.remove(line)` | — | dict (`ok, how, before, after`) |
 | `s.fields()` | — | list[dict] (`i, label, autocomplete, type, value, options`) |
 | `s.fill(profile)` | `submit`, `confirm` | dict (`filled, failed, unmatched`); refuses payment buttons |
-| `s.set(i, value)` | — | dict — set one field by index (size, colour, delivery window) |
+| `s.fill({'7': 'L'})` | — | numeric key = set that `fields()` index (size, colour, delivery window) |
 | `s.blockers()` / `s.dismiss()` | — | list[str] / list[str] |
 
 ## Non-obvious usage
@@ -177,6 +178,7 @@ fossick calls <url> [--pattern '.*'] [--tail 3]
 fossick collect <url> [--save_dir .] [--count N] [--every_n N]
 fossick annotate <url> [--save_dir .]
 fossick shop <url> [--search q] [--add i_or_title] [--qty n] [--variant v] [--cart] [--fields]
+                                                # reuses the tab it left open: --search then --add i
 fossick install                                 # register SKILL.md + safecmd allowlist
 ```
 
@@ -188,7 +190,7 @@ fossick install                                 # register SKILL.md + safecmd al
 claude mcp add fossick -- uvx --from fossick fossick-mcp   # Claude Code; uv run fossick-mcp if already a project dep
 ```
 
-Tools mirror the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl_site`, `read_arxiv`/`read_youtube`/`search_youtube`/`download_youtube`/`read_github_file`/`read_github_repo`, `url_to_notebook`/`pdf_to_notebook`, `find_hidden_apis`/`replay_capture`/`paginate_api`, `browse`/`page_snapshot`/`page_fill_form`/`page_act`/`page_markdown`/`capture_network` for the persistent logged-in debug Chrome, and `shop_open`/`shop_search`/`shop_products`/`shop_goto`/`shop_add`/`shop_cart`/`shop_set_qty`/`shop_remove`/`shop_fields`/`shop_fill`/`shop_set_field`/`shop_dismiss` for shopping carts. stdio by default; `fossick-mcp --http` for Streamable HTTP.
+Tools mirror the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl_site`, `read_arxiv`/`read_youtube`/`search_youtube`/`download_youtube`/`read_github_file`/`read_github_repo`, `url_to_notebook`/`pdf_to_notebook`, `find_hidden_apis`/`replay_capture`/`paginate_api`, `browse`/`page_snapshot`/`page_fill_form`/`page_act`/`page_markdown`/`capture_network` for the persistent logged-in debug Chrome, and `shop_open`/`shop_search`/`shop_products`/`shop_add`/`shop_cart`/`shop_line`/`shop_fields`/`shop_fill`/`shop_dismiss` for shopping carts. stdio by default; `fossick-mcp --http` for Streamable HTTP.
 
 ## Gotchas
 
@@ -201,7 +203,8 @@ Tools mirror the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl
 - `annotate` is interactive — needs a visible browser, not headless pipelines.
 - `s.add()` returns `ok=True` only when a cart signal actually moved. `ok=None` means the page exposes
   none to check — report that, never "added". Read `how`, `page_error` and `blockers` before retrying.
-- Cart line indexes come from the **cart page**: `s.cart_page()` then `s.set_qty()`/`s.remove()`.
+- Cart line indexes come from the **cart page**: `s.cart_page()` then `s.set_qty()`/`s.remove()`
+  (`shop_line(line, qty)` over MCP — `qty=0` removes).
 - Call `s.fields()` before `s.fill()`; label wording is site- and country-specific ("Suburb" vs "City").
 - `s.fill(submit=...)` refuses payment-looking buttons unless you also pass `confirm=True`. Don't pass it
   unless the user asked you to place the order.

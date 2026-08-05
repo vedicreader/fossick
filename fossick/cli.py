@@ -379,7 +379,7 @@ def ax(
 # %% ../nbs/03_cli.ipynb #ac8ae705f0b91156
 @call_parse
 def shop(
-    url:str,              # store URL to open in the persistent debug Chrome
+    url:str,              # store URL; the tab the last call left open on that site is picked up again
     search:str=None,      # search the store for this term and list the products it found
     add:str=None,         # add a product by index (from a previous --search) or by title
     qty:int=1,            # quantity to add
@@ -389,16 +389,17 @@ def shop(
     port:int=9223,        # debug Chrome remote-debugging port
     as_json:bool=False,   # output JSON
 ):
-    "Drive a shopping cart: list products, add one, read the cart. Cart state persists across calls."
+    "Drive a shopping cart: list products, add one, read the cart. Page and cart state persist across calls."
     from fossick.shop import shop as _shop, ShopError
-    s = _shop(url, port=port)
+    from fossick.cdp import JSError
+    s = _shop(url, port=port, resume=True)   # pick up the page the last invocation left
     try:
         if search is not None: out = s.search(search)
         elif add is not None:  out = s.add(add, qty=qty, variant=variant)
         elif cart:             out = s.cart_page()
         elif fields:           out = s.fields()
         else:                  out = s.products()
-    except ShopError as e:                       # a refusal is a message, not a stack trace
+    except (ShopError, JSError) as e:             # a refusal is a message, not a stack trace
         print(f'error: {e}', file=sys.stderr)
         sys.exit(1)
     if as_json: print(json.dumps(out, default=str)); return
@@ -418,7 +419,6 @@ def shop(
     else:
         print(f"cart: {out.get('count')} items, subtotal {out.get('subtotal')} ({out.get('source')})")
         for l in (out.get('lines') or []): print(f"  {l['i']:>3}  {l.get('price')}  {(l.get('title') or l.get('text') or '')[:60]}")
-
 
 # %% ../nbs/03_cli.ipynb #e1f2a3b4
 CMDS = {

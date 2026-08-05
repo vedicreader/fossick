@@ -4,11 +4,13 @@
 __all__ = ['SHOP_JS', 'SITES', 'FIELD_MAP', 'PAY_RX', 'site_hint', 'ShopError', 'match_fields', 'Shop', 'shop']
 
 # %% ../nbs/05_shop.ipynb #2d92e9e68b664faf
-import json, time, re, asyncio, difflib, html
+import re, time, asyncio, difflib, html
 from urllib.parse import quote_plus, urlparse
-from fastcore.all import patch, store_attr, first
+from functools import wraps
+from fastcore.all import patch, store_attr, first, L
 from fastcdp import *
-from .cdp import cdp_connect, syncy
+from .core import syncy
+from .cdp import cdp_connect
 
 # %% ../nbs/05_shop.ipynb #d23993dd45b41a5e
 SHOP_JS = r'''
@@ -22,6 +24,7 @@ const UTIL_RX = /\/(cart|checkout|login|signin|sign-in|register|account|help|wis
 const KEEP_Q  = /^(variant|variant_id|id|product_id|productid|sku|pid|item|itemid|p|colour|color|size)$/i;
 const CARTHREF_RX = /\/(cart|basket|trolley|bag|checkout\/cart|gp\/cart)(\/|$|\?|\.)/i;
 const COUNT_RX = /count|badge|bubble|indicator|num|items\b/i;
+const CART_RX = /\b(cart|basket|trolley|bag)\b/i;
 const SEARCH_SEL = 'input[type=search], [role=searchbox], input[name=q], input[name=s], input[name=search], input[name=searchTerm], input[name=search_query], input[name=query], input[name=keyword], input[name=k], input[placeholder*=search i], input[aria-label*=search i]';
 
 const rect = el => (el && el.getBoundingClientRect ? el.getBoundingClientRect() : {width: 0, height: 0});
@@ -31,6 +34,7 @@ const shown = el => {   // laid out at all. Deliberately ignores opacity: grids 
   return (r.width > 0 || r.height > 0) && getComputedStyle(el).visibility !== 'hidden';
 };
 const txt = el => (el && (el.innerText || el.textContent) || '').replace(/\s+/g, ' ').trim();
+const raw = el => (el && el.textContent) || '';   // no layout, unlike innerText — use it to pre-filter
 const num = s => {
   const m = String(s == null ? '' : s)
     .replace(/(\d)[ \t\u00a0]+(\d{2})(?!\d)/g, '$1.$2')   // "$27 82" -> "$27.82" (split fraction span)
@@ -122,9 +126,12 @@ function rawCards(shapeFilter) {
   // Count only links that passed the filter above. Re-deriving hrefs here would re-admit
   // href="#", which resolves to the current page and can collide with a real candidate —
   // that stops the climb one level short and loses the add button.
+  const counted = new Map();   // every card climbs the same ancestors; count each element once
   const nHrefs = el => {
+    if (counted.has(el)) return counted.get(el);
     const s = new Set();
     for (const a of el.querySelectorAll('a[href]')) { const h = linkHref.get(a); if (h) s.add(h); }
+    counted.set(el, s.size);
     return s.size;
   };
   const seen = new Set(), out = [];
@@ -176,8 +183,9 @@ function single() {   // the one buyable thing on a product-detail page
 }
 
 function tag(list) {
-  ['data-fk', 'data-fk-add', 'data-fk-qty'].forEach(a =>
-    document.querySelectorAll('[' + a + ']').forEach(e => e.removeAttribute(a)));
+  const ATTRS = ['data-fk', 'data-fk-add', 'data-fk-qty'];
+  document.querySelectorAll('[data-fk],[data-fk-add],[data-fk-qty]')
+          .forEach(e => ATTRS.forEach(a => e.removeAttribute(a)));
   return list.map((c, i) => {
     c.card.setAttribute('data-fk', i);
     if (c.btn) c.btn.setAttribute('data-fk-add', i);
@@ -218,27 +226,31 @@ function badges() {
     seen.add(el);
     tiers[t].push({n, tier: t, src: (src || '').replace(/\s+/g, ' ').trim().slice(0, 50)});
   };
+  // `shown` costs a getComputedStyle and a getBoundingClientRect, so every loop here tests its
+  // cheap textual condition first. This runs on every cart poll, over every element on the page.
   for (const el of document.querySelectorAll('[id],[class],[data-cart-count],[data-testid]')) {
-    if (!shown(el) || el.children.length > 2 || /^(INPUT|SELECT|TEXTAREA|OPTION)$/.test(el.tagName)) continue;
     const key = [el.id, el.className, el.getAttribute('data-testid')].join(' ');
-    if (/cart|basket|trolley|bag/i.test(key) && COUNT_RX.test(key)) push(0, el, key);
+    if (!(/cart|basket|trolley|bag/i.test(key) && COUNT_RX.test(key))) continue;
+    if (el.children.length > 2 || /^(INPUT|SELECT|TEXTAREA|OPTION)$/.test(el.tagName) || !shown(el)) continue;
+    push(0, el, key);
   }
   for (const a of document.querySelectorAll('a[href]'))
-    if (shown(a) && CARTHREF_RX.test(a.getAttribute('href') || '')) push(1, a, txt(a) || a.getAttribute('href'));
+    if (CARTHREF_RX.test(a.getAttribute('href') || '') && shown(a)) push(1, a, txt(a) || a.getAttribute('href'));
   for (const el of document.querySelectorAll('a, button, [role=button], [role=link]')) {
-    if (!shown(el)) continue;
+    if (!CART_RX.test(raw(el) + ' ' + (el.getAttribute('aria-label') || '')) || !shown(el)) continue;
     const nm = (el.getAttribute('aria-label') || txt(el) || '').trim();
-    if (nm.length > 60 && !/\b(cart|basket|trolley|bag)\b/i.test(el.getAttribute('aria-label') || '')) continue;
-    if (/\b(cart|basket|trolley|bag)\b/i.test(nm)) push(2, el, nm);
+    if (nm.length > 60 && !CART_RX.test(el.getAttribute('aria-label') || '')) continue;
+    if (CART_RX.test(nm)) push(2, el, nm);
   }
   return tiers.find(t => t.length) || [];
 }
+const TOTAL_RX = /(sub[- ]?total|order total|cart total|estimated total|basket total|trolley total)/i;
 function totals() {
-  const rx = /(sub[- ]?total|order total|cart total|estimated total|basket total|trolley total)/i;
-  for (const el of document.querySelectorAll('*')) {
-    if (el.children.length > 3 || !shown(el)) continue;
+  for (const el of document.body.querySelectorAll('*')) {
+    const c = raw(el);
+    if (c.length > 200 || !TOTAL_RX.test(c) || el.children.length > 3 || !shown(el)) continue;
     const t = txt(el);
-    if (t.length > 70 || !rx.test(t)) continue;
+    if (t.length > 70) continue;
     const v = num(t) != null ? num(t) : (num(txt(el.nextElementSibling)) != null ? num(txt(el.nextElementSibling)) : num(txt(el.parentElement)));
     if (v) return v;
   }
@@ -249,17 +261,23 @@ const mode = ns => {   // the reading most sources agree on, not the biggest one
   ns.forEach(n => { t[n] = (t[n] || 0) + 1; });
   return Object.entries(t).sort((a, b) => b[1] - a[1] || b[0] - a[0])[0][0] * 1;
 };
-function cart() {
+function cart(wantLines) {
   const b = badges();
-  return {count: b.length ? mode(b.map(x => x.n)) : null, subtotal: totals(),
-          badges: b.slice(0, 4), url: location.href, title: document.title};
+  const out = {count: b.length ? mode(b.map(x => x.n)) : null, subtotal: totals(),
+               badges: b.slice(0, 4), url: location.href, title: document.title};
+  if (wantLines) out.lines = lines();
+  return out;
 }
+// Everything a verified action needs to know, in one round trip: the cart to compare, the toast
+// that may have appeared instead, and the site's own complaint if it refused.
+const watch = (scope, wantLines) => ({cart: cart(wantLines), toast: toast(scope), err: err(scope)});
 const findRm = row => [...row.querySelectorAll('button, input[type=submit], a, [role=button]')].find(b => shown(b) &&
   /^(remove|delete|trash|✕|×|✖)|remove (item|from)|delete (item|from)/i.test(
     (b.getAttribute('aria-label') || b.value || txt(b) || b.className)));
 function lines() {
-  ['data-fk-line', 'data-fk-lineqty', 'data-fk-rm'].forEach(a =>
-    document.querySelectorAll('[' + a + ']').forEach(e => e.removeAttribute(a)));
+  const ATTRS = ['data-fk-line', 'data-fk-lineqty', 'data-fk-rm'];
+  document.querySelectorAll('[data-fk-line],[data-fk-lineqty],[data-fk-rm]')
+          .forEach(e => ATTRS.forEach(a => e.removeAttribute(a)));
   // A cart line is a product card you can change or remove but not add. Scanning for rows that
   // merely contain a price also matches the "customers also bought" carousels on a cart page.
   let rows = rawCards(false).map(c => c.card).filter(r => (findQty(r) || findRm(r)) && !findBtn(r));
@@ -288,7 +306,7 @@ function err(scope) {   // the site's own complaint after a failed action
 function toast(scope) {   // "Added to cart" style confirmation; compare before/after, it can pre-exist
   const root = (scope == null ? null : document.querySelector('[data-fk="' + scope + '"]')) || document.body;
   for (const el of root.querySelectorAll('*')) {
-    if (!shown(el) || el.children.length > 2) continue;
+    if (!TOAST_RX.test(raw(el)) || el.children.length > 2 || !shown(el)) continue;
     const t = txt(el);
     if (t.length < 120 && TOAST_RX.test(t)) return t.slice(0, 80);
   }
@@ -305,7 +323,7 @@ function platform() {
   if (window.BCData) return 'bigcommerce';
   if (window.Magento || document.querySelector('script[src*="/mage/"]')) return 'magento';
   if (window.__NEXT_DATA__) return 'next';
-  return null;
+  return 'generic';   // never null: shop_prep probes with `__fk ? __fk.platform() : null`
 }
 const dialogs = () => [...document.querySelectorAll('[role=dialog], [aria-modal=true], dialog[open]')]
   .filter(d => { const r = rect(d); return shown(d) && r.width > 120 && r.height > 60 && txt(d).length > 10; });
@@ -406,7 +424,7 @@ async function variants() {
   } catch (e) {}
   return out;
 }
-return {products, cart, lines, toast, err, platform, blockers, dismiss, fields, fill, setQty,
+return {products, cart, lines, watch, toast, err, platform, blockers, dismiss, fields, fill, setQty,
         searchBox, submitSearch, variants, price: num, cartLink: () => {
           const a = [...document.querySelectorAll('a[href]')].find(a => CARTHREF_RX.test(a.getAttribute('href') || ''));
           return a ? new URL(a.getAttribute('href'), location.href).href : null;
@@ -436,112 +454,139 @@ def site_hint(url:str) -> dict:
 
 # %% ../nbs/05_shop.ipynb #e1e1a809aa332a3d
 class ShopError(RuntimeError):
-    "A shop action could not be carried out (bad index, no add control, JS error)."
+    "A shop action could not be carried out (bad index, no add control, nothing to match)."
     pass
 
-async def _js(page, expr):
-    "Evaluate `expr` in `page`, awaiting promises, and return the decoded value."
-    r = await page.runtime.evaluate(expression=expr, awaitPromise=True, returnByValue=True)
-    if isinstance(r, dict) and 'exceptionDetails' in r:
-        d = r['exceptionDetails']
-        raise ShopError((d.get('exception') or {}).get('description') or d.get('text') or 'JS error')
-    return (r or {}).get('value')
-
-def _jsarg(o): return json.dumps(o, default=str)
+def _origin(url:str) -> str:
+    "Scheme and host of `url`, with no path."
+    return f'{(u:=urlparse(url)).scheme}://{u.netloc}'
 
 @patch
 async def shop_prep(page:Page, force:bool=False) -> str:
-    "Inject the shop helpers (idempotent, and re-injects after a navigation). Returns the platform."
-    if force or not await _js(page, '!!(window.__fk && window.__fk.products)'):
-        await _js(page, SHOP_JS)
-    return await _js(page, '__fk.platform()')
+    """The platform this store runs on — `shopify`, `woocommerce`, `bigcommerce`, `magento`, `next`
+    or `generic` — injecting the in-page helpers first if the page has none (a navigation wipes them)."""
+    if not force and (plat := await page.eval('window.__fk ? __fk.platform() : null')): return plat
+    await page.eval(SHOP_JS)
+    return await page.eval('__fk.platform()')
 
 @patch
 async def shop_products(page:Page, limit:int=40) -> list:
     "Products on the current page as `[{i, title, price, url, add, qty, oos, vid}]`. `i` feeds `shop_add`."
     await page.shop_prep()
-    return await _js(page, f'__fk.products({int(limit)})') or []
+    return await page.eval_json('__fk.products', limit) or []
+
+#: Shopify's own cart, read through the API it ships rather than off the page
+_CART_FN = ("async () => {const r = await fetch('/cart.js', {headers:{Accept:'application/json'}});"
+            "if (!r.ok) return null; const c = await r.json();"
+            "return {count:c.item_count, subtotal:c.total_price/100, currency:c.currency, url:location.href,"
+            "lines:c.items.map((it,n)=>({i:n, title:it.title, qty:it.quantity,"
+            "price:it.final_line_price/100, key:it.key}))};}")
 
 @patch
 async def shop_cart(page:Page, lines:bool=False) -> dict:
     "Current cart: `{count, subtotal, source}` (+ `lines` if asked). Uses Shopify's `/cart.js` when available."
-    plat = await page.shop_prep()
-    if plat == 'shopify':
-        c = await _js(page, "(async()=>{const r=await fetch('/cart.js',{headers:{Accept:'application/json'}});"
-                            "if(!r.ok) return null; const c=await r.json();"
-                            "return {count:c.item_count, subtotal:c.total_price/100, currency:c.currency,"
-                            "lines:c.items.map((it,n)=>({i:n, title:it.title, qty:it.quantity,"
-                            "price:it.final_line_price/100, key:it.key}))};})()")
-        if c:
-            for l in c.get('lines') or []: l['title'] = html.unescape(l.get('title') or '')  # cart.js escapes it
-            return dict(c, source='shopify/cart.js', url=await _js(page, 'location.href'))
-    d = await _js(page, '__fk.cart()') or {}
-    if lines: d['lines'] = await _js(page, '__fk.lines()') or []
-    return dict(d, source='dom')
+    if await page.shop_prep() == 'shopify' and (c := await page.eval_json(_CART_FN)):
+        for l in c['lines']: l['title'] = html.unescape(l['title'] or '')   # cart.js escapes it
+        return dict(c, source='shopify/cart.js')
+    return dict(await page.eval_json('__fk.cart', lines), source='dom')
 
 @patch
 async def shop_lines(page:Page) -> list:
     "Cart line items read from the page: `[{i, text, price, qty, remove}]`. Run this on the cart page."
     await page.shop_prep()
-    return await _js(page, '__fk.lines()') or []
+    return await page.eval('__fk.lines()') or []
 
 @patch
 async def shop_blockers(page:Page) -> list:
     "What is standing in the way: `cookie-banner`, `location-required`, `login-required`, `captcha`, `modal-open`."
     await page.shop_prep()
-    return await _js(page, '__fk.blockers()') or []
+    return await page.eval('__fk.blockers()') or []
 
 @patch
 async def shop_dismiss(page:Page) -> list:
     "Click through cookie/consent banners and closable modals. Returns the labels it clicked."
     await page.shop_prep()
-    return await _js(page, '__fk.dismiss()') or []
+    return await page.eval('__fk.dismiss()') or []
 
 # %% ../nbs/05_shop.ipynb #2f3bf9b41b58c95a
 def _sig(c:dict) -> tuple:
-    "Comparable fingerprint of a cart reading."
-    ls = c.get('lines') or []
-    return (c.get('count'), c.get('subtotal'), len(ls),
-            tuple(sorted((l.get('title') or l.get('text') or '', l.get('qty')) for l in ls)))
+    "Comparable fingerprint of the line items in a cart reading."
+    return tuple(sorted((l.get('title') or l.get('text') or '', l.get('qty')) for l in (c.get('lines') or [])))
 
 def _changed(before:dict, after:dict) -> str:
     "Which cart signal moved between two readings, or '' if none did."
     if before.get('count') != after.get('count') and after.get('count') is not None: return 'count'
     if before.get('subtotal') != after.get('subtotal') and after.get('subtotal') is not None: return 'subtotal'
-    if _sig(before)[2:] != _sig(after)[2:]: return 'lines'
-    return ''
+    return 'lines' if _sig(before) != _sig(after) else ''
 
-async def _watch(page, before, tout=12, scope=None, toast0=None):
-    "Poll the cart until a signal moves; falls back to a newly-appeared confirmation toast."
-    end = time.time() + tout
-    after = before
+async def _baseline(page, scope=None, lines=False) -> tuple:
+    "Cart, toast and page error as they stand before an action — `__fk.watch` reads all three in one call."
+    st = await page.eval_json('__fk.watch', scope, lines)
+    return dict(st['cart'], source='dom'), st['toast'], st['err']
+
+async def _watch(page, before, tout=12, scope=None, toast0=None, lines=False) -> tuple:
+    "Poll until a cart signal moves; a confirmation toast that was not there before also counts."
+    end, after = time.time() + tout, before
     while time.time() < end:
         await asyncio.sleep(0.4)
-        try: after = await page.shop_cart(lines=bool(before.get('lines')))
-        except Exception: continue
+        try: after, toast, _ = await _baseline(page, scope, lines)
+        except Exception:
+            try: await page.shop_prep(force=True)   # the click navigated and took the helpers with it
+            except Exception: pass
+            continue
         if (how := _changed(before, after)): return True, after, how
-        t = await _js(page, f'__fk.toast({_jsarg(scope)})')
-        if t and t != toast0: return True, after, f'toast: {t}'
-    return (None if before.get('count') is None and before.get('subtotal') is None else False), after, ''
+        if toast and toast != toast0: return True, after, f'toast: {toast}'
+    blind = before.get('count') is None and before.get('subtotal') is None
+    return (None if blind else False), after, ''
 
 def _match(items:list, want) -> dict:
     "Resolve `want` (index or name) against `items`, raising with the real options rather than guessing."
-    if isinstance(want, int) or (isinstance(want, str) and want.isdigit()):
-        i = int(want)
-        hit = first(p for p in items if p['i'] == i)
-        if hit is None: raise ShopError(f'no product #{i}; page has {len(items)}')
+    if isinstance(want, int) or str(want).isdigit():
+        if (hit := first(p for p in items if p['i'] == int(want))) is None:
+            raise ShopError(f'no product #{want}; page has {len(items)}')
         return hit
     w = str(want).lower()
-    exact = [p for p in items if w == (p['title'] or '').lower()]
-    subs  = [p for p in items if w in (p['title'] or '').lower()]
-    if not (exact or subs):
-        close = difflib.get_close_matches(w, [(p['title'] or '') for p in items], n=3, cutoff=0.5)
-        raise ShopError(f'no product matching {want!r}. Closest: {close or "none"}. '
-                        f'Titles: {[p["title"] for p in items][:12]}')
-    pool = exact or subs
+    titles = L(items).attrgot('title').map(lambda t: t or '')
+    pool = ([p for p, t in zip(items, titles) if w == t.lower()] or
+            [p for p, t in zip(items, titles) if w in t.lower()])
+    if not pool:
+        close = difflib.get_close_matches(w, titles, n=3, cutoff=0.5)
+        raise ShopError(f'no product matching {want!r}. Closest: {close or "none"}. Titles: {titles[:12]}')
     return sorted(pool, key=lambda p: (bool(p.get('related')), len(p['title'] or '')))[0]
 
 # %% ../nbs/05_shop.ipynb #371625ec2d63e166
+#: Shopify adds and quantity changes go through its cart API — no clicking, no guessing
+_ADD_FN = ("async (id, q) => {const r = await fetch('/cart/add.js', {method:'POST',"
+           "headers:{'Content-Type':'application/json', Accept:'application/json'},"
+           "body:JSON.stringify({items:[{id:id, quantity:q}]})});"
+           "return {status:r.status, body:(await r.text()).slice(0,300)};}")
+
+async def _variant_id(page, it:dict, variant:str) -> tuple:
+    "The variant to add — the one on the card, the only one in stock, or the one `variant` names — and the list."
+    if it.get('vid'): return it['vid'], None
+    if it['url'] != await page.eval('location.href'): await _goto(page, it['url'])
+    vs = await page.eval('__fk.variants()') or []
+    ok = [v for v in vs if v.get('available') is not False]
+    if len(ok) == 1: return ok[0]['id'], vs
+    hit = first(v for v in (ok or vs) if variant and str(variant).lower() in (v['name'] or '').lower())
+    return (hit['id'] if hit else None), vs
+
+async def _shopify_add(page, it:dict, qty:int, variant:str):
+    "Add via `/cart/add.js`. Returns the result, or None when this product cannot be added that way."
+    vid, vs = await _variant_id(page, it, variant)
+    if vid is None:
+        if not vs: return None                       # not a Shopify product page after all: go and click
+        ok_vs = [v for v in vs if v.get('available') is not False]
+        return dict(ok=False, need='variant', item=it, variants=ok_vs, sold_out=len(vs) - len(ok_vs),
+                    error=(f'no in-stock variant matching {variant!r}' if variant else
+                           'pick one of `variants` (in stock only): shop_add(item, variant="...")'))
+    before = await page.shop_cart(lines=True)
+    r = await page.eval_json(_ADD_FN, str(vid), int(qty))
+    after = await page.shop_cart(lines=True)
+    how = _changed(before, after)
+    return dict(ok=bool(how), how=how or f'cart/add.js -> {r.get("status")}', item=it, qty=qty,
+                variant_id=str(vid), before=before, after=after, error=None if how else r.get('body'))
+
 @patch
 async def shop_add(page:Page, item, qty:int=1, variant:str=None, open_product:bool=True, tout:int=12) -> dict:
     """Add `item` (index from `shop_products`, or a title) to the cart and verify it landed.
@@ -551,55 +596,25 @@ async def shop_add(page:Page, item, qty:int=1, variant:str=None, open_product:bo
     On a Shopify site this posts to `/cart/add.js`, which needs no clicking and no guessing."""
     plat = await page.shop_prep()
     items = await page.shop_products()
-    if not items: return dict(ok=False, error='no products found on this page', url=await _js(page, 'location.href'))
+    if not items: return dict(ok=False, error='no products found on this page', url=await page.eval('location.href'))
     it = _match(items, item)
-    lines = plat == 'shopify'
-    before = await page.shop_cart(lines=lines)
-    toast0, err0 = await _js(page, f'__fk.toast({it["i"]})'), await _js(page, f'__fk.err({it["i"]})')
+    if plat == 'shopify' and (res := await _shopify_add(page, it, qty, variant)) is not None: return res
 
-    if plat == 'shopify':
-        vid, vs = it.get('vid'), None
-        if not vid:
-            if it['url'] != await _js(page, 'location.href'): await _goto(page, it['url'])
-            vs = await _js(page, '__fk.variants()')
-            ok_vs = [v for v in (vs or []) if v.get('available') is not False]
-            if len(ok_vs) == 1: vid = ok_vs[0]['id']
-            elif vs and variant:
-                pool = ok_vs or vs
-                hit = first(v for v in pool if str(variant).lower() in (v['name'] or '').lower())
-                if hit is None: return dict(ok=False, need='variant', item=it, variants=ok_vs,
-                                            error=f'no in-stock variant matching {variant!r}')
-                vid = hit['id']
-        if vid:
-            r = await _js(page, "(async()=>{const r=await fetch('/cart/add.js',{method:'POST',"
-                                "headers:{'Content-Type':'application/json',Accept:'application/json'},"
-                                f"body:JSON.stringify({{items:[{{id:{_jsarg(str(vid))},quantity:{int(qty)}}}]}})}});"
-                                "return {status:r.status, body:(await r.text()).slice(0,300)};})()")
-            after = await page.shop_cart(lines=lines)
-            ok = _changed(before, after)
-            return dict(ok=bool(ok), how=ok or f'cart/add.js -> {r.get("status")}', item=it, qty=qty,
-                        variant_id=str(vid), before=before, after=after,
-                        error=None if ok else r.get('body'))
-        if vs: return dict(ok=False, need='variant', item=it, variants=ok_vs, sold_out=len(vs) - len(ok_vs),
-                           error='pick one of `variants` (in stock only): shop_add(item, variant="...")')
-
-    if not it['add'] and open_product and it['url'] != await _js(page, 'location.href'):
+    if not it['add'] and open_product and it['url'] != await page.eval('location.href'):
         await _goto(page, it['url'])
-        items = await page.shop_products()
-        if items:
+        if (items := await page.shop_products()):
             try: it = _match(items, it['title'])
-            except ShopError: it = items[0]      # the product page's own product is always index 0
-        before = await page.shop_cart(lines=lines)
-        toast0, err0 = await _js(page, f'__fk.toast({it["i"]})'), await _js(page, f'__fk.err({it["i"]})')
+            except ShopError: it = items[0]          # the product page's own product is always index 0
     if not it['add']:
         return dict(ok=False, error='no add-to-cart control on this product', item=it,
                     hint='the site may need a size/variant chosen first — see shop_fields()')
 
+    before, toast0, err0 = await _baseline(page, it['i'])
     clicks, set_to = 1, None
     if qty > 1:
         if it['qty'] in ('select', 'input'):
-            set_to = await _js(page, f'__fk.setQty("data-fk-qty",{it["i"]},{int(qty)})')
-        if set_to is None: clicks = qty          # no usable qty control: click add qty times
+            set_to = await page.eval_json('__fk.setQty', 'data-fk-qty', it['i'], int(qty))
+        if set_to is None: clicks = qty              # no usable qty control: click add qty times
     bid = await page.node_for(f'[data-fk-add="{it["i"]}"]')
     if bid is None: return dict(ok=False, error='add control vanished before the click', item=it)
     for n in range(clicks):
@@ -612,7 +627,7 @@ async def shop_add(page:Page, item, qty:int=1, variant:str=None, open_product:bo
     out = dict(ok=ok, how=how or None, item=it, qty=qty, clicks=clicks, qty_set=set_to,
                before=before, after=after)
     if not ok:
-        e = await _js(page, f'__fk.err({it["i"]})')
+        e = await page.eval_json('__fk.err', it['i'])
         out['page_error'] = e if e != err0 else None
         out['blockers'] = await page.shop_blockers()
         out['error'] = out['page_error'] or ('no cart signal on this page to verify against'
@@ -620,61 +635,64 @@ async def shop_add(page:Page, item, qty:int=1, variant:str=None, open_product:bo
     return out
 
 # %% ../nbs/05_shop.ipynb #6934d1d5bcdc48be
+#: set one Shopify line to a new quantity (0 removes it)
+_CHANGE_FN = ("async (id, q) => {const r = await fetch('/cart/change.js', {method:'POST',"
+              "headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:id, quantity:q})});"
+              "return r.status;}")
+
 async def _goto(page, url, tout:int=25):
     "Navigate and tolerate a chatty page that never goes network-idle; re-injects the helpers."
     try: await page.goto(url, timeout=tout)
     except Exception: pass
     await asyncio.sleep(0.3)
     await page.shop_prep(force=True)
-    return await _js(page, 'location.href')
+    return await page.eval('location.href')
 
 @patch
 async def shop_cart_page(page:Page, url:str=None) -> dict:
     "Open the cart page (hint, on-page cart link, then `/cart`) and return the cart with its lines."
-    cur = await _js(page, 'location.href')
-    plat = await page.shop_prep()
-    origin = f'{urlparse(cur).scheme}://{urlparse(cur).netloc}'
-    url = url or site_hint(cur).get('cart') or (f'{origin}/cart' if plat == 'shopify' else None) \
-              or await _js(page, '__fk.cartLink()') or f'{origin}/cart'
+    plat, cur = await page.shop_prep(), await page.eval('location.href')
+    url = url or site_hint(cur).get('cart') or (f'{_origin(cur)}/cart' if plat == 'shopify' else None) \
+              or await page.eval('__fk.cartLink()') or f'{_origin(cur)}/cart'
     await _goto(page, url)
     return await page.shop_cart(lines=True)
 
+def _line(cart:dict, line) -> dict:
+    "Cart line `line` from a reading taken with `lines=True`, or a `ShopError` naming what is there."
+    ls = cart.get('lines') or []
+    if (ln := first(l for l in ls if l['i'] == int(line))) is None:
+        raise ShopError(f'no cart line #{line}; cart page shows {len(ls)}')
+    return ln
+
 @patch
 async def shop_qty(page:Page, line, qty:int, tout:int=12) -> dict:
-    "Set the quantity of cart line `line` (index from `shop_lines`, or Shopify line key). Verified."
-    plat = await page.shop_prep()
-    before = await page.shop_cart(lines=True)
-    if plat == 'shopify':
-        key = line if isinstance(line, str) and not str(line).isdigit() else \
-              first(l.get('key') for l in (before.get('lines') or []) if l.get('i') == int(line))
+    "Set the quantity of cart line `line` (index from `shop_lines`, or a Shopify line key). Verified."
+    if await page.shop_prep() == 'shopify':
+        before = await page.shop_cart(lines=True)
+        key = line if isinstance(line, str) and not line.isdigit() else \
+              first(l['key'] for l in (before.get('lines') or []) if l['i'] == int(line))
         if key:
-            await _js(page, "(async()=>{await fetch('/cart/change.js',{method:'POST',"
-                            "headers:{'Content-Type':'application/json'},"
-                            f"body:JSON.stringify({{id:{_jsarg(key)},quantity:{int(qty)}}})}});}})()")
+            await page.eval_json(_CHANGE_FN, key, int(qty))
             after = await page.shop_cart(lines=True)
             how = _changed(before, after)
             return dict(ok=bool(how), how=how or None, line=line, qty=qty, before=before, after=after)
-    lines = await page.shop_lines()
-    ln = first(l for l in lines if l['i'] == int(line))
-    if ln is None: raise ShopError(f'no cart line #{line}; cart page shows {len(lines)}')
+    before, toast0, _ = await _baseline(page, lines=True)          # the reading also tags the lines
+    ln = _line(before, line)
     if not ln['qty_kind']: return dict(ok=False, error='no quantity control on this line', line=ln)
-    await _js(page, f'__fk.setQty("data-fk-lineqty",{int(line)},{int(qty)})')
-    ok, after, how = await _watch(page, before, tout=tout)
+    await page.eval_json('__fk.setQty', 'data-fk-lineqty', int(line), int(qty))
+    ok, after, how = await _watch(page, before, tout=tout, toast0=toast0, lines=True)
     return dict(ok=ok, how=how or None, line=ln, qty=qty, before=before, after=after)
 
 @patch
 async def shop_remove(page:Page, line, tout:int=12) -> dict:
     "Remove cart line `line`. Verified the same way as `shop_add`."
-    plat = await page.shop_prep()
-    if plat == 'shopify': return await page.shop_qty(line, 0, tout=tout)
-    before = await page.shop_cart(lines=True)
-    lines = await page.shop_lines()
-    ln = first(l for l in lines if l['i'] == int(line))
-    if ln is None: raise ShopError(f'no cart line #{line}; cart page shows {len(lines)}')
+    if await page.shop_prep() == 'shopify': return await page.shop_qty(line, 0, tout=tout)
+    before, toast0, _ = await _baseline(page, lines=True)
+    ln = _line(before, line)
     bid = await page.node_for(f'[data-fk-rm="{int(line)}"]')
     if bid is None: return dict(ok=False, error='no remove control on this line', line=ln)
     await page.click_settle(bid, timeout=6)
-    ok, after, how = await _watch(page, before, tout=tout)
+    ok, after, how = await _watch(page, before, tout=tout, toast0=toast0, lines=True)
     return dict(ok=ok, how=how or None, line=ln, before=before, after=after)
 
 # %% ../nbs/05_shop.ipynb #e0bcd40f05c5a254
@@ -711,19 +729,20 @@ FIELD_MAP = {
 }
 PAY_RX = re.compile(r'\b(pay|payment|place order|complete order|submit order|confirm (order|purchase|payment)'
                     r'|buy now|purchase)\b', re.I)
+_ALNUM = re.compile(r'[^a-z0-9]')
+_squash = lambda *ss: _ALNUM.sub('', ''.join(s or '' for s in ss).lower())
 
 def _score(f:dict, key:str) -> int:
     "How well form field `f` matches canonical profile key `key` (0 = not at all)."
     ac, names, labels = FIELD_MAP[key]
-    tok = (f.get('autocomplete') or '').lower().split()
-    tok = [t for t in tok if t not in ('on', 'off', 'shipping', 'billing')]
+    tok = [t for t in (f.get('autocomplete') or '').lower().split()
+           if t not in ('on', 'off', 'shipping', 'billing')]
     if tok and any(t in ac for t in tok): return 100
     if tok and ac and tok[-1] not in ac: return 0     # a real, different autocomplete token: not this field
-    nm = re.sub(r'[^a-z0-9]', '', ((f.get('name') or '') + (f.get('id') or '')).lower())
-    if any(re.sub(r'[^a-z0-9]', '', n) in nm for n in names if n): return 60
+    nm = _squash(f.get('name'), f.get('id'))
+    if any(_squash(n) in nm for n in names if n): return 60
     lb = (f.get('label') or '').lower()
-    if lb and any(s in lb for s in labels): return 40
-    return 0
+    return 40 if lb and any(s in lb for s in labels) else 0
 
 def match_fields(fields:list, profile:dict) -> dict:
     "Best field for each profile key: `{key: field}`. One field per key, highest score wins."
@@ -742,14 +761,18 @@ def match_fields(fields:list, profile:dict) -> dict:
 async def shop_fields(page:Page) -> list:
     "Every visible form field with its label, `autocomplete` token, value and `<select>` options."
     await page.shop_prep()
-    return await _js(page, '__fk.fields()') or []
+    return await page.eval('__fk.fields()') or []
 
 @patch
 async def shop_set(page:Page, i:int, value) -> dict:
     "Set form field `i` (index from `shop_fields`) to `value`; returns what the field holds afterwards."
     await page.shop_prep()
-    got = await _js(page, f'__fk.fill({int(i)},{_jsarg(value)})')
+    got = await page.eval_json('__fk.fill', int(i), value)
     return dict(i=i, wanted=value, got=got, ok=got is not None)
+
+# A <select> holds the option's value ('VIC') where the profile said 'Victoria', and inputs with a
+# mask reformat what they were given — so compare against what the fill returned, loosely.
+_same = lambda a, b: _ALNUM.sub('', str(a).lower()) == _ALNUM.sub('', str(b).lower())
 
 @patch
 async def shop_fill(page:Page, profile:dict, submit:str=None, confirm:bool=False) -> dict:
@@ -757,23 +780,23 @@ async def shop_fill(page:Page, profile:dict, submit:str=None, confirm:bool=False
 
     Keys are canonical (`first_name, last_name, email, phone, address1, address2, city, state,
     postcode, country, company, notes, card_*`) and are matched to fields by `autocomplete` token
-    first. Returns `{filled, failed, unmatched, fields}`. `submit=` clicks that button by name;
-    a payment-looking button additionally needs `confirm=True`."""
+    first; a numeric key sets that `shop_fields` index directly, for the options a profile has no
+    name for (size, colour, delivery window). Returns `{filled, failed, unmatched, fields}`.
+    `submit=` clicks that button by name; a payment-looking button additionally needs `confirm=True`."""
     if submit and PAY_RX.search(submit) and not confirm:
         raise ShopError(f'{submit!r} looks like it completes a payment — pass confirm=True to click it')
     fields = await page.shop_fields()
-    hit = match_fields(fields, profile)
+    by_i = {f['i']: f for f in fields}
+    hit = {k: by_i[int(k)] for k in profile if str(k).isdigit() and int(k) in by_i}
+    hit |= match_fields(fields, {k: v for k, v in profile.items() if not str(k).isdigit()})
     filled, failed = {}, {}
     for k, f in hit.items():
-        got = await _js(page, f'__fk.fill({f["i"]},{_jsarg(profile[k])})')
+        got = await page.eval_json('__fk.fill', f['i'], profile[k])
         (filled if got is not None else failed)[k] = dict(i=f['i'], label=f['label'] or f['name'], got=got)
     after = {f['i']: f for f in await page.shop_fields()}
-    # A <select> holds the option's value ('VIC') where the profile said 'Victoria', and inputs with
-    # a mask reformat what they were given — so compare against what the fill returned, loosely.
-    same = lambda a, b: re.sub(r'\W', '', str(a)).lower() == re.sub(r'\W', '', str(b)).lower()
-    for k, v in list(filled.items()):
+    for k, v in filled.items():
         cur = (after.get(v['i']) or {}).get('value')
-        v['confirmed'] = bool(cur) and (same(cur, v['got']) or same(cur, profile[k])
+        v['confirmed'] = bool(cur) and (_same(cur, v['got']) or _same(cur, profile[k])
                                         or str(profile[k]).lower()[:20] in str(cur).lower())
     out = dict(filled=filled, failed=failed, unmatched=[k for k in profile if k not in hit],
                fields=[f for f in fields if f['i'] not in {v['i'] for v in hit.values()}])
@@ -782,18 +805,53 @@ async def shop_fill(page:Page, profile:dict, submit:str=None, confirm:bool=False
         bid = tree.find_id(role='button', name=submit) or tree.find_id(role='link', name=submit)
         if bid is None: raise ShopError(f'no button/link named {submit!r}')
         await page.click_settle(bid)
-        out['submitted'] = submit
-        out['url'] = await _js(page, 'location.href')
+        out |= dict(submitted=submit, url=await page.eval('location.href'))
     return out
 
 # %% ../nbs/05_shop.ipynb #1be0c9dcf69b06bb
-class Shop:
-    "A shopping session on the persistent debug Chrome: search, add, verify, check out."
-    def __init__(self, page, port:int=9223): store_attr()
+@patch
+async def shop_typed_search(page:Page, q:str):
+    "Type `q` into whatever search box the page has and submit it (no search URL needed)."
+    await page.shop_prep()
+    if not await page.eval_json('__fk.searchBox', q):
+        raise ShopError('no search box found on this page — pass a search URL to goto() instead')
+    if (bid := await page.node_for('[data-fk-search]')) is not None:
+        await page.DOM.focus(backendNodeId=bid)
+        for t, k in (('keyDown', 'Enter'), ('keyUp', 'Enter')):
+            await page.input.dispatchKeyEvent(type=t, key=k, code=k, windowsVirtualKeyCode=13,
+                                              nativeVirtualKeyCode=13, text='\r' if t == 'keyDown' else '')
+    await asyncio.sleep(1.2)
+    gone = not await page.eval('!!(window.__fk && window.__fk.products)')   # navigated away: Enter worked
+    if not gone and not await page.eval('__fk.products(3)'):
+        await page.eval('__fk.submitSearch()')                              # no results: submit the form itself
+        await asyncio.sleep(1.2)
+    await page.shop_prep(force=True)
+    return await page.eval('location.href')
 
-    def _run(self, coro, tout=180): return syncy(coro, tout=tout)
+#: agent-facing name -> the `Page` coroutine behind it. `shop_*` methods and the two page readers
+#: from `fossick.cdp` all become plain synchronous `Shop` methods, docstrings and all.
+_SHOP_METHS = dict(platform='shop_prep', products='shop_products', cart='shop_cart',
+                   cart_page='shop_cart_page', lines='shop_lines', add='shop_add', set_qty='shop_qty',
+                   remove='shop_remove', fields='shop_fields', set='shop_set', fill='shop_fill',
+                   blockers='shop_blockers', dismiss='shop_dismiss', snapshot='snapshot', md='md')
+
+def _sync(name:str):
+    "The `Page` coroutine `name`, as a `Shop` method that runs it on the shared background loop."
+    f = getattr(Page, name)
+    @wraps(f)
+    def _g(self, *args, **kw): return syncy(f(self.page, *args, **kw), tout=self.tout)
+    return _g
+
+class Shop:
+    """A shopping session on the persistent debug Chrome: search, add, verify, check out.
+
+    Every `page.shop_*` coroutine is here as a plain synchronous method — one call in, one small
+    JSON result out, no event loop and no node ids."""
+    def __init__(self, page, port:int=9223, tout:int=180): store_attr()
+
     @property
-    def url(self) -> str: return self._run(_js(self.page, 'location.href'))
+    def url(self) -> str: return syncy(self.page.eval('location.href'), tout=self.tout)
+
     def __repr__(self):
         try: c = self.cart()
         except Exception: return f'<Shop {self.url}>'
@@ -801,74 +859,48 @@ class Shop:
 
     def goto(self, url:str) -> str:
         "Navigate to `url`."
-        return self._run(_goto(self.page, url))
-    def platform(self) -> str: return self._run(self.page.shop_prep())
-    def blockers(self) -> list: return self._run(self.page.shop_blockers())
-    def dismiss(self) -> list: return self._run(self.page.shop_dismiss())
-    def snapshot(self, **kw) -> str: return self._run(self.page.snapshot(**kw))
-    def md(self, sel:str=None) -> str: return self._run(self.page.md(sel=sel))
+        return syncy(_goto(self.page, url), tout=self.tout)
 
     def search(self, q:str, limit:int=40) -> list:
-        "Search the store for `q` (site's search URL if known, else its own search box) and list products."
-        url = site_hint(self.url).get('search')
-        if url: self.goto(url.format(q=quote_plus(q)))
-        elif self.platform() == 'shopify':
-            u = urlparse(self.url)
-            self.goto(f'{u.scheme}://{u.netloc}/search?q={quote_plus(q)}')
-        else: self._run(self.page.shop_typed_search(q))
+        "Search the store for `q` (its known search URL, else its own search box) and list products."
+        if (u := site_hint(self.url).get('search')): self.goto(u.format(q=quote_plus(q)))
+        elif self.platform() == 'shopify': self.goto(f'{_origin(self.url)}/search?q={quote_plus(q)}')
+        else: syncy(self.page.shop_typed_search(q), tout=self.tout)
         return self.products(limit)
 
-    def products(self, limit:int=40) -> list:
-        "Products on the current page, numbered for `add`."
-        return self._run(self.page.shop_products(limit))
+    def open(self, url:str) -> str:
+        "Point the session at `url`, unless it is already there."
+        if self.url != url: self.goto(url)
+        return self.url
+
     def find(self, q:str, limit:int=40) -> list:
         "Products on the current page whose title contains `q`."
         return [p for p in self.products(limit) if q.lower() in (p['title'] or '').lower()]
 
-    def add(self, item, qty:int=1, variant:str=None, **kw) -> dict:
-        "Add a product (index or title) and report whether the cart actually changed."
-        return self._run(self.page.shop_add(item, qty=qty, variant=variant, **kw))
-    def cart(self, lines:bool=False) -> dict: return self._run(self.page.shop_cart(lines=lines))
-    def cart_page(self, url:str=None) -> dict:
-        "Open the cart page and return its contents."
-        return self._run(self.page.shop_cart_page(url))
-    def lines(self) -> list: return self._run(self.page.shop_lines())
-    def set_qty(self, line, qty:int) -> dict: return self._run(self.page.shop_qty(line, qty))
-    def remove(self, line) -> dict: return self._run(self.page.shop_remove(line))
+for _name, _meth in _SHOP_METHS.items(): setattr(Shop, _name, _sync(_meth))
 
-    def fields(self) -> list:
-        "Ground truth for the form on this page: label, autocomplete token, value, select options."
-        return self._run(self.page.shop_fields())
-    def set(self, i:int, value) -> dict: return self._run(self.page.shop_set(i, value))
-    def fill(self, profile:dict, submit:str=None, confirm:bool=False) -> dict:
-        "Fill a checkout form from a profile dict; never clicks a payment button without `confirm=True`."
-        return self._run(self.page.shop_fill(profile, submit=submit, confirm=confirm))
+async def _prepared_tab(cdp, url:str):
+    "A tab fossick itself left open on this site, if there is one — never a human's unrelated tab."
+    for t in await cdp.pages:
+        if not (t.get('url') or '').startswith(_origin(url)): continue
+        pg = await Page.new(t['targetId'], cdp)
+        if await pg.eval('!!window.__fk'): return pg, t['url']
+        await cdp.target.detachFromTarget(sessionId=pg.sid)
+    return None, None
 
-@patch
-async def shop_typed_search(page:Page, q:str):
-    "Type `q` into whatever search box the page has and submit it (no search URL needed)."
-    await page.shop_prep()
-    box = await _js(page, f'__fk.searchBox({_jsarg(q)})')
-    if not box: raise ShopError('no search box found on this page — pass a search URL to goto() instead')
-    bid = await page.node_for('[data-fk-search]')
-    if bid is not None:
-        await page.DOM.focus(backendNodeId=bid)
-        for t, k in (('keyDown', 'Enter'), ('keyUp', 'Enter')):
-            await page.input.dispatchKeyEvent(type=t, key=k, code=k, windowsVirtualKeyCode=13,
-                                              nativeVirtualKeyCode=13, text='\r' if t == 'keyDown' else '')
-    await asyncio.sleep(1.2)
-    gone = not await _js(page, '!!(window.__fk && window.__fk.products)')   # navigated away: Enter worked
-    if not gone and not await _js(page, '__fk.products(3)'):
-        await _js(page, '__fk.submitSearch()')                              # no results: submit the form itself
-        await asyncio.sleep(1.2)
-    await page.shop_prep(force=True)
-    return await _js(page, 'location.href')
+def shop(url:str=None, port:int=9223, headless:bool=None, extra_flags=None,
+         resume:bool=False, tout:int=180) -> Shop:
+    """Open a `Shop` on the persistent debug Chrome (starting one if needed), optionally at `url`.
 
-def shop(url:str=None, port:int=9223, headless:bool=None, extra_flags=None) -> Shop:
-    "Open a `Shop` on the persistent debug Chrome (starting one if needed), optionally at `url`."
+    A tab an earlier `shop()` left open on that site is picked up again rather than piling up
+    another one, and by default it is navigated to `url`. `resume=True` leaves it exactly where it
+    is instead — which is how the CLI carries a page across invocations, so `--add 0` acts on the
+    results `--search` left on screen."""
     async def _open():
         cdp = await cdp_connect(port=port, headless=bool(headless), extra_flags=extra_flags)
-        pg = await cdp.new_page() if url is None else await cdp.open_page(url)
-        await pg.shop_prep(force=True)
+        pg, at = await _prepared_tab(cdp, url) if url else (None, None)
+        if pg is None: pg = await cdp.new_page()
+        if url and at != url and not (resume and at): await _goto(pg, url)
+        else: await pg.shop_prep(force=True)
         return pg
-    return Shop(syncy(_open(), tout=180), port=port)
+    return Shop(syncy(_open(), tout=tout), port=port, tout=tout)

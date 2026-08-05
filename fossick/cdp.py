@@ -4,17 +4,15 @@
 
 # %% auto #0
 __all__ = ['BUTTON_JS', 'HIDE', 'SHOW', 'ANNOTATE_JS', 'ANNOTATE_BAR_JS', 'ANNOTATE_CLEANUP_JS', 'cdp_setup', 'cdp_connect',
-           'cdp_ws', 'cdp_cookies', 'ax_diff']
+           'cdp_ws', 'JSError', 'cdp_cookies', 'ax_diff']
 
 # %% ../nbs/01_cdp.ipynb #93f16b3aa77ce8ef
-import asyncio, json, base64, time, subprocess, sys, shutil, os, threading, socket, tempfile, re
-from fastcore.all import patch, store_attr, AttrDict, Path, first, L
+import asyncio, json, time, subprocess, os, socket, re
+from fastcore.all import patch, Path, first, nested_idx
 from fastcdp import *
 from .core import *
 from scrapling import Selector
-from importlib.resources import files as _pkg_files
-from functools import lru_cache, wraps
-from collections import defaultdict
+
 
 # %% ../nbs/01_cdp.ipynb #112aa2c19a44b86f
 def _debug_running(port, host='127.0.0.1'):
@@ -66,6 +64,22 @@ def cdp_ws(port=9223, headless=True, user_data_dir=None, extra_flags=None) -> st
 # %% ../nbs/01_cdp.ipynb #50ca53e6338fbf50
 # `syncy`/`_bridge` live in fossick.core and arrive here via `from .core import *`, so the whole
 # package drives async work on one background loop. Imported from either module.
+
+class JSError(RuntimeError): "JavaScript raised while evaluating an expression in the page."
+
+@patch
+async def eval(self:CDP, expr:str, sid=None):
+    """Evaluate `expr` in the page and return its decoded value.
+
+    Upgrades fastcdp's `eval` in three ways every caller wants: promises are awaited, objects and
+    arrays come back as Python values instead of `None`, and a JS exception is raised as `JSError`
+    rather than silently read as an empty result."""
+    r = await self.runtime.evaluate(sid=sid, expression=expr, awaitPromise=True, returnByValue=True)
+    if 'exceptionDetails' in r:
+        d = r['exceptionDetails']
+        raise JSError(nested_idx(d, 'exception', 'description') or d.get('text') or 'JS error')
+    return r.get('value')
+
 
 # %% ../nbs/01_cdp.ipynb #71588caefe040302
 @patch
@@ -241,9 +255,7 @@ async def fill_sel(page:Page, sel:str, text:str):
 @patch
 async def eval_json(page:Page, fn:str, *args):
     "Call JavaScript function `fn` with JSON-safe `args`, returning its decoded result."
-    vals = ','.join(json.dumps(o, default=str) for o in args)
-    raw = await page.eval(f'JSON.stringify(({fn})({vals}))')
-    return json.loads(raw) if raw is not None else None
+    return await page.eval(f'({fn})({",".join(json.dumps(o, default=str) for o in args)})')
 
 
 # %% ../nbs/01_cdp.ipynb #bfcef09881584a93

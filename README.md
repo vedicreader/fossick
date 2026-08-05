@@ -371,6 +371,8 @@ s.fill(dict(email='sam@example.com', first_name='Sam', last_name='Nguyen',
 # {'filled': {'city': {'i': 7, 'label': 'Suburb', 'got': 'Brunswick', 'confirmed': True}, ...},
 #  'failed': {}, 'unmatched': []}
 
+s.fill({'12': 'Large'})     # a numeric key sets that fields() index — size, colour, delivery window
+
 s.fill({}, submit='Place order')     # ShopError: looks like it completes a payment — pass confirm=True
 ```
 
@@ -421,7 +423,8 @@ fossick collect https://example.com --save_dir shots
 # click elements to annotate them with AX role + selector; saves labeled screenshot
 fossick annotate https://example.com --save_dir shots
 
-# drive a shopping cart — list, add (verified), read the cart. State persists across calls.
+# drive a shopping cart — list, add (verified), read the cart. Each call reuses the tab
+# the last one left open, so --add acts on the page --search landed you on.
 fossick shop https://members.ceresfairfood.org.au --search apples
 fossick shop https://members.ceresfairfood.org.au --add 'Apples Fuji Organic 500g' --qty 2
 fossick shop https://members.ceresfairfood.org.au --cart
@@ -442,7 +445,7 @@ syncy(cdp_setup(9223, headless=False))         # headed: log in by hand, then us
 
 ## MCP server
 
-`fossick-mcp` exposes the whole toolkit over the Model Context Protocol, so Claude Code, Claude Desktop, Codex, and any other MCP client can drive fossick directly — search, fetch, readers, hidden-API discovery, the logged-in debug Chrome ([`browse`](https://vedicreader.github.io/fossick/mcp.html#browse) / `page_*` tools), and shopping carts (`shop_open`, `shop_search`, `shop_add`, `shop_cart`, `shop_fields`, `shop_fill`).
+`fossick-mcp` exposes the whole toolkit over the Model Context Protocol, so Claude Code, Claude Desktop, Codex, and any other MCP client can drive fossick directly — search, fetch, readers, hidden-API discovery, the logged-in debug Chrome ([`browse`](https://vedicreader.github.io/fossick/mcp.html#browse) / `page_*` tools), and shopping carts (`shop_open`, `shop_search`, `shop_products`, `shop_add`, `shop_cart`, `shop_line`, `shop_fields`, `shop_fill`, `shop_dismiss`).
 
 ``` sh
 uv add 'fossick'        # or: pip install 'fossick'

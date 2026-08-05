@@ -9,8 +9,7 @@ __all__ = ['mcp', 'web_search', 'research', 'lookup_doi', 'fetch_page', 'fetch_p
            'search_youtube', 'download_youtube', 'read_github_file', 'read_github_repo', 'url_to_notebook',
            'pdf_to_notebook', 'find_hidden_apis', 'replay_capture', 'paginate_api', 'browse', 'page_snapshot',
            'page_fill_form', 'page_act', 'page_markdown', 'capture_network', 'shop_open', 'shop_search',
-           'shop_products', 'shop_goto', 'shop_add', 'shop_cart', 'shop_set_qty', 'shop_remove', 'shop_dismiss',
-           'shop_fields', 'shop_fill', 'shop_set_field', 'main']
+           'shop_products', 'shop_add', 'shop_cart', 'shop_line', 'shop_dismiss', 'shop_fields', 'shop_fill', 'main']
 
 # %% ../nbs/04_mcp.ipynb #7d97c5fe
 """MCP server for fossick — search, fetch, read, hidden-API, and browser tools over stdio.
@@ -234,21 +233,23 @@ def capture_network(url:str, pattern:str='.*', tail:int=3, port:int=9223, previe
             for i, r in enumerate(vals)]
 
 # %% ../nbs/04_mcp.ipynb #4b8929362c9a40c3
-_cart = {'shop': None}   # the shopping session the shop_* tools drive
+_shop_session = {}   # the one shopping session every shop_* tool acts on
 
 def _sh(url=None, port=9223):
-    "The current shopping session, opening one at `url` if there is none."
+    "The one shopping session, opened at `url` — or moved there — as needed."
     from fossick.shop import shop as _open
-    if url is not None or _cart['shop'] is None:
+    if (s := _shop_session.get('s')) is None:
         if url is None: raise ValueError('no shop open — call shop_open(url) first')
-        _cart['shop'] = _open(url, port=port)
-    return _cart['shop']
+        _shop_session['s'] = s = _open(url, port=port)
+    elif url: s.open(url)
+    return s
 
 @mcp.tool()
 def shop_open(url:str, port:int=9223) -> dict:
-    "Open a store in the persistent debug Chrome and report the platform, anything blocking (cookie banner, login, store/postcode) and the current cart. Later shop_* tools act on this session."
+    "Open a store in the persistent debug Chrome, or move the open session to `url` (a category or product page — passing the site root keeps it where it is), and report the platform, anything blocking (cookie banner, login, store/postcode), the current cart and what is on the page. Later shop_* tools act on this session."
     s = _sh(url, port=port)
-    return {'url': s.url, 'platform': s.platform(), 'blockers': s.blockers(), 'cart': _jsonable(s.cart())}
+    return {'url': s.url, 'platform': s.platform(), 'blockers': s.blockers(),
+            'cart': _jsonable(s.cart()), 'products': _jsonable(s.products(25))}
 
 @mcp.tool()
 def shop_search(query:str, limit:int=25) -> list:
@@ -257,15 +258,8 @@ def shop_search(query:str, limit:int=25) -> list:
 
 @mcp.tool()
 def shop_products(limit:int=25) -> list:
-    "Products on the current page, numbered for shop_add (use after navigating to a category or product page)."
+    "Products on the page the session is currently on, numbered for shop_add."
     return _jsonable(_sh().products(limit))
-
-@mcp.tool()
-def shop_goto(url:str) -> dict:
-    "Navigate the shopping session to a URL (a category or product page) and list what is on it."
-    s = _sh()
-    s.goto(url)
-    return {'url': s.url, 'blockers': s.blockers(), 'products': _jsonable(s.products(25))}
 
 @mcp.tool()
 def shop_add(item:str, qty:int=1, variant:str|None=None) -> dict:
@@ -274,19 +268,15 @@ def shop_add(item:str, qty:int=1, variant:str|None=None) -> dict:
 
 @mcp.tool()
 def shop_cart(page:bool=False) -> dict:
-    "The current cart. page=True opens the cart page first, which is what gives you line items to change or remove."
+    "The current cart. page=True opens the cart page first, which is what gives you the line indexes shop_line needs."
     s = _sh()
     return _jsonable(s.cart_page() if page else s.cart(lines=True))
 
 @mcp.tool()
-def shop_set_qty(line:int, qty:int) -> dict:
-    "Set the quantity of a cart line (index from shop_cart(page=True)). Verified."
-    return _jsonable(_sh().set_qty(line, qty))
-
-@mcp.tool()
-def shop_remove(line:int) -> dict:
-    "Remove a cart line (index from shop_cart(page=True)). Verified."
-    return _jsonable(_sh().remove(line))
+def shop_line(line:int, qty:int) -> dict:
+    "Set a cart line (index from shop_cart(page=True)) to `qty`, or to 0 to remove it. Verified."
+    s = _sh()
+    return _jsonable(s.remove(line) if qty == 0 else s.set_qty(line, qty))
 
 @mcp.tool()
 def shop_dismiss() -> dict:
@@ -301,14 +291,8 @@ def shop_fields() -> list:
 
 @mcp.tool()
 def shop_fill(profile:dict, submit:str|None=None, confirm:bool=False) -> dict:
-    "Fill a checkout form from a profile dict (first_name, last_name, email, phone, address1, address2, city, state, postcode, country, company, notes, card_*), matching fields by autocomplete token first, then re-read the form to confirm what stuck. submit= clicks that button; a payment button also needs confirm=True."
+    "Fill a checkout form from a profile dict (first_name, last_name, email, phone, address1, address2, city, state, postcode, country, company, notes, card_*), matching fields by autocomplete token first, then re-read the form to confirm what stuck. A numeric key sets that shop_fields index directly, for options a profile has no name for (size, colour, delivery window). submit= clicks that button; a payment button also needs confirm=True."
     return _jsonable(_sh().fill(profile, submit=submit, confirm=confirm))
-
-@mcp.tool()
-def shop_set_field(i:int, value:str) -> dict:
-    "Set one form field by its index from shop_fields — for options a profile has no key for (size, colour, delivery window)."
-    return _jsonable(_sh().set(i, value))
-
 
 # %% ../nbs/04_mcp.ipynb #2adadd9f
 def main():
