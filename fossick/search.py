@@ -13,7 +13,6 @@ from fastcore.all import first, bind, L
 from scrapling import Selector
 from diskcache import Cache
 from ddgs import DDGS
-from primp import Client
 from .core import to_md, fetch, fetch_all, fossick_cache
 
 # %% ../nbs/02_search.ipynb #a96a3934

@@ -1,4 +1,17 @@
 __version__ = "0.1.0"
 from .search import *
 from .core import *
-from .cdp import *
+
+# `fossick.cdp` drives a real Chrome over the DevTools protocol, and importing it costs ~0.13s of
+# fastcdp + playwright. Most callers only ever fetch and search, so it is resolved on first use
+# rather than at import. Names stay reachable exactly as before — `fossick.cdp_connect`,
+# `from fossick import *`, `from fossick.cdp import syncy` — the cost just moves to first touch.
+_CDP_NAMES = ('cdp_setup', 'cdp_connect', 'cdp_ws', 'cdp_cookies', 'ax_diff',
+              'BUTTON_JS', 'HIDE', 'SHOW', 'ANNOTATE_JS', 'ANNOTATE_BAR_JS', 'ANNOTATE_CLEANUP_JS')
+
+def __getattr__(name):
+    if name not in _CDP_NAMES: raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+    from importlib import import_module
+    return getattr(import_module('.cdp', __name__), name)
+
+def __dir__(): return sorted({*globals(), *_CDP_NAMES})

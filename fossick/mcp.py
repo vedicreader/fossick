@@ -94,8 +94,8 @@ def crawl_site(url:str, sel:str|None=None, follow_sel:str='a[href]', max_pages:i
 @mcp.tool()
 def read_arxiv(url:str, include_source:bool=False, chars:int=8000, save_dir:str='.') -> dict:
     "arXiv paper (ID or any arXiv URL) -> {title, authors, published, summary, pdf_path}. include_source adds the full text (30-100k chars total — raise chars only when needed)."
-    p = _read_arxiv(url, save_dir=save_dir)
-    out = {k: _jsonable(v) for k, v in p.items() if k != 'source'}
+    p = _read_arxiv(url, source=include_source, save_dir=save_dir)
+    out = {k: _jsonable(v) for k, v in p.items() if k not in ('source','doc')}
     if include_source: out['source'] = _trunc(p.get('source'), chars)
     return out
 

@@ -4,7 +4,7 @@
 
 # %% auto #0
 __all__ = ['BUTTON_JS', 'HIDE', 'SHOW', 'ANNOTATE_JS', 'ANNOTATE_BAR_JS', 'ANNOTATE_CLEANUP_JS', 'cdp_setup', 'cdp_connect',
-           'cdp_ws', 'syncy', 'cdp_cookies', 'ax_diff']
+           'cdp_ws', 'cdp_cookies', 'ax_diff']
 
 # %% ../nbs/01_cdp.ipynb #93f16b3aa77ce8ef
 import asyncio, json, base64, time, subprocess, sys, shutil, os, threading, socket, tempfile, re
@@ -64,15 +64,8 @@ def cdp_ws(port=9223, headless=True, user_data_dir=None, extra_flags=None) -> st
     return httpx.get(f'http://127.0.0.1:{port}/json/version').json()['webSocketDebuggerUrl']
 
 # %% ../nbs/01_cdp.ipynb #50ca53e6338fbf50
-_loop = None
-def _bridge():
-	global _loop
-	if _loop is None:
-	    _loop = asyncio.new_event_loop()
-	    threading.Thread(target=_loop.run_forever, daemon=True).start()
-	return _loop
-
-def syncy(coro, tout=60): return asyncio.run_coroutine_threadsafe(coro, _bridge()).result(timeout=tout)
+# `syncy`/`_bridge` live in fossick.core and arrive here via `from .core import *`, so the whole
+# package drives async work on one background loop. Imported from either module.
 
 # %% ../nbs/01_cdp.ipynb #71588caefe040302
 @patch

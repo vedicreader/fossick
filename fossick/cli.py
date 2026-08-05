@@ -91,9 +91,9 @@ def read_arxiv(
     as_json:bool=False,   # output JSON
 ):
     "Fetch arXiv paper metadata, authors, and summary."
-    p = _read_arxiv(url, force=force)
+    p = _read_arxiv(url, source=source, force=force)
     if as_json:
-        out = {k: v for k, v in p.items() if k != 'source'}
+        out = {k: v for k, v in p.items() if k not in ('source','doc')}
         if source: out['source'] = (p.get('source') or '')[:chars]
         print(json.dumps(out, default=str))
     else:
