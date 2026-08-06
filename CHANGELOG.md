@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.1
+fossick shop and cleanup
+
 ## 0.1.0
 fixes scrapling bug fix
 
