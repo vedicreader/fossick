@@ -11,8 +11,8 @@ __all__ = ['http_get', 'http_post', 'fossick_cache', 'syncy', 'html2md', 'to_md'
            'replay_xhr', 'paginate_api', 'download_files', 'search_yt', 'read_yt', 'download_yt', 'repo_root',
            'mv_skill_md']
 
-# %% ../nbs/00_core.ipynb #764d37b8
-import json
+# %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
+import json, asyncio, threading
 from fastcore.all import Path,L,timed_cache,globtastic,parallel,run,first,AttrDict,ifnone,fdelegates,bind,patch,setattrs
 from fastcore.xdg import xdg_cache_home
 import re, shutil, time, os, base64
@@ -24,7 +24,7 @@ from scrapling.engines.toolbelt.custom import Response
 from urllib.parse import urlparse, urlencode
 from functools import cache
 
-# %% ../nbs/00_core.ipynb #98c2724e
+# %% ../nbs/00_core.ipynb #b7683b88563710b3
 def fossick_cache(path=None):
     "Get cache path for `name` (e.g. 'arxiv' or 'fetch')"
     p = xdg_cache_home()/'.fossick'
@@ -32,9 +32,7 @@ def fossick_cache(path=None):
     p.parent.mkdir(parents=True, exist_ok=True)
     return p
 
-# %% ../nbs/00_core.ipynb #71ac8be03e6d9257
-import asyncio, threading
-
+# %% ../nbs/00_core.ipynb #ba561b54822b02d0
 _loop = None
 def _bridge():
     "The one background event loop the package drives async work on, started on first use."
@@ -55,7 +53,7 @@ def mk_bytes(self:Path, data, mode=511, uid=-1, gid=-1):
 	self.write_bytes(data)
 	if uid!=-1 or gid!=-1: os.chown(self, uid, gid)
 
-# %% ../nbs/00_core.ipynb #af8e28a1
+# %% ../nbs/00_core.ipynb #b6562f33262bfafc
 def _wrap_md(text, tag): return f'\n<{tag}>\n{text}\n</{tag}>\n' if text else ''
 
 def _html(res_or_html):
@@ -90,7 +88,7 @@ def to_md(res_or_html,  # Page dict (from fetch/crawl) or raw HTML string
 	    html = str(mds[0]) if mds else ''
     return _md(html)
 
-# %% ../nbs/00_core.ipynb #02092330
+# %% ../nbs/00_core.ipynb #9f5a399cf870a5d1
 @cache
 def _fetcher():
     """scrapling's plain-HTTP Fetcher, imported on first request. It pulls curl_cffi and
@@ -126,7 +124,7 @@ def get_page(url, method='GET', payload=None, heavy=False, stealthy=False, sessi
 http_get = bind(get_page, method='GET', verify=True, timeout=30)
 http_post = bind(get_page, method='POST', timeout=30)
 
-# %% ../nbs/00_core.ipynb #02355c8f
+# %% ../nbs/00_core.ipynb #4c84bd2931cbee8e
 _BLOCK_MARKERS = ('cf-chl', 'just a moment', 'attention required', 'checking your browser',
                   'cf-browser-verification', 'cf-turnstile', 'access denied', 'enable javascript',
                   'g-recaptcha', 'h-captcha', 'captcha-delivery',   # captcha *widgets*, not the bare word 'captcha'
@@ -203,7 +201,7 @@ def browser_session(stealthy:bool=False, headless:bool=True, **init_kw):
     finally: syncy(s.__aexit__(None, None, None))
 
 
-# %% ../nbs/00_core.ipynb #4eb76a6d
+# %% ../nbs/00_core.ipynb #c7bbdc6057317dca
 def crawl(start_url:str,               # URL to start from
           sel:str=None,                # CSS selector to extract per page
           follow_sel:str='a[href]',    # CSS selector for links to follow
@@ -241,7 +239,7 @@ def crawl(start_url:str,               # URL to start from
                 continue
     return res
 
-# %% ../nbs/00_core.ipynb #e4fa208c
+# %% ../nbs/00_core.ipynb #498a122a6d567879
 def get_options(page_or_html,  # Page dict (from fetch) or raw HTML string
                 sel:str         # CSS selector for the <select> element
                ) -> list:
@@ -259,11 +257,11 @@ def fetch_all(urls:list,           # URLs to fetch
     "Fetch a list of URLs in parallel; returns Page dicts in the same order as urls"
     return parallel(fetch, urls, sel=sel, heavy=heavy, stealthy=stealthy, threadpool=True, n_workers=concurrency, **kw)
 
-# %% ../nbs/00_core.ipynb #fadb538f2b210821
+# %% ../nbs/00_core.ipynb #a808c2b15c3cec10
 from liteparse import LiteParse
 from pdf_oxide import PdfDocument
 
-# %% ../nbs/00_core.ipynb #2e71536ab2d8458a
+# %% ../nbs/00_core.ipynb #80f691ca933d706
 def _is_pdf(b) -> bool:
     "True when `b` starts with the %PDF- magic bytes (allowing leading whitespace/junk)."
     return isinstance(b, bytes) and b'%PDF-' in b[:1024]
@@ -287,7 +285,7 @@ def get_pdf(url_or_path:str, # URL or local path to PDF
         pth.mk_bytes(src)
     return PdfDocument.from_bytes(src)
 
-# %% ../nbs/00_core.ipynb #82eab014
+# %% ../nbs/00_core.ipynb #da946b97ed964105
 @cache
 def _arxiv_index():
     "Disk cache for arXiv metadata, opened on first use rather than at import."
@@ -307,7 +305,7 @@ def _fetch_arxiv_meta(arxiv_id:str, **kw):
     return dict(title=txt('title').strip(), summary=txt('summary').strip(),
                 published=txt('published'), link=txt('id'), pdf_url=pu, authors=list(au))
 
-# %% ../nbs/00_core.ipynb #fb92f757aee11a3a
+# %% ../nbs/00_core.ipynb #d2ed0fcb31d735a8
 def _arxiv_key(url:str) -> tuple:
     "Split an arXiv URL/ID into its bare id and version suffix, e.g. '1706.03762', 'v7'."
     aid = url.rsplit('/', 1)[-1]
@@ -345,7 +343,7 @@ def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
     idx[key] = res
     return dict(res, doc=doc)
 
-# %% ../nbs/00_core.ipynb #ae50b94929790ea9
+# %% ../nbs/00_core.ipynb #bb7d64207baa24dd
 def _crossref_search(**params):
     "Search Crossref API; returns parsed response dict"
     return fetch(f'https://api.crossref.org/works?{urlencode(params)}', verify=False).json() or {}
@@ -359,10 +357,10 @@ def lookup_doi(title:str  # Paper title to search
     doi = items[0].get('DOI') if items else None
     return f"https://doi.org/{doi}" if doi else None
 
-# %% ../nbs/00_core.ipynb #630cc1578fbce0a0
+# %% ../nbs/00_core.ipynb #cd60649f4b02946
 from fastcore.nbio import Notebook, mk_cell, new_nb, os
 
-# %% ../nbs/00_core.ipynb #9920b4c93b17df75
+# %% ../nbs/00_core.ipynb #cbdc59dfa84bac04
 def _nb_stem(url):
 	"Derive a filesystem-safe notebook stem from a URL"
 	path = urlparse(url).path.rsplit('/', 1)[-1].split('.')[0]
@@ -460,7 +458,7 @@ def pdf2nb(u_or_p,  # URL or local path to PDF
 	Notebook(new_nb(cells=_md2cells(text)), path=nb_path).save()
 	return nb_path
 
-# %% ../nbs/00_core.ipynb #9776e017
+# %% ../nbs/00_core.ipynb #b3518187d2621cbc
 def _gh_ssh(url:str): # GitHub URL, SSH remote, or bare `user/repo`
     'Convert GitHub URL to SSH remote; pass through if already SSH; return None if not GitHub'
     if url.startswith('git@github.com:'): return url
@@ -505,7 +503,7 @@ def read_gh_file(url:str # GitHub blob URL of the file to read
 	if (r:=http_get(raw_url)).status != 200: raise Exception(f"Failed to fetch {raw_url}: {r.status}")
 	return to_md(r)
 
-# %% ../nbs/00_core.ipynb #26747505
+# %% ../nbs/00_core.ipynb #38ab5369106489f5
 def compile_pattern(pattern):
 	"Compile pattern as regex; if invalid (e.g. bare glob like *foo*), convert via fnmatch first"
 	try: return re.compile(pattern)
@@ -565,7 +563,7 @@ def replay_xhr(capture:dict,        # a request dict from cdp.calls() or find_xh
         except: return F.post(url, data=body, **kw)
     return F.post(url, json=body, **kw)
 
-# %% ../nbs/00_core.ipynb #90674c61
+# %% ../nbs/00_core.ipynb #338919730d042a3c
 def paginate_api(url:str,                      # API endpoint URL
                  payload:dict=None,            # Request body (POST) or params (GET)
                  page_field:str='pageNumber',  # Payload key to increment for each page
@@ -605,7 +603,7 @@ def paginate_api(url:str,                      # API endpoint URL
         if save: Path(sf).write_text(json.dumps(items, indent=2))
     return all_items
 
-# %% ../nbs/00_core.ipynb #85465adc
+# %% ../nbs/00_core.ipynb #c430c05b6017e310
 def download_files(url:str,
                    pattern:str='*',          # Glob or regex to match download hrefs
                    save_dir:str='.',         # Directory to save files
@@ -640,7 +638,7 @@ def download_files(url:str,
             saved.append(fname)
     return saved
 
-# %% ../nbs/00_core.ipynb #a5faf465
+# %% ../nbs/00_core.ipynb #7976427343ad1143
 @cache
 def _ytdl():
     "Import yt_dlp on first use. Eager import cost 0.16s of fossick's 0.35s import for 3 functions."
@@ -669,7 +667,7 @@ def _parse_vtt(vtt:str) -> str:
         if text and (not lines or lines[-1] != text): lines.append(text)
     return ' '.join(lines)
 
-# %% ../nbs/00_core.ipynb #121b6c36
+# %% ../nbs/00_core.ipynb #1be381421eca318f
 def search_yt(q:str, # search query
               n:int=10 # number of results to return
 ) -> list:
@@ -681,7 +679,7 @@ def search_yt(q:str, # search query
         print(f'search_yt error: {e}')
         return []
 
-# %% ../nbs/00_core.ipynb #7b7605a3
+# %% ../nbs/00_core.ipynb #449cd78d676e612f
 def read_yt(url:str, # YouTube URL or video ID
             force:bool=False # if True, forces re-fetching even if cached
 ) -> dict:
@@ -708,7 +706,7 @@ def read_yt(url:str, # YouTube URL or video ID
     cache[vid] = res
     return res
 
-# %% ../nbs/00_core.ipynb #ae3a464c
+# %% ../nbs/00_core.ipynb #8e8fd7de49827232
 def download_yt(url:str, # YouTube URL or video ID
                 format:str='audio', # 'audio'|'video'|yt-dlp format string
                 save_dir:str='.', # directory to save file
