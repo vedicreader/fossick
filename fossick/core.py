@@ -506,6 +506,7 @@ def read_gh_file(url:str # GitHub blob URL of the file to read
 	raw_url = re.sub(r'https://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)',
 	                 r'https://raw.githubusercontent.com/\1/\2/refs/heads/\3/\4', url)
 	if (r:=http_get(raw_url)).status != 200: raise Exception(f"Failed to fetch {raw_url}: {r.status}")
+	if 'html' not in (r.headers.get('content-type') or ''): return r.body.decode(r.encoding or 'utf-8', 'replace')
 	return to_md(r)
 
 # %% ../nbs/00_core.ipynb #38ab5369106489f5
