@@ -466,10 +466,16 @@ def _gh_remotes(url:str) -> L: # GitHub URL or SSH remote
         return L(f'https://github.com/{m[1]}/{m[2]}.git', f'git@github.com:{m[1]}/{m[2]}.git')
     return L()
 
+def _clone_dir(remote:str) -> Path:
+    'Cache directory for a clone, keyed on `owner-repo` — two owners can name a repo the same thing.'
+    m = re.search(r'[:/]([^/:]+)/([^/]+?)(?:\.git)?$', remote)
+    nm = f'{m[1]}-{m[2]}' if m else remote.rsplit('/', 1)[-1].removesuffix('.git')
+    return fossick_cache('git_clones')/nm
+
 def _get_git_repo(remotes):
     'Clone or update a GitHub repo to local cache; return Path'
     remotes = L(remotes)
-    repo_dir = fossick_cache('git_clones') / remotes[0].rsplit('/', 1)[-1].removesuffix('.git')
+    repo_dir = _clone_dir(remotes[0])
     if repo_dir.exists():
         try:
             run(['git', '-C', str(repo_dir), 'fetch'])
