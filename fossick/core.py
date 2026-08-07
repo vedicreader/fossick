@@ -459,16 +459,17 @@ def pdf2nb(u_or_p,  # URL or local path to PDF
 	return nb_path
 
 # %% ../nbs/00_core.ipynb #b3518187d2621cbc
-def _gh_ssh(url:str): # GitHub URL, SSH remote, or bare `user/repo`
-    'Convert GitHub URL to SSH remote; pass through if already SSH; return None if not GitHub'
-    if url.startswith('git@github.com:'): return url
-    if m := re.match(r'https://github\.com/([^/]+)/([^/]+)', url):
-        return f'git@github.com:{m.group(1)}/{m.group(2)}.git'
+def _gh_remotes(url:str) -> L: # GitHub URL or SSH remote
+    'Clone URLs for a GitHub repo, HTTPS first so a public repo needs no key. Empty if not GitHub.'
+    if url.startswith('git@github.com:'): return L(url)
+    if m := re.match(r'https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?(?:/|$)', url):
+        return L(f'https://github.com/{m[1]}/{m[2]}.git', f'git@github.com:{m[1]}/{m[2]}.git')
+    return L()
 
-def _get_git_repo(gh_ssh:str):
+def _get_git_repo(remotes):
     'Clone or update a GitHub repo to local cache; return Path'
-    repo_name = gh_ssh.rsplit('/', 1)[-1].removesuffix('.git')
-    repo_dir = fossick_cache('git_clones') / repo_name
+    remotes = L(remotes)
+    repo_dir = fossick_cache('git_clones') / remotes[0].rsplit('/', 1)[-1].removesuffix('.git')
     if repo_dir.exists():
         try:
             run(['git', '-C', str(repo_dir), 'fetch'])
@@ -477,8 +478,12 @@ def _get_git_repo(gh_ssh:str):
             return repo_dir
         except IOError: shutil.rmtree(repo_dir)
     repo_dir.parent.mkdir(parents=True, exist_ok=True)
-    run(['git', 'clone', gh_ssh, str(repo_dir)])
-    return repo_dir
+    for r in remotes:                       # HTTPS, then SSH: a private repo still works with a key
+        try:
+            run(['git', 'clone', r, str(repo_dir)])
+            return repo_dir
+        except IOError as e: err = e
+    raise err
 
 @timed_cache(seconds=3600)
 def read_gh_repo(path_or_url:str,  # GitHub URL, SSH address, or local path
@@ -487,8 +492,8 @@ def read_gh_repo(path_or_url:str,  # GitHub URL, SSH address, or local path
                  as_list:bool=False # return list of Paths instead of {path: content} dict
                 )-> dict:
     'Read files from a GitHub repo filtered by glob patterns'
-    ssh = _gh_ssh(path_or_url)
-    repo_dir = _get_git_repo(ssh) if ssh else Path(path_or_url)
+    rs = _gh_remotes(path_or_url)
+    repo_dir = _get_git_repo(rs) if rs else Path(path_or_url)
     if globs is None: globs = ('README*', 'pyproject.toml', '*.py')
     files = L(p for g in globs for p in globtastic(repo_dir, file_glob=g, func=Path)).unique()
     if limit: files = files[:limit]

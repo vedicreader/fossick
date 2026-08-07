@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.2
+github pull without ssh
+
 ## 0.1.1
 fossick shop and cleanup
 
