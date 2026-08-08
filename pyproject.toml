@@ -31,6 +31,11 @@ dependencies = [
     "mcp>=1.2.0,<2",
 ]
 
+[project.optional-dependencies]
+# Cross-encoder reranking for search()/rerank(method='flashrank'). Optional: the default lexical
+# reranker needs nothing extra and gets within 0.04 P@3 of it on our benchmark.
+rerank = ["flashrank>=0.2.10"]
+
 [project.urls]
 Repository = "https://github.com/vedicreader/fossick"
 Documentation = "https://vedicreader.github.io/fossick/"

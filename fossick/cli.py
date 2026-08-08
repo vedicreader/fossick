@@ -70,10 +70,11 @@ def search(
     n:int=10,             # number of results
     region:str='us-en',   # ddgs region (us-en, uk-en, ru-ru, ...)
     google:bool=False,    # use direct Google via stealth browser instead of ddgs metasearch
+    backend:str=None,     # restrict to one ddgs backend (google, brave, duckduckgo, mojeek, yahoo, startpage)
     as_json:bool=False,   # output JSON
 ):
-    "Search the web (ddgs metasearch, or direct Google with --google); prints title, URL, and snippet."
-    results = _google(query, n=n) if google else _search(query, max_results=n, region=region)
+    "Search the web (backends fused with RRF, or direct Google with --google); prints title, URL, and snippet."
+    results = _google(query, n=n) if google else _search(query, n=n, region=region, backend=backend)
     if as_json: print(json.dumps(list(results), default=str)); return
     for r in results:
         print(f"## {r.get('title','')}")
@@ -361,6 +362,7 @@ def research(
     if as_json: print(json.dumps(res, default=str)); return
     print(f"# Research: {res['query']}\n")
     print(res['digest'])
+    for d in res['dropped']: print(f"\n<!-- skipped {d['href']} — {d['reason']} -->")
 
 @call_parse
 def ax(

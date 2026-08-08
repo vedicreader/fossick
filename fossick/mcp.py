@@ -57,12 +57,12 @@ def _jsonable(o):
 @mcp.tool()
 def web_search(query:str, n:int=10, category:str='text', region:str='us-en', google:bool=False) -> list:
     "Search the web via ddgs metasearch (no API key). category: text|images|news|videos|books. google=True gives real Google ranking via a stealth browser (slow — only when you need Google)."
-    res = _google(query, n=n) if google else _search(query, category=category, max_results=n, region=region)
+    res = _google(query, n=n) if google else _search(query, category=category, n=n, region=region)
     return _jsonable(res)
 
 @mcp.tool()
 def research(query:str, n:int=5, google:bool=False, sel:str|None=None, chars:int=4000) -> dict:
-    "Question -> cited answer: search, read the top n results in parallel (auto-escalating past bot walls), return {query, sources, digest} where digest is cited markdown, one ## section per source."
+    "Question -> cited answer: search, read the top n *readable* results in parallel (auto-escalating past bot walls, skipping bot-wall/empty pages and backfilling), return {query, sources, digest, dropped}. digest is cited markdown, one ## section per source, trimmed to the passages that answer the query."
     return _jsonable(_research(query, n=n, engine='google' if google else 'search', sel=sel, chars=chars))
 
 @mcp.tool()

@@ -2,6 +2,38 @@
 
 <!-- do not remove -->
 
+## Unreleased
+
+Search & research quality:
+
+  - `search()` no longer uses ddgs' aggregation. `DDGS.text()` queries only ~`max_results/10 + 1` randomly
+    shuffled backends (so `n=5` asked 2 random engines), merges them by *how many* backends returned a url with
+    ranks discarded, then unconditionally hoists every `wikipedia.org` hit to position 1. `search()` now queries
+    the backends itself, keeps each one's native ranking, and fuses with reciprocal rank fusion. `fuse=False`
+    restores the old path; `backend='google'` restricts to one engine.
+  - `rerank()` re-orders hits by relevance to the query — BM25 over title, snippet and url slug by default
+    (P@3 0.11 → 0.81 on a 27-page benchmark, ~1ms for 30 hits), or a flashrank cross-encoder with
+    `method='flashrank'` (0.85, but 40x slower and a 53MB dependency: `pip install fossick[rerank]`).
+  - `research()` counts a source only once it is *readable*. A Cloudflare interstitial is an HTTP 200 that
+    converts to "Enable JavaScript and cookies to continue" and used to land in the corpus looking like content;
+    those, non-200s and empty JS shells are now dropped — with the reason, in `res['dropped']` — and the next hit
+    is fetched in their place, so `n=5` means five readable sources.
+  - `research()` keeps the passages that answer the query instead of each page's first `chars` characters
+    (answer-phrase recall 73% → 85% at the default 4000-char budget). `focus()` exposes it; `focused=False`
+    restores head truncation.
+  - `norm_url()` deduplicates hits that differ only by scheme, `www.`, a trailing slash or tracking params.
+
+Fixes:
+
+  - Failures loading scrapling's browser fetchers now raise `BrowserUnavailable` naming the cause instead of a
+    bare `ValueError` from an import line. `google()` and `fetch(auto=True)` silently swallowed it, which turned
+    "the browser stack is broken" into "Google returned nothing" and let bot walls through as page content.
+  - `fetch(auto=True)` records every tier's failure on `page.errs` and warns once when the browser tiers can't load.
+  - The ddgs client no longer passes `verify=False`. ddgs maps a bool `verify` to "use the system trust store", so
+    behind a TLS-terminating proxy there was no CA to validate against and *every* backend failed to connect.
+    `ddgs_env()` now reads `HTTPS_PROXY`/`SSL_CERT_FILE` and friends, and backends get a timeout and one retry.
+  - One dead host in a `research()` batch no longer aborts the whole batch.
+
 ## 0.1.4
 gh clone, cach, pull
 

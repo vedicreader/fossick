@@ -17,13 +17,23 @@ Text/image/news search work out of the box (no Docker). JS rendering, `stealthy`
 
 ## Search
 
-[`search()`](https://vedicreader.github.io/fossick/cli.html#search) runs a metasearch through [`ddgs`](https://github.com/deedy5/ddgs), aggregating many backends (Bing, Brave, DuckDuckGo, Startpage, Mojeek, Wikipedia, …) — no API key, no Docker. [`images()`](https://vedicreader.github.io/fossick/cli.html#images), [`news()`](https://vedicreader.github.io/fossick/cli.html#news), and [`videos()`](https://vedicreader.github.io/fossick/cli.html#videos) return the corresponding media.
+[`search()`](https://vedicreader.github.io/fossick/cli.html#search) queries many backends in parallel through [`ddgs`](https://github.com/deedy5/ddgs) (Google, Brave, DuckDuckGo, Startpage, Mojeek, Yahoo, …) — no API key, no Docker. It keeps each backend's own ranking and fuses them with [reciprocal rank fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf), then reranks with BM25 over titles, snippets and url slugs. (ddgs' own aggregation picks ~2 backends at random when you ask for few results, merges them by hit count rather than rank, and pushes every Wikipedia hit to the top — so `search()` doesn't use it.) [`images()`](https://vedicreader.github.io/fossick/cli.html#images), [`news()`](https://vedicreader.github.io/fossick/cli.html#news), and [`videos()`](https://vedicreader.github.io/fossick/cli.html#videos) return the corresponding media.
+
+Pass `backend='google'` to use a single backend, or `method='flashrank'` for cross-encoder reranking (`pip install fossick[rerank]`).
 
 For real Google ranking when you specifically need it, [`google()`](https://vedicreader.github.io/fossick/search.html#google) uses a stealth browser to bypass the JavaScript/bot wall that blocks plain-HTTP scraping. Every result is a plain dict, and all functions share a local TTL cache so repeated queries return instantly.
 
 ``` python
 results = search('fasthtml python web framework', n=5)
-for r in results: print(r['title'], r['href'])
+for r in results: print(r['score'], r['engines'], r['title'], r['href'])
+```
+
+[`research()`](https://vedicreader.github.io/fossick/search.html#research) goes further: it searches, reads the top hits, and returns one cited markdown corpus. It only counts a source once it's *readable* — a Cloudflare interstitial is an HTTP 200 whose markdown reads "Enable JavaScript and cookies to continue", so those are dropped (with the reason, in `res['dropped']`) and the next hit is fetched in their place. Each page is then trimmed to the passages that answer the query rather than to its first `chars` characters, which is usually nav and cookie banners.
+
+``` python
+res = research('sqlite WAL mode vs journal mode performance', n=5)
+print(res['digest'])
+for d in res['dropped']: print('skipped', d['href'], '—', d['reason'])
 ```
 
 ## Fetch and read
