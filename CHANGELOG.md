@@ -22,6 +22,13 @@ Search & research quality:
     (answer-phrase recall 73% → 85% at the default 4000-char budget). `focus()` exposes it; `focused=False`
     restores head truncation.
   - `norm_url()` deduplicates hits that differ only by scheme, `www.`, a trailing slash or tracking params.
+  - `search(pages=N)` pulls N result pages from every backend instead of just the first, so a large `n` has
+    candidates to return — the pool ceiling roughly went 74 → 100 → 110 hits at pages 1 → 2 → 3 in a simulation.
+    Ranks run on across pages and a page-2 repeat of a page-1 hit isn't counted twice. `research(pages=N)` and
+    `fossick search --pages` expose it. Fan-out no longer depends on `n`, so raising `n` costs no extra requests.
+  - Tokenizing for `bm25()` stays a plain `[a-z0-9]+` split. Against sqlite FTS5's `porter` tokenizer — same
+    engine, same BM25 params, only the tokenizer differing — stemming *lost* on both jobs: passage recall
+    83.5% → 81.9% at a 4000-char budget, hit reranking P@3 0.89 → 0.85. Recorded so it isn't retried blind.
 
 Fixes:
 

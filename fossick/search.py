@@ -8,7 +8,7 @@ Docs: https://vedicreader.github.io/fossick/search.html.md"""
 __all__ = ['sc', 'TEXT_BACKENDS', 'text', 'images', 'news', 'videos', 'books', 'ddgs_env', 'get_ddgs', 'backends', 'norm_url',
            'rrf', 'bm25', 'flashrank_scores', 'rerank', 'search', 'extract', 'google', 'usable', 'focus', 'research']
 
-# %% ../nbs/02_search.ipynb #61b057b6
+# %% ../nbs/02_search.ipynb #fc272327
 import os, re, sys
 from math import log
 from concurrent.futures import ThreadPoolExecutor
@@ -20,7 +20,7 @@ from ddgs import DDGS
 from .core import to_md, fetch, fossick_cache, _blocked
 
 
-# %% ../nbs/02_search.ipynb #d6ccc6ad
+# %% ../nbs/02_search.ipynb #43ddd694
 _warned = set()
 def _warn(key:str, msg:str):
     "Print `msg` to stderr once per process — a silently empty result set is worse than a noisy one."
@@ -43,7 +43,7 @@ def get_ddgs(timeout:int=10):
 sc = Cache(str(fossick_cache('search_cache.db')))
 
 
-# %% ../nbs/02_search.ipynb #4b4e3c37
+# %% ../nbs/02_search.ipynb #05ca2e90
 TEXT_BACKENDS = ('google', 'brave', 'duckduckgo', 'mojeek', 'yahoo', 'startpage')
 
 def backends(category:str='text') -> list:
@@ -63,8 +63,27 @@ def _engine_hits(be:str, q:str, region='us-en', page=1, timeout=8, tries=2) -> l
         except Exception: pass
     return []
 
+def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1) -> list:
+    "One rank-ordered list per backend, pulling `pages` result pages from each. Every (backend, page) runs in parallel."
+    jobs = [(be, pg) for be in backends for pg in range(1, pages+1)]
+    if not jobs: return []
+    with ThreadPoolExecutor(max_workers=len(jobs)) as ex:
+        got = list(ex.map(lambda j: (j, _engine_hits(j[0], q, region=region, page=j[1], timeout=timeout)), jobs))
+    by_be = {}
+    for (be, pg), hits in got: by_be.setdefault(be, {})[pg] = hits
+    out = []
+    for be in backends:
+        merged, seen = [], set()
+        for pg in sorted(by_be.get(be, {})):
+            for h in by_be[be][pg]:
+                if (key := norm_url(h.get('href') or h.get('url') or '')) in seen: continue  # page 2 repeats page 1
+                seen.add(key)
+                merged.append(dict(h, rank=len(merged)+1))    # rank runs on across pages, so RRF sees one list
+        if merged: out.append(merged)
+    return out
 
-# %% ../nbs/02_search.ipynb #670b1ca9
+
+# %% ../nbs/02_search.ipynb #055374e1
 _TRACKING = re.compile(r'^(utm_|fbclid|gclid|msclkid|mc_[ce]id|igshid|ref$|source$)')
 
 def norm_url(u:str) -> str:
@@ -90,7 +109,7 @@ def rrf(lists:list,      # ranked result lists, one per backend
     return [dict(best[u], score=round(score[u], 6), engines=[e for e in engines[u] if e]) for u in out]
 
 
-# %% ../nbs/02_search.ipynb #a367fecd
+# %% ../nbs/02_search.ipynb #4974f64a
 _word = re.compile(r'[a-z0-9]+')
 def _toks(s:str) -> list: return _word.findall((s or '').lower())
 
@@ -163,18 +182,17 @@ def rerank(q:str,               # search query
     return hits[:n] if n else hits
 
 
-# %% ../nbs/02_search.ipynb #d3415d5f
+# %% ../nbs/02_search.ipynb #b77b33ad
 @sc.memoize(expire=900)
-def _fused(q, n, backends, region, timeout, k, method):
+def _fused(q, n, backends, region, timeout, k, method, pages):
     "Fan out, fuse, rerank. Raises when every backend failed, so a transient outage isn't cached for 15 minutes."
-    with ThreadPoolExecutor(max_workers=max(len(backends), 1)) as ex:
-        lists = list(ex.map(lambda be: _engine_hits(be, q, region=region, timeout=timeout), backends))
-    if not (out := rerank(q, rrf([l for l in lists if l], k=k), n=n, method=method)):
+    lists = _backend_lists(q, backends, region=region, timeout=timeout, pages=pages)
+    if not (out := rerank(q, rrf(lists, k=k), n=n, method=method)):
         raise ValueError('every backend returned nothing')
     return out
 
-def _search_fused(q, n, backends, region, timeout, k, method):
-    try: return _fused(q, n, backends, region, timeout, k, method)
+def _search_fused(q, n, backends, region, timeout, k, method, pages):
+    try: return _fused(q, n, backends, region, timeout, k, method, pages)
     except ValueError as e:
         _warn('search', f'search({q!r}) got nothing: {e}')
         return []
@@ -188,6 +206,7 @@ def search(q:str,                  # search query
            fuse:bool=True,         # fan out across backends and fuse with RRF (text only)
            backend:str=None,       # restrict to a single ddgs backend, e.g. 'google'
            method:str='lexical',   # rerank method: lexical | flashrank | auto | none
+           pages:int=1,            # result pages to pull from each backend (raises the candidate pool)
            region:str='us-en',
            timeout:int=8,
            **kw,                   # extra kwargs passed to ddgs (max_results, safesearch, timelimit, page)
@@ -198,7 +217,7 @@ def search(q:str,                  # search query
     n = kw.pop('max_results', None) or n
     if category == 'text' and fuse:
         bes = (backend,) if backend else TEXT_BACKENDS
-        return _search_fused(q, n, tuple(bes), region, timeout, 60, method)
+        return _search_fused(q, n, tuple(bes), region, timeout, 60, method, max(pages, 1))
     kw = dict(kw, max_results=n, region=region)
     if backend: kw['backend'] = backend
     return _search_ddgs(q, category, tuple(sorted(kw.items())))
@@ -212,7 +231,7 @@ books = bind(search, category='books')
 def extract(url, **kw): return get_ddgs().extract(url, **kw)
 
 
-# %% ../nbs/02_search.ipynb #7875a145
+# %% ../nbs/02_search.ipynb #cdb4733d
 def _parse_google(html:str, n:int) -> list:
     "Parse organic results from a rendered Google SERP into dicts (title, url, content)."
     sel = Selector(html)
@@ -253,7 +272,7 @@ def google(q:str, n:int=10, lang:str='en') -> list:
         return []
 
 
-# %% ../nbs/02_search.ipynb #870afc98
+# %% ../nbs/02_search.ipynb #0d0f924e
 _MIN_CHARS = 400
 
 def _why(pg) -> str:
@@ -334,13 +353,14 @@ def research(q:str,                 # search query
              region:str='us-en',
              focused:bool=True,     # keep query-relevant passages instead of the first `chars` chars
              candidates:int=None,   # how many hits to draw on when backfilling (default 3n)
+             pages:int=1,           # result pages per backend (raise it when `candidates` exceeds one page)
              concurrency:int=8,
              **kw,                  # extra kwargs passed to fetch()
             ) -> dict:
     "Query -> read the top `n` *readable* results -> a cited markdown corpus. Returns {query, sources, digest, dropped}."
     if not (q and q.strip()): return dict(query=q, sources=[], digest='', dropped=[])
     cand = candidates or max(3*n, n+5)
-    hits = google(q, n=cand) if engine == 'google' else search(q, n=cand, region=region)
+    hits = google(q, n=cand) if engine == 'google' else search(q, n=cand, region=region, pages=pages)
     todo, seen = [], set()
     for h in hits:
         u = h.get('href') or h.get('url')

@@ -71,10 +71,13 @@ def search(
     region:str='us-en',   # ddgs region (us-en, uk-en, ru-ru, ...)
     google:bool=False,    # use direct Google via stealth browser instead of ddgs metasearch
     backend:str=None,     # restrict to one ddgs backend (google, brave, duckduckgo, mojeek, yahoo, startpage)
+    pages:int=1,          # result pages to pull from each backend (a bigger candidate pool for large --n)
+    rerank:str='lexical', # rerank the fused hits: lexical | flashrank | auto | none
     as_json:bool=False,   # output JSON
 ):
     "Search the web (backends fused with RRF, or direct Google with --google); prints title, URL, and snippet."
-    results = _google(query, n=n) if google else _search(query, n=n, region=region, backend=backend)
+    results = _google(query, n=n) if google else _search(query, n=n, region=region, backend=backend,
+                                                        pages=pages, method=rerank)
     if as_json: print(json.dumps(list(results), default=str)); return
     for r in results:
         print(f"## {r.get('title','')}")
@@ -355,10 +358,11 @@ def research(
     google:bool=False,    # use direct Google ranking (stealth browser) instead of ddgs metasearch
     sel:str=None,         # CSS selector to narrow each page before markdown
     chars:int=4000,       # max markdown chars per source
+    pages:int=1,          # result pages to pull from each backend when searching
     as_json:bool=False,   # output JSON
 ):
     "Search, then read the top results into one cited markdown corpus."
-    res = _research(query, n=n, engine='google' if google else 'search', sel=sel, chars=chars)
+    res = _research(query, n=n, engine='google' if google else 'search', sel=sel, chars=chars, pages=pages)
     if as_json: print(json.dumps(res, default=str)); return
     print(f"# Research: {res['query']}\n")
     print(res['digest'])
