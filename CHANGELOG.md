@@ -2,7 +2,7 @@
 
 <!-- do not remove -->
 
-## Unreleased
+## 0.1.5
 
 Search & research quality:
 

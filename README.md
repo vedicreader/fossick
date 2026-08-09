@@ -17,24 +17,46 @@ Text/image/news search work out of the box (no Docker). JS rendering, `stealthy`
 
 ## Search
 
-[`search()`](https://vedicreader.github.io/fossick/cli.html#search) queries many backends in parallel through [`ddgs`](https://github.com/deedy5/ddgs) (Google, Brave, DuckDuckGo, Startpage, Mojeek, Yahoo, …) — no API key, no Docker. It keeps each backend's own ranking and fuses them with [reciprocal rank fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf), then reranks with BM25 over titles, snippets and url slugs. (ddgs' own aggregation picks ~2 backends at random when you ask for few results, merges them by hit count rather than rank, and pushes every Wikipedia hit to the top — so `search()` doesn't use it.) [`images()`](https://vedicreader.github.io/fossick/cli.html#images), [`news()`](https://vedicreader.github.io/fossick/cli.html#news), and [`videos()`](https://vedicreader.github.io/fossick/cli.html#videos) return the corresponding media.
+[`search()`](https://vedicreader.github.io/fossick/cli.html#search) queries many backends in parallel through [`ddgs`](https://github.com/deedy5/ddgs) (Google, Brave, DuckDuckGo, Startpage, Mojeek, Yahoo, …) — no API key, no Docker. It keeps each backend’s own ranking and fuses them with [reciprocal rank fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf), then reranks with BM25 over titles, snippets and url slugs. (ddgs’ own aggregation picks ~2 backends at random when you ask for few results, merges them by hit count rather than rank, and pushes every Wikipedia hit to the top — so [`search()`](https://vedicreader.github.io/fossick/cli.html#search) doesn’t use it.) [`images()`](https://vedicreader.github.io/fossick/cli.html#images), [`news()`](https://vedicreader.github.io/fossick/cli.html#news), and [`videos()`](https://vedicreader.github.io/fossick/cli.html#videos) return the corresponding media.
 
-Pass `backend='google'` to use a single backend, or `method='flashrank'` for cross-encoder reranking (`pip install fossick[rerank]`). Fan-out doesn't depend on `n`, so a large `n` costs no extra requests — and `pages=2` pulls a second result page from every backend when you want a wider candidate pool to rerank yourself (`method='none'` returns the fused list untouched).
+Pass `backend='google'` to use a single backend, or `method='flashrank'` for cross-encoder reranking (`pip install fossick[rerank]`). Fan-out doesn’t depend on `n`, so a large `n` costs no extra requests — and `pages=2` pulls a second result page from every backend when you want a wider candidate pool to rerank yourself (`method='none'` returns the fused list untouched).
 
 For real Google ranking when you specifically need it, [`google()`](https://vedicreader.github.io/fossick/search.html#google) uses a stealth browser to bypass the JavaScript/bot wall that blocks plain-HTTP scraping. Every result is a plain dict, and all functions share a local TTL cache so repeated queries return instantly.
 
 ``` python
-results = search('fasthtml python web framework', n=5)
+results = search('kosha fts+semantic+code graph for codebases', method='flashrank', n=5)
 for r in results: print(r['score'], r['engines'], r['title'], r['href'])
 ```
 
-[`research()`](https://vedicreader.github.io/fossick/search.html#research) goes further: it searches, reads the top hits, and returns one cited markdown corpus. It only counts a source once it's *readable* — a Cloudflare interstitial is an HTTP 200 whose markdown reads "Enable JavaScript and cookies to continue", so those are dropped (with the reason, in `res['dropped']`) and the next hit is fetched in their place. Each page is then trimmed to the passages that answer the query rather than to its first `chars` characters, which is usually nav and cookie banners.
+    0.030579 ['brave', 'startpage'] Codebase knowledge graph: Code analysis with graphs https://neo4j.com/blog/developer/codebase-knowledge-graph/
+    0.029031 ['brave', 'startpage'] Semantic Code Graph—An Information Model to Facilitate Software Comprehension | IEEE Journals & Magazine | IEEE Xplore https://ieeexplore.ieee.org/document/10385091/
+    0.031054 ['brave', 'startpage'] Semantic Code Graph – an information model to facilitate software ... https://arxiv.org/html/2310.02128v2
+    0.016393 ['startpage'] GitHub - vedicreader/kosha: kosha (कोश) — a treasury of your repo and ... https://github.com/vedicreader/kosha
+    0.015625 ['startpage'] graph – koshas https://vedicreader.github.io/kosha/graph.html
+
+[`research()`](https://vedicreader.github.io/fossick/cli.html#research) goes further: it searches, reads the top hits, and returns one cited markdown corpus. It only counts a source once it’s *readable* — a Cloudflare interstitial is an HTTP 200 whose markdown reads “Enable JavaScript and cookies to continue”, so those are dropped (with the reason, in `res['dropped']`) and the next hit is fetched in their place. Each page is then trimmed to the passages that answer the query rather than to its first `chars` characters, which is usually nav and cookie banners.
+
+[`research()`](https://vedicreader.github.io/fossick/cli.html#research) closes the loop from question to answer: it searches, reads the top results in parallel (auto-escalating past bot walls), and returns one cited markdown corpus — {query, sources, digest} — ready to hand to an LLM.
 
 ``` python
 res = research('sqlite WAL mode vs journal mode performance', n=5)
-print(res['digest'])
+print(res['digest'][:600])
 for d in res['dropped']: print('skipped', d['href'], '—', d['reason'])
+print('sources :')
+print([s['href'] for s in res['sources']])
 ```
+
+    ## blog.sqlite.ai › journal-modes-in-sqliteJournal Modes in SQLite
+    https://blog.sqlite.ai/journal-modes-in-sqlite
+
+    SQLite has been the go-to single-user database for over 20 years. Recent advancements in hardware and distributed consensus have opened up SQLite to more use cases - in particular, SQLite’s ease of use and performance characteristics make it an increasingly attractive option for web-scale applications.
+
+    But if you try spinning up an app with SQLite’s default settings, you’ll hit a wall (pun intended) rather quickly. This is because the defaults in SQLite are geared towards its ori
+    skipped https://superuser.com/questions/1938008/why-is-sqlite-wal-mode-so-much-faster-than-default-delete-mode-for-concurrent-wr — fetch failed
+    skipped https://databaseschool.com/series/high-performance-sqlite/videos/27 — no readable content
+    skipped https://javascript.plainenglish.io/stop-the-sqlite-performance-wars-your-database-can-be-10x-faster-and-its-not-magic-156022addc75 — fetch failed
+    sources :
+    ['https://blog.sqlite.ai/journal-modes-in-sqlite', 'https://gist.github.com/promto-c/531e3d3321f1c2fa66487054b2e040c2', 'https://sqlite.org/forum/info/117c91891cf7ac15', 'https://sqlite.org/wal.html', 'https://mohit-bhalla.medium.com/understanding-wal-mode-in-sqlite-boosting-performance-in-sql-crud-operations-for-ios-5a8bd8be93d2']
 
 ## Fetch and read
 
@@ -47,10 +69,12 @@ Pass `auto=True` to let [`fetch()`](https://vedicreader.github.io/fossick/cli.ht
 ``` python
 # extract just the lead paragraphs — no nav, ads, or sidebars
 page = fetch('https://en.wikipedia.org/wiki/Web_scraping', verify=False)
-print(to_md(page, sel='.mw-parser-output > p')[:400])
+print(to_md(page)[:400])
 ```
 
-    [2026-06-22 20:32:21] INFO: Fetched (200) <GET https://en.wikipedia.org/wiki/Web_scraping> (referer: https://www.google.com/)
+    The legality of web scraping varies across the world. In general, web scraping may be against the terms of service of some websites, but the enforceability of these terms is unclear.[11]
+
+    In the United States, website owners can use three major legal claims to prevent undesired web scraping: (1) copyright infringement (compilation), (2) violation of the Computer Fraud and Abuse Act ("CFAA"), and (
 
 [`crawl()`](https://vedicreader.github.io/fossick/cli.html#crawl) follows links from a start URL, returning a list of Page dicts — useful for documentation sites, blogs, and any multi-page content.
 
@@ -60,33 +84,17 @@ pages = crawl('https://docs.python.org/3/library/functions.html',
 print(f'{len(pages)} pages crawled')
 ```
 
-    [2026-06-22 20:32:23] INFO: Fetched (200) <GET https://docs.python.org/3/library/functions.html> (referer: https://www.google.com/)
-    [2026-06-22 20:32:23] INFO: Fetched (200) <GET https://docs.python.org/3/reference/datamodel.html#object.__abs__> (referer: https://www.google.com/)
-    [2026-06-22 20:32:23] INFO: Fetched (200) <GET https://docs.python.org/3/glossary.html#term-asynchronous-iterator> (referer: https://www.google.com/)
-
     3 pages crawled
 
 [`fetch_all()`](https://vedicreader.github.io/fossick/core.html#fetch_all) fetches multiple URLs in parallel — faster than sequential [`fetch()`](https://vedicreader.github.io/fossick/cli.html#fetch) calls.
 
 ``` python
-urls = ['https://httpbin.org/get', 'https://httpbin.org/status/200', 'https://httpbin.org/json']
+urls = ['https://httpbun.com/get', 'https://httpbun.com/status/200', 'https://httpbun.com/json']
 pages = fetch_all(urls, verify=False)
 print([p.status for p in pages])
 ```
 
-    [2026-06-22 20:32:26] INFO: Fetched (503) <GET https://httpbin.org/json> (referer: https://www.google.com/)
-    [2026-06-22 20:32:26] INFO: Fetched (503) <GET https://httpbin.org/get> (referer: https://www.google.com/)
-    [2026-06-22 20:32:26] INFO: Fetched (503) <GET https://httpbin.org/status/200> (referer: https://www.google.com/)
-
-    [503, 503, 503]
-
-[`research()`](https://vedicreader.github.io/fossick/cli.html#research) closes the loop from question to answer: it searches, reads the top results in parallel (auto-escalating past bot walls), and returns one cited markdown corpus — `{query, sources, digest}` — ready to hand to an LLM.
-
-``` python
-notes = research('retrieval augmented generation best practices', n=5)
-print(notes['digest'][:500])          # cited markdown, one ## section per source
-print([s['href'] for s in notes['sources']])
-```
+    [200, 200, 404]
 
 [`read_arxiv()`](https://vedicreader.github.io/fossick/cli.html#read_arxiv) fetches paper metadata and converts the full PDF to markdown. Pass an arxiv ID, abstract URL, or PDF URL. The PDF is saved to `save_dir`; results are cached in-process.
 
@@ -105,44 +113,32 @@ print(paper['summary'][:400])
 
 ``` python
 files = read_gh_repo('https://github.com/vedicreader/kosha', globs=('README*',))
-for path, content in files.items():
-    print(path.split('/')[-1], f'({len(content)} chars)')
+for path, content in files.items(): print(path.split('/')[-1], f'({len(content)} chars)')
 ```
 
-    README.md (164718 chars)
+    README.md (166202 chars)
 
 ``` python
-txt = read_gh_file('https://github.com/vedicreader/kosha/blob/main/pyproject.toml')
-print(txt[:300])
+txt = read_gh_file('https://github.com/vedicreader/kosha/blob/main/pyproject.toml'); txt[:300]
 ```
 
-    [build-system]
-    requires = ["hatchling"]
-    build-backend = "hatchling.build"
-
-    [project]
-    name = "koshas"
-    dynamic = ["version"]
-    description = "kosha (कोश) — a treasury of your repo and environment context for coding agents. FTS5 + vector search + call graph, no LLMs required."
-    readme = "README.md"
-    requir
+    '[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n\n[project]\nname = "koshas"\ndynamic = ["version"]\ndescription = "kosha (कोश) — a treasury of your repo and environment context for coding agents. FTS5 + vector search + call graph, no LLMs required."\nreadme = "README.md"\nrequir'
 
 [`search_yt()`](https://vedicreader.github.io/fossick/cli.html#search_yt) searches YouTube and returns metadata for each result. [`read_yt()`](https://vedicreader.github.io/fossick/cli.html#read_yt) fetches the full English transcript and metadata for a known video URL.
 
 ``` python
-hits = search_yt('3blue1brown neural networks', n=3)
-for h in hits: print(h['title'], '\n  ', h['url'])
+for h in search_yt('3blue1brown neural networks', n=3, verify=False): print(h['title'], '\n  ', h['url'])
 ```
 
     But what is a neural network? | Deep learning chapter 1 
        https://www.youtube.com/watch?v=aircAruvnKk
-    Gradient descent, how neural networks learn | Deep Learning Chapter 2 
-       https://www.youtube.com/watch?v=IHZwWFHWa-w
     Backpropagation, intuitively | Deep Learning Chapter 3 
        https://www.youtube.com/watch?v=Ilg3gGewQ5U
+    Gradient descent, how neural networks learn | Deep Learning Chapter 2 
+       https://www.youtube.com/watch?v=IHZwWFHWa-w
 
 ``` python
-video = read_yt('https://www.youtube.com/watch?v=aircAruvnKk')
+video = read_yt('https://www.youtube.com/watch?v=aircAruvnKk', verify=False)
 print(video['title'])
 print(video['source'][:300])
 ```
@@ -151,33 +147,25 @@ print(video['source'][:300])
     [Music] This is a three. It's sloppily written and rendered at an extremely low resolution of 28x 28 pixels. But your brain has no trouble recognizing it as a three. And I want you to take a moment to appreciate how crazy it is that brains can do this so effortlessly. I mean this, this, and this are
 
 ``` python
-path = download_yt('https://www.youtube.com/watch?v=aircAruvnKk',
-                   format='audio', save_dir='.')
-print(path)  # Path('But what is a neural network.mp3')
+download_yt('https://www.youtube.com/watch?v=aircAruvnKk', format='audio', save_dir='.', verify=False)
 ```
 
-    WARNING: [youtube] [jsc] Remote components challenge solver script (deno) and NPM package (deno) were skipped. These may be required to solve JS challenges. You can enable these downloads with  --remote-components ejs:github  (recommended) or  --remote-components ejs:npm , respectively. For more information and alternatives, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
-    WARNING: [youtube] aircAruvnKk: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
+                                                             
 
-                                                              But what is a neural network？ ｜ Deep learning chapter 1.mp3
+    Path('But what is a neural network？ ｜ Deep learning chapter 1.mp3')
 
 [`url2nb()`](https://vedicreader.github.io/fossick/cli.html#url2nb) converts any URL — HTML page, arXiv paper, or PDF — to a Jupyter notebook. [`pdf2nb()`](https://vedicreader.github.io/fossick/cli.html#pdf2nb) converts a PDF (local path or URL) to a notebook where each page becomes a markdown cell with an empty code cell below for annotations.
 
 ``` python
-nb = url2nb('https://squiddev.medium.com/continuing-continuations-cps-in-python-47bba90c8d1e', verify=False)
-print(nb)   # Path('continuing-continuations-cps-in-python-47bba90c8d1e.ipynb')
+url2nb('https://squiddev.medium.com/continuing-continuations-cps-in-python-47bba90c8d1e', verify=False)
 ```
 
-    [2026-06-22 20:37:55] INFO: Fetched (200) <GET https://squiddev.medium.com/continuing-continuations-cps-in-python-47bba90c8d1e> (referer: https://www.google.com/)
-
-    continuing-continuations-cps-in-python-47bba90c8d1.ipynb
+    Path('continuing-continuations-cps-in-python-47bba90c8d1.ipynb')
 
 ``` python
 nb = pdf2nb('https://selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf', 'sdt.ipynb', verify=False)
 print(nb)   # Path('/path/to/sdt.ipynb')
 ```
-
-    [2026-06-22 20:37:57] INFO: Fetched (200) <GET https://selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf> (referer: https://www.google.com/)
 
     /Users/71293/code/personal/orgs/fossick/nbs/sdt.ipynb
 
@@ -199,17 +187,6 @@ print(f'{len(posts)} posts collected')
 print(posts[0]['title'])
 ```
 
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=1&_limit=10> (referer: https://www.google.com/)
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=2&_limit=10> (referer: https://www.google.com/)
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=3&_limit=10> (referer: https://www.google.com/)
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=4&_limit=10> (referer: https://www.google.com/)
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=5&_limit=10> (referer: https://www.google.com/)
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=6&_limit=10> (referer: https://www.google.com/)
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=7&_limit=10> (referer: https://www.google.com/)
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=8&_limit=10> (referer: https://www.google.com/)
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=9&_limit=10> (referer: https://www.google.com/)
-    [2026-05-28 16:37:16] INFO: Fetched (200) <GET https://jsonplaceholder.typicode.com/posts?_page=10&_limit=10> (referer: https://www.google.com/)
-
     100 posts collected
     sunt aut facere repellat provident occaecati excepturi optio reprehenderit
 
@@ -223,96 +200,22 @@ for a in apis:
     print(a['url'], list(data.keys()) if isinstance(data, dict) else type(data).__name__)
 ```
 
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/shop/browse/fruit-veg> (referer: https://www.google.com/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/apis/ui/settings> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/api/ui/v2/bootstrap> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (201) <GET https://www.woolworths.com.au/ZbnWGh/bzsy/4o7V/Z91V/IVtmZUtEk/z1D9kLGuuLOkth/GBAqNwE/CCVe/VHhbPWMB> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/auth/heartbeat> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/Shop/DynamicContent2Panel?scheduleKey=/shop/browse/fruit-veg-bottom> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/akam/13/pixel_7c8f4533> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/apis/ui/PiesCategoriesWithSpecials> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/apis/ui/CarouselProducts> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://dpm.demdex.net/id?d_visid_ver=5.5.0&d_fieldgroup=AAM&d_rtbd=json&d_ver=2&d_orgid=4353388057AC8D357F000101%40AdobeOrg&d_nsid=0&d_mid=79911006971859101769087842756079938574&ts=1779950011997> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://woolworthsfoodgroup.tt.omtrdc.net/rest/v1/delivery?client=woolworthsfoodgroup&sessionId=6d7dd35c357c4bc5899443d02236000a&version=2.10.1> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://woolworthsfoodgroup.tt.omtrdc.net/rest/v1/delivery?client=woolworthsfoodgroup&sessionId=6d7dd35c357c4bc5899443d02236000a&version=2.10.1> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://c.go-mpulse.net/api/config.json?key=LUX5F-TAXLZ-RZV9P-BT522-JCQBY&d=www.woolworths.com.au&t=5933167&v=1.792.80&sl=0&si=1af4e374-018a-4eb6-a2cd-9036acda867a-tfqi7v&plugins=AK,ConfigOverride,Continuity,PageParams,AutoXHR,SPA,History,Angular,Backbone,Ember,RT,PaintTiming,NavigationTiming,ResourceTiming,Memory,Akamai,EventTiming,BFCache,LOGN&acao=&ak.ai=249936> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://cdn0.woolworths.media/wowssr/assets/tga-sku.json> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (201) <GET https://www.woolworths.com.au/ZbnWGh/bzsy/4o7V/Z91V/IVtmZUtEk/z1D9kLGuuLOkth/GBAqNwE/CCVe/VHhbPWMB> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/apis/ui/browse/category> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/shop/__embedded/browse/fruit-veg?HasTobaccoItems=false> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://cdn0.woolworths.media/wowssr/syd2/a10/browser/assets/navigation/chevron-right.svg> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://cdn0.woolworths.media/wowssr/syd2/a10/browser/assets/navigation/chevron-right.svg> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://api.woolworthsrewards.com.au/cx/nhp/availability/offers/v1/check/adType> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://ct.pinterest.com/user/?event=viewcategory&ed=%7B%22page_name%22%3A%22ww-sm%3Ashop%3Abrowse%3Afruit-veg%22%2C%22page_type%22%3A%22Browse%22%2C%22event%22%3A%22category_view%22%7D&tid=2614249904607&cb=1779950013056&dep=2%2CPAGE_LOAD> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://ct.pinterest.com/user/?event=viewcategory&ed=%7B%22page_name%22%3A%22ww-sm%3Ashop%3Abrowse%3Afruit-veg%22%2C%22page_type%22%3A%22Browse%22%2C%22event%22%3A%22category_view%22%7D&tid=2614249904607&cb=1779950013059&dep=5%2CEVENT_TAGS_ABSENT> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://collect-ap-southeast-2.tealiumiq.com/woolworths/main/2/i.gif> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://api.woolworthsrewards.com.au/cx/nhp/availability/offers/v1/check/adType> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://api.woolworthsrewards.com.au/cx/nhp/availability/offers/v1/check/adType> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://api.woolworthsrewards.com.au/cx/nhp/availability/offers/v1/check/adType> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://woolworthsfoodgroup.sc.omtrdc.net/b/ss/wfg-wx-global-prod/1/JS-2.23.0/s02037651164270> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&sessionId=6d7dd35c357c4bc5899443d02236000a&version=2.10.2> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&sessionId=6d7dd35c357c4bc5899443d02236000a&version=2.10.2> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://cdn0.woolworths.media/wowssr/assets/tga-sku.json> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&sessionId=6d7dd35c357c4bc5899443d02236000a&version=2.10.2> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&sessionId=6d7dd35c357c4bc5899443d02236000a&version=2.10.2> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://ct.pinterest.com/v3/?event=viewcategory&ed=%7B%22page_name%22%3A%22ww-sm%3Ashop%3Abrowse%3Afruit-veg%22%2C%22page_type%22%3A%22Browse%22%2C%22event%22%3A%22category_view%22%7D&tid=2614249904607&cb=1779950013487&dep=5%2CEVENT_TAGS_ABSENT&pd=%7B%22pin_unauth%22%3A%22dWlkPVpERTNabU0yTldVdE1tSmtOUzAwTmpNd0xUa3hOVFV0TnpRek5EWmpPR05qWVRSaw%22%7D&ad=%7B%22loc%22%3A%22https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg%22%2C%22ref%22%3A%22https%3A%2F%2Fwww.google.com%2F%22%2C%22if%22%3Afalse%2C%22sh%22%3A720%2C%22sw%22%3A1280%2C%22mh%22%3A%22948ee93e%22%2C%22is_eu%22%3Afalse%2C%22architecture%22%3A%22x86%22%2C%22bitness%22%3A%2264%22%2C%22brands%22%3A%5B%7B%22brand%22%3A%22Chromium%22%2C%22version%22%3A%22147%22%7D%2C%7B%22brand%22%3A%22Not.A%2FBrand%22%2C%22version%22%3A%228%22%7D%5D%2C%22mobile%22%3Afalse%2C%22model%22%3A%22%22%2C%22platform%22%3A%22macOS%22%2C%22platformVersion%22%3A%2210.15.7%22%2C%22uaFullVersion%22%3A%22147.0.7727.15%22%2C%22ecm_enabled%22%3Atrue%7D> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/apis/ui/PiesCategoriesWithSpecials> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (204) <GET https://analytics.google.com/g/collect?v=2&tid=G-YBVRJYN9JL&gtm=45je65r0h2v878538926za200zd878538926&_p=1779950012256&_gaz=1&gcd=13l3l3l3l1l1&npa=0&dma=0&gdid=dYmQxMT&_eu=AAAAAGA&are=1&cid=1692319501.1779950014&frm=0&lps=1&pscdl=noapi&rcb=11&sr=1280x720&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uam=&uamb=0&uap=macOS&uapv=10.15.7&uaw=0&ul=en-gb&gaf=2&_s=1&tag_exp=0~115938466~115938468&sid=1779950013&sct=1&seg=0&dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&dr=https%3A%2F%2Fwww.google.com%2F&dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&en=page_view&_fv=1&_nsi=1&_ss=2&_ee=1&ep.tealium_event=category_view&ep.cart_value=0&ep.collect_event=true&ep.filter_sort_by=Relevance&ep.tile_id=1%2C2%2C3%2C0%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%2C13%2C14%2C15%2C16%2C17%2C18%2C19%2C20%2C21%2C22%2C23%2C24%2C25%2C26%2C27%2C28%2C29%2C30%2C31%2C32%2C33%2C34%2C35%2C36%2C37%2C38%2C39%2C40%2C41%2C42%2C43&ep.tealium_visitor_id=019e6d49c759001da3b4760abd0b05075003306d007e8&ep.site_section=shop%3Abrowse&ep.site_name=ww-sm&ep.pfd_items_in_cart=false&ep.page_type=Browse&ep.page_number=1&ep.item_count=44&ep.item_unavailable_count=44&ep.item_min_days_to_delivery=none%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone&ep.item_max_days_to_delivery=none%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone%2Cnone&epn.first_contentful_paint_all=612&epn.first_contentful_paint_first=612&epn.first_paint_all=528&epn.first_paint_first=528&up.store_id=3221&tfd=2993> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (204) <GET https://analytics.google.com/g/collect?v=2&tid=G-YBVRJYN9JL&gtm=45je65r0h2v878538926za200zd878538926&_p=1779950012256&gcd=13l3l3l3l1l1&npa=0&dma=0&gdid=dYmQxMT&_eu=AAAAAGQ&are=1&cid=1692319501.1779950014&frm=0&lps=1&pscdl=noapi&rcb=11&sr=1280x720&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uam=&uamb=0&uap=macOS&uapv=10.15.7&uaw=0&ul=en-gb&gaf=2&_s=2&tag_exp=0~115938466~115938468&sid=1779950013&sct=1&seg=0&dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&dr=https%3A%2F%2Fwww.google.com%2F&dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&tfd=2997> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (204) <GET https://bat.bing.com/p/insights/c/k> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/apis/ui/products/829107,381923,120080,139238,259450,265225,187314,154340,262783,134681,702151,54899,318163,134034,524336,318290,210687,193753,139645,139897?excludeUnavailable=true> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/graphql> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.google.com/rmkt/collect/969624659/?random=1779950014085&cv=11&fst=1779950014085&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938466~115938469~116701382&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=1&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&data=event%3Dgtag.config&gcp=5> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.google.com/rmkt/collect/706996958/?random=1779950014157&cv=11&fst=1779950014157&fmt=8&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938466~115938469~116701382~118228215&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=17&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&_tu=IA&data=event%3Dgtag.config&gcp=5> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://securepubads.g.doubleclick.net/gampad/ads?pvsid=6705090101095288&correlator=2894177363389820&eid=31097658%2C31098733%2C31065644%2C31087490%2C95391587&output=ldjh&gdfp_req=1&vrg=202605210101&ptt=17&impl=fif&iu_parts=22073989984%2Cwoolworths%2Cfruit-veg&enc_prev_ius=%2F0%2F1%2F2&prev_iu_szs=1600x200&ifi=1&dids=ad-unit-496500&adfs=2652548239&sfv=1-0-45&sc=1&cookie_enabled=1&abxe=1&dt=1779950014226&lmt=1779950014&adxs=57&adys=221&biw=1280&bih=720&scr_x=0&scr_y=0&btvi=0&ucis=1&oid=2&u_his=2&u_h=720&u_w=1280&u_ah=720&u_aw=1280&u_cd=24&u_sd=2&u_tz=600&dmc=32&bc=31&nvt=1&uach=WyJtYWNPUyIsIjEwLjE1LjciLCJ4ODYiLCIiLCIxNDcuMC43NzI3LjE1IixudWxsLDAsbnVsbCwiNjQiLFtbIkNocm9taXVtIiwiMTQ3LjAuNzcyNy4xNSJdLFsiTm90LkEvQnJhbmQiLCI4LjAuMC4wIl1dLDBd&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&vis=1&psz=1167x0&msz=1167x0&fws=4&ohw=1280&dlt=1779950011072&idt=3115&prev_scp=InventoryType%3DBanner&adks=3579162148&frm=20&eoidce=1&pgls=CAk.~CAo.> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.google.com/ccm/collect?rcb=1&frm=0&auid=1550109597.1779950014&dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&en=page_view&dr=www.google.com&dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&scrsrc=www.googletagmanager.com&lps=1&rnd=295323522.1779950014&navt=n&npa=0&did=dYmQxMT&gdid=dYmQxMT&gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938466~115938469~116701382&apve=1&apvf=f&apvc=1&tids=AW-969624659&tid=AW-969624659&tft=1779950014102&tfd=3358> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.google.com/ccm/collect?rcb=18&frm=0&auid=1550109597.1779950014&dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&en=page_view&dr=www.google.com&dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&scrsrc=www.googletagmanager.com&lps=1&rnd=295323522.1779950014&navt=n&npa=0&gdid=dYmQxMT&gtm=45fe65r0h2v9181639601za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938466~115938469~116701382~118689382&apve=1&apvf=f&apvc=0&tids=DC-8348316&tid=DC-8348316&tft=1779950014133&tfd=3389> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.google.com/ccm/collect?rcb=17&frm=0&auid=1550109597.1779950014&dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&en=page_view&dr=www.google.com&dl=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&scrsrc=www.googletagmanager.com&lps=1&rnd=295323522.1779950014&navt=n&npa=0&did=dYmQxMT&gdid=dYmQxMT&_tu=IA&gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938466~115938469~116701382~118228215&apve=1&apvf=f&apvc=0&tids=AW-706996958&tid=AW-706996958&tft=1779950014170&tfd=3426> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://securepubads.g.doubleclick.net/gampad/ads?pvsid=6705090101095288&correlator=2894177363389820&eid=31097658%2C31098733%2C31065644%2C31087490%2C95391587&output=ldjh&gdfp_req=1&vrg=202605210101&ptt=17&impl=fif&iu_parts=22073989984%2Ccontent-card%2Cfruit-veg&enc_prev_ius=%2F0%2F1%2F2&prev_iu_szs=320x50&fluid=height&ifi=2&dids=ad-unit-1952885819&adfs=208333102&sfv=1-0-45&sc=1&cookie_enabled=1&abxe=1&dt=1779950014233&lmt=1779950014&adxs=56&adys=3517&biw=1280&bih=720&scr_x=0&scr_y=0&btvi=1&ucis=2&oid=2&u_his=2&u_h=720&u_w=1280&u_ah=720&u_aw=1280&u_cd=24&u_sd=2&u_tz=600&dmc=32&bc=31&nvt=1&uach=WyJtYWNPUyIsIjEwLjE1LjciLCJ4ODYiLCIiLCIxNDcuMC43NzI3LjE1IixudWxsLDAsbnVsbCwiNjQiLFtbIkNocm9taXVtIiwiMTQ3LjAuNzcyNy4xNSJdLFsiTm90LkEvQnJhbmQiLCI4LjAuMC4wIl1dLDBd&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&vis=1&psz=224x392&msz=224x392&fws=4&ohw=1280&dlt=1779950011072&idt=3115&prev_scp=InventoryType%3DContent%2520Card&adks=1961169011&frm=20&eoidce=1&pgls=CAk.~CAo.> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.googleadservices.com/pagead/set_partitioned_cookie?rcb=1&frm=0&apvc=1&auid=1550109597.1779950014&dt=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&tid=AW-969624659&en=page_view&ref=www.google.com&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&scrsrc=www.googletagmanager.com&lps=1&rnd=295323522.1779950014&navt=n&npa=0&did=dYmQxMT&gdid=dYmQxMT&gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938466~115938469~116701382&tft=1779950014091&tfd=3347&apve=1&apvf=f> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.googleadservices.com/pagead/conversion/969624659/?random=1779950014099&cv=11&fst=1779950014099&fmt=7&bg=ffffff&guid=ON&async=1&en=conversion&gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938466~115938469~116701382&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=1&label=c7avCOOr79EBENOYrc4D&capi=1&gtm_ee=1&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&value=1&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&gcl_ctr=1~0~0~0&data=event%3Dconversion&category=acrcp_v1_512> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.googleadservices.com/pagead/conversion/706996958/?random=1779950014167&cv=11&fst=1779950014167&fmt=7&bg=ffffff&guid=ON&async=1&en=conversion&gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938466~115938469~116701382~118228215&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=17&label=oQFKCJCy0dQBEN7Vj9EC&capi=1&gtm_ee=1&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&value=1&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&ec_mode=a&gcl_ctr=2~0~0~0&data=event%3Dconversion&category=acrcp_v1_512&em=tv.1> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&sessionId=6d7dd35c357c4bc5899443d02236000a&version=2.10.2> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://acs.woolworths.com.au/rest/v1/delivery?client=woolworthsfoodgroup&sessionId=6d7dd35c357c4bc5899443d02236000a&version=2.10.2> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
-    [2026-05-28 16:34:05] INFO: Fetched (302) <GET https://ad.doubleclick.net/activity;src=8348316;type=supcat;cat=supcfv;rcb=18;ord=7098498947355;npa=0;auiddc=1550109597.1779950014;u4=%2Fshop%2Fbrowse%2Ffruit-veg;u9=381923%2C785544%2C948491%2C%2C948511%2C133211%2C134034%2C141410%2C105919%2C120080%2C144329%2C781403%2C781401%2C948507%2C208895%2C157649%2C134681%2C137130%2C135306%2C170225%2C147071%2C135344%2C144607%2C829107%2C144497%2C130935%2C135369%2C165262%2C187314%2C169067%2C259450%2C149620%2C137102%2C155003%2C154340%2C138801%2C169438%2C259514%2C524322%2C267084%2C147603%2C149864%2C144336%2C139238;u10=%2Fshop%2Fproductdetails%2F381923%2Fkanzi-apple%2C%2Fshop%2Fproductdetails%2F785544%2Fkanzi-apple-punnet%2C%2Fshop%2Fproductdetails%2F948491%2Fgourmet-garden-cold-blend-pastes-garlic%2C%2Fshop%2Fproductdetails%2Fundefined%2Fundefined%2C%2Fshop%2Fproductdetails%2F948511%2Fgourmet-garden-paste-ginger%2C%2Fshop%2Fproductdetails%2F133211%2Fcavendish-bananas%2C%2Fshop%2Fproductdetails%2F134034%2Fgourmet-tomato%2C%2Fshop%2Fproductdetails%2F141410%2Fmandarin-imperial%2C%2Fshop%2Fproductdetails%2F105919%2Ffresh-pink-lady-apples%2C%2Fshop%2Fproductdetails%2F120080%2Fhass-avocado%2C%2Fshop%2Fproductdetails%2F144329%2Fonion-brown%2C%2Fshop%2Fproductdetails%2F781403%2Fgourmet-garden-parsley-lightly-dried-sachet%2C%2Fshop%2Fproductdetails%2F781401%2Fgourmet-garden-basil-lightly-dried-sachet%2C%2Fshop%2Fproductdetails%2F948507%2Fgourmet-garden-paste-chilli-mild%2C%2Fshop%2Fproductdetails%2F208895%2Fpotato-white-washed%2C%2Fshop%2Fproductdetails%2F157649%2Feat-later-cavendish-bananas%2C%2Fshop%2Fproductdetails%2F134681%2Ffresh-broccoli%2C%2Fshop%2Fproductdetails%2F137130%2Flebanese-cucumbers%2C%2Fshop%2Fproductdetails%2F135306%2Fred-capsicum%2C%2Fshop%2Fproductdetails%2F170225%2Ffresh-zucchini-green%2C%2Fshop%2Fproductdetails%2F147071%2Fsweet-potato-gold%2C%2Fshop%2Fproductdetails%2F135344%2Fcarrot-fresh%2C%2Fshop%2Fproductdetails%2F144607%2Fstrawberries-punnet%2C%2Fshop%2Fproductdetails%2F829107%2Fmandarin-amorette-seedless%2C%2Fshop%2Fproductdetails%2F144497%2Fonion-red%2C%2Fshop%2Fproductdetails%2F130935%2Ffresh-granny-smith-apples%2C%2Fshop%2Fproductdetails%2F135369%2Fwoolworths-australian-grown-carrots%2C%2Fshop%2Fproductdetails%2F165262%2Fdriscoll-s-raspberries-punnet%2C%2Fshop%2Fproductdetails%2F187314%2Fwoolworths-broccolini-bunch%2C%2Fshop%2Fproductdetails%2F169067%2Fwoolworths-qukes-baby-cucumbers-punnet%2C%2Fshop%2Fproductdetails%2F259450%2Forange-navel%2C%2Fshop%2Fproductdetails%2F149620%2Fwoolworths-cherry-tomatoes-punnet%2C%2Fshop%2Fproductdetails%2F137102%2Fwoolworths-continental-cucumbers%2C%2Fshop%2Fproductdetails%2F155003%2Fapple-royal-gala%2C%2Fshop%2Fproductdetails%2F154340%2Ficeberg-lettuce%2C%2Fshop%2Fproductdetails%2F138801%2Fwhite-seedless-grapes-bag-approx-900g%2C%2Fshop%2Fproductdetails%2F169438%2Ftruss-tomatoes%2C%2Fshop%2Fproductdetails%2F259514%2Flemon-loose%2C%2Fshop%2Fproductdetails%2F524322%2Fwoolworths-baby-leaf-spinach%2C%2Fshop%2Fproductdetails%2F267084%2Fwoolworths-sungold-kiwifruit-gold%2C%2Fshop%2Fproductdetails%2F147603%2Fspring-onion-bunch%2C%2Fshop%2Fproductdetails%2F149864%2Ftomato-roma-red%2C%2Fshop%2Fproductdetails%2F144336%2Fwoolworths-onion-brown-bag%2C%2Fshop%2Fproductdetails%2F139238%2Fkiwi-fruit-green;u11=1.03%2C5.90%2C4.00%2C0.00%2C4.00%2C0.81%2C0.65%2C0.53%2C1.31%2C2.00%2C0.63%2C4.00%2C4.00%2C4.00%2C0.95%2C0.81%2C1.49%2C1.53%2C2.48%2C1.18%2C1.56%2C0.36%2C0.00%2C0.47%2C0.89%2C1.31%2C1.70%2C4.50%2C3.70%2C3.00%2C1.29%2C3.20%2C2.70%2C1.26%2C3.30%2C6.00%2C1.25%2C1.56%2C3.30%2C1.53%2C3.00%2C0.80%2C3.60%2C0.96;gdid=dYmQxMT;uaa=x86;uab=64;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0;uamb=0;uam=;uap=macOS;uapv=10.15.7;uaw=0;pscdl=noapi;frm=0;_tu=IFA;gtm=45fe65r0h2v9181639601za200zb878538926zd878538926xec;gcd=13l3l3l3l1l1;dma=0;dc_fmt=6;tag_exp=0~115938466~115938469~116701382~118689382;epver=2;dc_random=1779950014_Zyp9TjrtzrtIKjfB1hqW4ZEz6dJUB74mLA;~oref=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg?> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://adservice.google.com/ddm/fls/z/src=8348316;type=supcat;cat=supcfv;rcb=18;ord=7098498947355;npa=0;auiddc=*;u4=%2Fshop%2Fbrowse%2Ffruit-veg;u9=381923%2C785544%2C948491%2C%2C948511%2C133211%2C134034%2C141410%2C105919%2C120080%2C144329%2C781403%2C781401%2C948507%2C208895%2C157649%2C134681%2C137130%2C135306%2C170225%2C147071%2C135344%2C144607%2C829107%2C144497%2C130935%2C135369%2C165262%2C187314%2C169067%2C259450%2C149620%2C137102%2C155003%2C154340%2C138801%2C169438%2C259514%2C524322%2C267084%2C147603%2C149864%2C144336%2C139238;u10=%2Fshop%2Fproductdetails%2F381923%2Fkanzi-apple%2C%2Fshop%2Fproductdetails%2F785544%2Fkanzi-apple-punnet%2C%2Fshop%2Fproductdetails%2F948491%2Fgourmet-garden-cold-blend-pastes-garlic%2C%2Fshop%2Fproductdetails%2Fundefined%2Fundefined%2C%2Fshop%2Fproductdetails%2F948511%2Fgourmet-garden-paste-ginger%2C%2Fshop%2Fproductdetails%2F133211%2Fcavendish-bananas%2C%2Fshop%2Fproductdetails%2F134034%2Fgourmet-tomato%2C%2Fshop%2Fproductdetails%2F141410%2Fmandarin-imperial%2C%2Fshop%2Fproductdetails%2F105919%2Ffresh-pink-lady-apples%2C%2Fshop%2Fproductdetails%2F120080%2Fhass-avocado%2C%2Fshop%2Fproductdetails%2F144329%2Fonion-brown%2C%2Fshop%2Fproductdetails%2F781403%2Fgourmet-garden-parsley-lightly-dried-sachet%2C%2Fshop%2Fproductdetails%2F781401%2Fgourmet-garden-basil-lightly-dried-sachet%2C%2Fshop%2Fproductdetails%2F948507%2Fgourmet-garden-paste-chilli-mild%2C%2Fshop%2Fproductdetails%2F208895%2Fpotato-white-washed%2C%2Fshop%2Fproductdetails%2F157649%2Feat-later-cavendish-bananas%2C%2Fshop%2Fproductdetails%2F134681%2Ffresh-broccoli%2C%2Fshop%2Fproductdetails%2F137130%2Flebanese-cucumbers%2C%2Fshop%2Fproductdetails%2F135306%2Fred-capsicum%2C%2Fshop%2Fproductdetails%2F170225%2Ffresh-zucchini-green%2C%2Fshop%2Fproductdetails%2F147071%2Fsweet-potato-gold%2C%2Fshop%2Fproductdetails%2F135344%2Fcarrot-fresh%2C%2Fshop%2Fproductdetails%2F144607%2Fstrawberries-punnet%2C%2Fshop%2Fproductdetails%2F829107%2Fmandarin-amorette-seedless%2C%2Fshop%2Fproductdetails%2F144497%2Fonion-red%2C%2Fshop%2Fproductdetails%2F130935%2Ffresh-granny-smith-apples%2C%2Fshop%2Fproductdetails%2F135369%2Fwoolworths-australian-grown-carrots%2C%2Fshop%2Fproductdetails%2F165262%2Fdriscoll-s-raspberries-punnet%2C%2Fshop%2Fproductdetails%2F187314%2Fwoolworths-broccolini-bunch%2C%2Fshop%2Fproductdetails%2F169067%2Fwoolworths-qukes-baby-cucumbers-punnet%2C%2Fshop%2Fproductdetails%2F259450%2Forange-navel%2C%2Fshop%2Fproductdetails%2F149620%2Fwoolworths-cherry-tomatoes-punnet%2C%2Fshop%2Fproductdetails%2F137102%2Fwoolworths-continental-cucumbers%2C%2Fshop%2Fproductdetails%2F155003%2Fapple-royal-gala%2C%2Fshop%2Fproductdetails%2F154340%2Ficeberg-lettuce%2C%2Fshop%2Fproductdetails%2F138801%2Fwhite-seedless-grapes-bag-approx-900g%2C%2Fshop%2Fproductdetails%2F169438%2Ftruss-tomatoes%2C%2Fshop%2Fproductdetails%2F259514%2Flemon-loose%2C%2Fshop%2Fproductdetails%2F524322%2Fwoolworths-baby-leaf-spinach%2C%2Fshop%2Fproductdetails%2F267084%2Fwoolworths-sungold-kiwifruit-gold%2C%2Fshop%2Fproductdetails%2F147603%2Fspring-onion-bunch%2C%2Fshop%2Fproductdetails%2F149864%2Ftomato-roma-red%2C%2Fshop%2Fproductdetails%2F144336%2Fwoolworths-onion-brown-bag%2C%2Fshop%2Fproductdetails%2F139238%2Fkiwi-fruit-green;u11=1.03%2C5.90%2C4.00%2C0.00%2C4.00%2C0.81%2C0.65%2C0.53%2C1.31%2C2.00%2C0.63%2C4.00%2C4.00%2C4.00%2C0.95%2C0.81%2C1.49%2C1.53%2C2.48%2C1.18%2C1.56%2C0.36%2C0.00%2C0.47%2C0.89%2C1.31%2C1.70%2C4.50%2C3.70%2C3.00%2C1.29%2C3.20%2C2.70%2C1.26%2C3.30%2C6.00%2C1.25%2C1.56%2C3.30%2C1.53%2C3.00%2C0.80%2C3.60%2C0.96;gdid=dYmQxMT;uaa=x86;uab=64;uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0;uamb=0;uam=;uap=macOS;uapv=10.15.7;uaw=0;pscdl=noapi;frm=0;_tu=IFA;gtm=45fe65r0h2v9181639601za200zb878538926zd878538926xec;gcd=13l3l3l3l1l1;dma=0;dc_fmt=6;tag_exp=0~115938466~115938469~116701382~118689382;epver=2;dc_random=1779950014_Zyp9TjrtzrtIKjfB1hqW4ZEz6dJUB74mLA;~oref=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
-    [2026-05-28 16:34:05] INFO: Fetched (302) <GET https://googleads.g.doubleclick.net/pagead/viewthroughconversion/969624659/?random=1642705173&cv=11&fst=1779950014099&fmt=8&bg=ffffff&guid=ON&async=1&en=conversion&gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938466~115938469~116701382&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=1&label=c7avCOOr79EBENOYrc4D&capi=1&gtm_ee=1&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&value=1&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&gcl_ctr=1~0~0~0&data=event%3Dconversion&category=acrcp_v1_512&ct_cookie_present=false&crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCJfUsQIIyduxAgjU5rECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZdHJpZ2dlcj1uYXZpZ2F0aW9uLXNvdXJjZVoDCgEBYgMKAQM&cerd=CgTbib4t&fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhobfHYtttOOJTBc6uSC3s125TuRVBtghkEkbBuRObgtSNn2SWGquExoC7W8&pscrd=IhMIpofOwq7blAMVosiEAB2AIBfGOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUWkkxTktlZlZ2Vmh6Q0NOR1RUdEFDZWFNUjlrNC1XMU5ySktGcUFXWURZUWVZb205bmJDd3oMCAliCAgAEAAYACAA> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
-    [2026-05-28 16:34:05] INFO: Fetched (302) <GET https://www.google.com/pagead/1p-conversion/969624659/?random=1642705173&cv=11&fst=1779950014099&fmt=8&bg=ffffff&guid=ON&async=1&en=conversion&gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938466~115938469~116701382&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=1&label=c7avCOOr79EBENOYrc4D&capi=1&gtm_ee=1&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&value=1&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&gcl_ctr=1~0~0~0&data=event%3Dconversion&category=acrcp_v1_512&ct_cookie_present=false&crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCJfUsQIIyduxAgjU5rECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZdHJpZ2dlcj1uYXZpZ2F0aW9uLXNvdXJjZVoDCgEBYgMKAQM&cerd=CgTbib4t&fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhobfHYtttOOJTBc6uSC3s125TuRVBtghkEkbBuRObgtSNn2SWGquExoC7W8&pscrd=IhMIpofOwq7blAMVosiEAB2AIBfGOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUWkkxTktlZlZ2Vmh6Q0NOR1RUdEFDZWFNUjlrNC1XMU5ySktGcUFXWURZUWVZb205bmJDd3oMCAliCAgAEAAYACAA&is_vtc=1&cid=CAQS-QEABaugfaBQnVt35jFlNlcJ0OJ61sjJvZH33IrWyQpfvm286tbikEv7ponCGi9Lbn421fo29MkHQO9kHh0MzvjPJkZm2yRHIrRLRP-BFXqvI3lK7Fm4xWtUs8_SjHGvlkAIDSFXVy2Sv41vUd7Sg8zJT1fFAPyLs36phTGDw-8RyCqLCRGTGPofLSVBiJwSwtBOhd6cpal3vj15YfVeAtmqSN7hnmxozgxsav4tIjOSkhv2C18YL6f5F9Rce5ltXIMU2rsJIR12Q07eMsdu8y8xDrVXWlT0PKJA-CFzhgoBRNvGVx6nImuJjJw9AfwYNEAREHoo5dCXv0c&random=1782424608> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.google.com.au/pagead/1p-conversion/969624659/?random=1642705173&cv=11&fst=1779950014099&fmt=8&bg=ffffff&guid=ON&async=1&en=conversion&gtm=45be65r0h2v9207916595za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115616985~115938466~115938469~116701382&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=1&label=c7avCOOr79EBENOYrc4D&capi=1&gtm_ee=1&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&value=1&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&gcl_ctr=1~0~0~0&data=event%3Dconversion&category=acrcp_v1_512&ct_cookie_present=false&crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCJfUsQIIyduxAgjU5rECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZdHJpZ2dlcj1uYXZpZ2F0aW9uLXNvdXJjZVoDCgEBYgMKAQM&cerd=CgTbib4t&fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhobfHYtttOOJTBc6uSC3s125TuRVBtghkEkbBuRObgtSNn2SWGquExoC7W8&is_vtc=1&cid=CAQS-QEABaugfaBQnVt35jFlNlcJ0OJ61sjJvZH33IrWyQpfvm286tbikEv7ponCGi9Lbn421fo29MkHQO9kHh0MzvjPJkZm2yRHIrRLRP-BFXqvI3lK7Fm4xWtUs8_SjHGvlkAIDSFXVy2Sv41vUd7Sg8zJT1fFAPyLs36phTGDw-8RyCqLCRGTGPofLSVBiJwSwtBOhd6cpal3vj15YfVeAtmqSN7hnmxozgxsav4tIjOSkhv2C18YL6f5F9Rce5ltXIMU2rsJIR12Q07eMsdu8y8xDrVXWlT0PKJA-CFzhgoBRNvGVx6nImuJjJw9AfwYNEAREHoo5dCXv0c&random=1782424608&ipr=y&pscrd=IhMIpofOwq7blAMVosiEAB2AIBfGOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUWkkxTktlZlZ2Vmh6Q0NOR1RUdEFDZWFNUjlrNC1XMU5ySktGcUFXWURZUWVZb205bmJDd3oMCAliCAgAEAAYACAAggEacAGIAQGQAQGYAQGyAQcIrMbcARABwgECCAE> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://chatwidget.woolworths.com.au/configs/wowo.json?q=www.woolworths.com.au-1038.0.0-> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
-    [2026-05-28 16:34:05] INFO: Fetched (302) <GET https://googleads.g.doubleclick.net/pagead/viewthroughconversion/706996958/?random=332136726&cv=11&fst=1779950014167&fmt=8&bg=ffffff&guid=ON&async=1&en=conversion&gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938466~115938469~116701382~118228215&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=17&label=oQFKCJCy0dQBEN7Vj9EC&capi=1&gtm_ee=1&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&value=1&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&ec_mode=a&gcl_ctr=2~0~0~0&data=event%3Dconversion&category=acrcp_v1_512&em=tv.1&ct_cookie_present=false&crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCMnjsQIIl9SxAgjJ27ECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZbm90LWV2ZW50LXNvdXJjZSwgdHJpZ2dlcloDCgEBYgMKAQM&cerd=CgSg870t&fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhgU-mr1Suf59DFLqpGm7r6LKinpwUfbF8N6UD3ipqP4Kuo6tvV1wdhoCQHk&pscrd=IhMI8ZPOwq7blAMVUOSEAB03qRUoOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUa0hvYnlFVXcya0pRLVFyY3NxVGk4b1NSeHc5NkUwT2FjclNqZTRNbDYyMmVSbTlURTNiVXoMCAliCAgAEAAYACAA> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Response body is unavailable for redirect responses
-    [2026-05-28 16:34:05] INFO: Fetched (302) <GET https://www.google.com/pagead/1p-conversion/706996958/?random=332136726&cv=11&fst=1779950014167&fmt=8&bg=ffffff&guid=ON&async=1&en=conversion&gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938466~115938469~116701382~118228215&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=17&label=oQFKCJCy0dQBEN7Vj9EC&capi=1&gtm_ee=1&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&value=1&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&ec_mode=a&gcl_ctr=2~0~0~0&data=event%3Dconversion&category=acrcp_v1_512&em=tv.1&ct_cookie_present=false&crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCMnjsQIIl9SxAgjJ27ECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZbm90LWV2ZW50LXNvdXJjZSwgdHJpZ2dlcloDCgEBYgMKAQM&cerd=CgSg870t&fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhgU-mr1Suf59DFLqpGm7r6LKinpwUfbF8N6UD3ipqP4Kuo6tvV1wdhoCQHk&pscrd=IhMI8ZPOwq7blAMVUOSEAB03qRUoOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUa0hvYnlFVXcya0pRLVFyY3NxVGk4b1NSeHc5NkUwT2FjclNqZTRNbDYyMmVSbTlURTNiVXoMCAliCAgAEAAYACAA&is_vtc=1&cid=CAQS-QEABaugfURudwOH2jnIhzEw6bRGF0rlF3zWBwhW4qKPkDHdBjBaUBrSqdBSS5XlOgRY8TBWEqBaQI9aKZUtUm4vINpnronQ6vZ_j49b89wHWf70lsLPQJ2k7w-Ki4emI20e7dImPAvFpp6R4d7NjxCrBMZs7J-0Gfftm6QCZmquF67HEcUzPFlVVxVlNJtZZ4x_DQEl61YmWJxH9-ikjpxjsIW5DNqhC7_lm0JTuVZi_LkPOK6juqwv5K8aPE4FLXMUKuLm9ODJOXOnZMIlJR2OqE5MbJaX4Flx7xnhRLbo4e7osRuSgqwRnxMBU_VT9TAOG49rVbX64pA&random=796175616> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] ERROR: Error getting page content: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.google.com.au/pagead/1p-conversion/706996958/?random=332136726&cv=11&fst=1779950014167&fmt=8&bg=ffffff&guid=ON&async=1&en=conversion&gtm=45be65r0h2v894961105za200zb878538926zd878538926xec&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938466~115938469~116701382~118228215&u_w=1280&u_h=720&url=https%3A%2F%2Fwww.woolworths.com.au%2Fshop%2Fbrowse%2Ffruit-veg&ref=https%3A%2F%2Fwww.google.com%2F&rcb=17&label=oQFKCJCy0dQBEN7Vj9EC&capi=1&gtm_ee=1&frm=0&tiba=Fresh%20Fruit%20%26%20Vegetables%20%7C%20Woolworths&did=dYmQxMT&gdid=dYmQxMT&value=1&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1550109597.1779950014&uaa=x86&uab=64&uafvl=Chromium%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0&uamb=0&uam=&uap=macOS&uapv=10.15.7&uaw=0&ec_mode=a&gcl_ctr=2~0~0~0&data=event%3Dconversion&category=acrcp_v1_512&em=tv.1&ct_cookie_present=false&crd=CLTesQII8t-xAgit4bECCKG4sQIIscGxAgiwwbECCLHDsQIIisWxAgjCybECCLTGsQIIk9qxAgjb3LECCIfbsQII08WxAgjrzLECCO3OsQII1c-xAgj02rECCMnjsQIIl9SxAgjJ27ECCLHhsQIIs-GxAgim3bECCLDesQIIgNuxAkoZbm90LWV2ZW50LXNvdXJjZSwgdHJpZ2dlcloDCgEBYgMKAQM&cerd=CgSg870t&fsk=ChAI8Kza0AYQn--F9POI5p4NEiwAPzTlhgU-mr1Suf59DFLqpGm7r6LKinpwUfbF8N6UD3ipqP4Kuo6tvV1wdhoCQHk&is_vtc=1&cid=CAQS-QEABaugfURudwOH2jnIhzEw6bRGF0rlF3zWBwhW4qKPkDHdBjBaUBrSqdBSS5XlOgRY8TBWEqBaQI9aKZUtUm4vINpnronQ6vZ_j49b89wHWf70lsLPQJ2k7w-Ki4emI20e7dImPAvFpp6R4d7NjxCrBMZs7J-0Gfftm6QCZmquF67HEcUzPFlVVxVlNJtZZ4x_DQEl61YmWJxH9-ikjpxjsIW5DNqhC7_lm0JTuVZi_LkPOK6juqwv5K8aPE4FLXMUKuLm9ODJOXOnZMIlJR2OqE5MbJaX4Flx7xnhRLbo4e7osRuSgqwRnxMBU_VT9TAOG49rVbX64pA&random=796175616&ipr=y&pscrd=IhMI8ZPOwq7blAMVUOSEAB03qRUoOh5odHRwczovL3d3dy53b29sd29ydGhzLmNvbS5hdS9CV0NoRUk4S3phMEFZUXg4TEJ3djdPOTVUekFSSXNBRDBuQWVUa0hvYnlFVXcya0pRLVFyY3NxVGk4b1NSeHc5NkUwT2FjclNqZTRNbDYyMmVSbTlURTNiVXobCAlY6caxAljpxrECWOnGsQJiCAgAEAAYACAAggEacAGIAQGQAQGYAQGyAQcIiaXdARABwgECCAE> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/graphql> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://nebula-cdn.kampyle.com/au/wau/68738/onsite/onsiteData1778571097953.json> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://nebula-cdn.kampyle.com/au/wau/68738/forms/3725/formData1762328011276_en.json> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://nebula-cdn.kampyle.com/au/wau/68738/forms/3726/formData1762328029477_en.json> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://nebula-cdn.kampyle.com/au/wau/68738/forms/7952/formDataV2_1762329178994_en.json> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://analytics-fe.digital-cloud-syd1.medallia.com.au/api/web/events> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://analytics-fe.digital-cloud-syd1.medallia.com.au/api/web/events> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://analytics-fe.digital-cloud-syd1.medallia.com.au/api/web/events> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://ep1.adtrafficquality.google/getconfig/sodar?sv=200&tid=gpt&tv=m202605210101&st=env&sjk=6705090101095288> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://analytics-fe.digital-cloud-syd1.medallia.com.au/api/web/events> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://insight.adsrvr.org/track/realtimeconversion> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (200) <GET https://www.woolworths.com.au/ZbnWGh/bzsy/4o7V/Z91V/IVtmZUtEk/kJD9kLGu/IjwzNwE/HFIm/ImVmBVN0> (referer: https://www.woolworths.com.au/shop/browse/fruit-veg)
-    [2026-05-28 16:34:05] INFO: Fetched (439) <GET https://dc.services.visualstudio.com/v2/track> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (439) <GET https://dc.services.visualstudio.com/v2/track> (referer: https://www.woolworths.com.au/)
-    [2026-05-28 16:34:05] INFO: Fetched (439) <GET https://dc.services.visualstudio.com/v2/track> (referer: https://www.woolworths.com.au/)
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Response body is unavailable for redirect responses
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Response body is unavailable for redirect responses
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Response body is unavailable for redirect responses
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Response body is unavailable for redirect responses
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Response body is unavailable for redirect responses
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
+    [2026-08-09 20:09:48] ERROR: Error getting page content in async: Response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier
 
     2 GraphQL calls captured
     https://www.woolworths.com.au/graphql ['products']
@@ -330,22 +233,37 @@ for a in apis:
 from fossick.cdp import cdp_connect, syncy
 
 cdp = syncy(cdp_connect())
-pg  = syncy(cdp.open_page('https://example.com/login'))
+pg  = syncy(cdp.open_page('https://the-internet.herokuapp.com/login'))
 
-# Compact, agent-ready view — just the actionable elements
+# snapshot() gives an LLM-readable view of interactive elements — always fresh after navigation
 print(syncy(pg.snapshot()))
+# [#4] textbox "Username"
+# [#5] textbox "Password"
+# [#6] button " Login"
 
-# Fill the form by label and submit — no manual node IDs, waits handled for you
-print(syncy(pg.fill_form({'Email': 'user@example.com', 'Password': 'secret'}, submit='Sign in')))
+# fill fields by their visible label and submit
+syncy(pg.fill_form({'Username': 'tomsmith', 'Password': 'SuperSecretPassword!'}, submit='Login'))
 
-# Or drive a whole flow declaratively, collecting what you read
+# act() runs a declarative multi-step flow; ('read', sel) captures the page section as markdown
 out = syncy(pg.act([
-    ('goto', 'https://example.com/search'),
-    ('fill', 'Search', 'web scraping'),
-    ('click', 'Search'),
-    ('read', '.results')]))
-print(out['.results'][:400])
+    ('goto', 'https://the-internet.herokuapp.com/login'),
+    ('fill', 'Username', 'tomsmith'),
+    ('fill', 'Password', 'SuperSecretPassword!'),
+    ('click', 'Login'),
+    ('read', '#flash'),
+]))
+print(out['#flash'])    # You logged into a secure area!
 ```
+
+    # The Internet
+    https://the-internet.herokuapp.com/login
+
+    [#28] link "Fork me on GitHub"
+    [#3] textbox "Username"
+    [#4] textbox "Password"
+    [#5] button " Login"
+    [#49] link "Elemental Selenium"
+    You logged into a secure area! ×
 
 ## Shopping carts
 
@@ -356,35 +274,154 @@ Every mutating call reads the cart before and after and reports the evidence: `o
 ``` python
 from fossick.shop import shop
 
-s = shop('https://members.ceresfairfood.org.au')      # opens in the persistent debug Chrome
-s.search('apples')[:2]                                # [{'i': 0, 'title': 'Apples Fuji IPM 500g', 'price': 5.5, ...}]
+s = shop('https://members.ceresfairfood.org.au')   # opens in the persistent debug Chrome
+# if s.blockers() shows 'login-required', log in by hand first — session persists in the debug Chrome
 
-# add by index or by title; the result says what actually changed in the cart
-s.add('Apples Fuji Organic 500g', qty=2)
+results = s.search('apples')
+print(results[:2])
+# [{'i': 0, 'title': 'Apples Fuji IPM 500g', 'price': 5.5, ...},
+#  {'i': 1, 'title': 'Apples Fuji IPM 1kg', 'price': 9.95, ...}]
+
+r = s.add('Apples Fuji Organic 500g', qty=2)
+print(r)
 # {'ok': True, 'how': 'count', 'qty': 2, 'qty_set': '2',
-#  'before': {'count': 0, ...}, 'after': {'count': 2, ...}}
+#  'before': {'count': 0, ...}, 'after': {'count': 1, 'subtotal': 13, ...}}
 
-s.cart_page()                                         # {'count': 2, 'subtotal': 13.0, 'lines': [...]}
-s.set_qty(0, 3); s.remove(0)
+if not r.get('ok'):
+    print('add failed:', r.get('error'), '| blockers:', s.blockers()); raise SystemExit
+
+cart = s.cart_page()
+# {'count': 1, 'subtotal': 13, 'lines': [{'i': 0, 'title': 'Apples Fuji Organic 500g', 'qty': 2, ...}]}
+
+line = cart['lines'][0]['i']   # actual line id from the live cart (not hardcoded)
+s.set_qty(line, 3)             # bump qty to 3
+s.remove(line)                 # then remove it
 ```
+
+    [{'i': 0, 'title': 'Apples Fuji IPM 500g', 'price': 5.5, 'url': 'https://members.ceresfairfood.org.au/products/4388-apples-fuji-ipm-500g', 'add': True, 'add_label': '', 'qty': 'select', 'vid': None, 'related': None, 'oos': None}, {'i': 1, 'title': 'Apples Fuji IPM 1kg', 'price': 9.95, 'url': 'https://members.ceresfairfood.org.au/products/4389-apples-fuji-ipm-1kg', 'add': True, 'add_label': '', 'qty': 'select', 'vid': None, 'related': None, 'oos': None}]
+    {'ok': True, 'how': 'count', 'item': {'i': 2, 'title': 'Apples Fuji Organic 500g', 'price': 6.5, 'url': 'https://members.ceresfairfood.org.au/products/2252-apples-fuji-organic-500g', 'add': True, 'add_label': 'Add', 'qty': 'select', 'vid': None, 'related': None, 'oos': None}, 'qty': 2, 'clicks': 1, 'qty_set': '2', 'before': {'count': 5, 'subtotal': None, 'badges': [{'n': 5, 'tier': 0, 'src': 'top-navigation__top-bar-cart-counter'}], 'url': 'https://members.ceresfairfood.org.au/products/search?q=apples', 'title': 'Searched on: apples | CERES Fair Food', 'source': 'dom'}, 'after': {'count': 6, 'subtotal': None, 'badges': [{'n': 6, 'tier': 0, 'src': 'top-navigation__top-bar-cart-counter'}], 'url': 'https://members.ceresfairfood.org.au/products/search?q=apples', 'title': 'Searched on: apples | CERES Fair Food', 'source': 'dom'}}
+
+    {'ok': True,
+     'how': 'count',
+     'line': {'i': 0,
+      'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+      'price': 6.5,
+      'qty': None,
+      'qty_kind': None,
+      'remove': True},
+     'before': {'count': 6,
+      'subtotal': 78,
+      'badges': [{'n': 6,
+        'tier': 0,
+        'src': 'top-navigation__top-bar-cart-counter'}],
+      'url': 'https://members.ceresfairfood.org.au/cart',
+      'title': 'Shopping Cart | CERES Fair Food',
+      'lines': [{'i': 0,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True},
+       {'i': 1,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True},
+       {'i': 2,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True},
+       {'i': 3,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True},
+       {'i': 4,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True},
+       {'i': 5,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True}],
+      'source': 'dom'},
+     'after': {'count': 5,
+      'subtotal': 65,
+      'badges': [{'n': 5,
+        'tier': 0,
+        'src': 'top-navigation__top-bar-cart-counter'}],
+      'url': 'https://members.ceresfairfood.org.au/cart',
+      'title': 'Shopping Cart | CERES Fair Food',
+      'lines': [{'i': 0,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True},
+       {'i': 1,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True},
+       {'i': 2,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True},
+       {'i': 3,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True},
+       {'i': 4,
+        'text': 'Apples Fuji Organic 500g 2 bags $6.50 EDIT $13.00',
+        'price': 6.5,
+        'qty': None,
+        'qty_kind': None,
+        'remove': True}],
+      'source': 'dom'}}
+
+``` python
+s = shop('https://www.coles.com.au')
+results = s.search('milk')
+print(results[:2])
+# [{'i': 0, 'title': 'Coles Full Cream Milk | 3L', 'price': 5.15, ...},
+#  {'i': 1, 'title': 'a2 Milk Full Cream Uht Milk | 1L', 'price': 3.9, ...}]
+
+s.add('Coles Full Cream Milk | 3L')
+# {'ok': True, 'how': 'count', 'qty': 1, 'qty_set': None,
+#  'before': {'count': 0, ...}, 'after': {'count': 1, 'subtotal': 5.15, ...}}
+```
+
+    [{'i': 0, 'title': 'Coles Full Cream Milk | 3L', 'price': 5.15, 'url': 'https://www.coles.com.au/product/coles-full-cream-milk-3l-8150288', 'add': False, 'add_label': None, 'qty': 'input', 'vid': None, 'related': None, 'oos': None}, {'i': 1, 'title': 'Nescafe Pistachio Latte Sachets | 8 Pack', 'price': 8, 'url': 'https://www.coles.com.au/product/nescafe-pistachio-latte-sachets-8-pack-1800545', 'add': True, 'add_label': 'Add to trolley: Nescafe Pistachio Latte ', 'qty': None, 'vid': None, 'related': None, 'oos': None}]
+
+    {'ok': False,
+     'error': 'add control vanished before the click',
+     'item': {'i': 0,
+      'title': 'Coles Full Cream Milk | 3L',
+      'price': 5.15,
+      'url': 'https://www.coles.com.au/product/coles-full-cream-milk-3l-8150288',
+      'add': True,
+      'add_label': 'Add to trolley: Coles Lite Reduced Fat M',
+      'qty': 'input',
+      'vid': None,
+      'related': None,
+      'oos': True}}
 
 Checkout forms are read before they are filled. `s.fields()` returns every visible input with its label, `autocomplete` token, current value and `<select>` options — ground truth, so nothing has to be guessed from a field name. `s.fill(profile)` maps a plain dict onto them (by autocomplete token first, since that is a spec rather than a hunch), then re-reads the form to report which values actually stuck. It will not press a payment button: `submit=` accepts a button name, but anything that reads like paying needs `confirm=True` as well.
 
 `s.blockers()` names what is standing in the way — `cookie-banner`, `location-required`, `login-required`, `captcha` — and `s.dismiss()` clicks through the consent ones. Logging in and choosing a delivery store stay a human’s job, done once; the persistent profile keeps them.
-
-``` python
-s.goto('https://example.com/checkout')
-s.fields()      # [{'i': 7, 'label': 'Suburb', 'autocomplete': 'address-level2', ...}, ...]
-
-s.fill(dict(email='sam@example.com', first_name='Sam', last_name='Nguyen',
-            address1='12 Smith St', city='Brunswick', state='Victoria', postcode='3056'))
-# {'filled': {'city': {'i': 7, 'label': 'Suburb', 'got': 'Brunswick', 'confirmed': True}, ...},
-#  'failed': {}, 'unmatched': []}
-
-s.fill({'12': 'Large'})     # a numeric key sets that fields() index — size, colour, delivery window
-
-s.fill({}, submit='Place order')     # ShopError: looks like it completes a payment — pass confirm=True
-```
 
 ## Setup — the persistent debug Chrome
 

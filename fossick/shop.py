@@ -271,9 +271,10 @@ function cart(wantLines) {
 // Everything a verified action needs to know, in one round trip: the cart to compare, the toast
 // that may have appeared instead, and the site's own complaint if it refused.
 const watch = (scope, wantLines) => ({cart: cart(wantLines), toast: toast(scope), err: err(scope)});
-const findRm = row => [...row.querySelectorAll('button, input[type=submit], a, [role=button]')].find(b => shown(b) &&
+const findRm = row => [...row.querySelectorAll('button, input[type=submit], a, [role=button]')].find(b => shown(b) && (
   /^(remove|delete|trash|✕|×|✖)|remove (item|from)|delete (item|from)/i.test(
-    (b.getAttribute('aria-label') || b.value || txt(b) || b.className)));
+    (b.getAttribute('aria-label') || b.value || txt(b) || b.className)) ||
+  /remove|delete/i.test((b.closest('td,th') || {}).className || '')));
 function lines() {
   const ATTRS = ['data-fk-line', 'data-fk-lineqty', 'data-fk-rm'];
   document.querySelectorAll('[data-fk-line],[data-fk-lineqty],[data-fk-rm]')
@@ -281,8 +282,8 @@ function lines() {
   // A cart line is a product card you can change or remove but not add. Scanning for rows that
   // merely contain a price also matches the "customers also bought" carousels on a cart page.
   let rows = rawCards(false).map(c => c.card).filter(r => (findQty(r) || findRm(r)) && !findBtn(r));
-  if (!rows.length) rows = [...document.querySelectorAll('tr, li, [class*=line-item i], [class*=lineitem i], [class*=cart-item i], [class*=cart__item i], [class*=basket-item i]')]
-    .filter(r => shown(r) && PRICE_RX.test(txt(r)) && txt(r).length < 400 && (findQty(r) || findRm(r)) &&
+  if (!rows.length) rows = [...document.querySelectorAll('tr, li, [class*=line-item i], [class*=lineitem i], [class*=cart-item i], [class*=cart__item i], [class*=basket-item i], [class*=cart_line i]')]
+    .filter(r => shown(r) && PRICE_RX.test(txt(r)) && txt(r).length < 800 && (findQty(r) || findRm(r)) &&
                  !r.querySelector('tr, li, [class*=cart-item i], [class*=line-item i]'));
   return rows.map((r, i) => {
     r.setAttribute('data-fk-line', i);

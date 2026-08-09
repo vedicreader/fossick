@@ -111,8 +111,10 @@ async def calls(self:CDP, url=None, pattern='.*', tail=3):
             while not done.empty():
                 m = await done.get()
                 if (rid:=m['params']['requestId']) not in out: continue
-                body = await self.network.getResponseBody(requestId=rid, sid=page.sid)
-                out[rid]= out[rid] | dict(response_body=body)
+                try:
+                    body = await self.network.getResponseBody(requestId=rid, sid=page.sid)
+                    out[rid] = out[rid] | dict(response_body=body)
+                except Exception: pass  # redirect or evicted — no body available
     return out
 
 # %% ../nbs/01_cdp.ipynb #af3e7589fc4649cf

@@ -15,7 +15,7 @@ __all__ = ['http_get', 'http_post', 'fossick_cache', 'syncy', 'html2md', 'to_md'
 import json, asyncio, threading
 from fastcore.all import Path,L,timed_cache,globtastic,parallel,run,first,AttrDict,ifnone,fdelegates,bind,patch,setattrs
 from fastcore.xdg import xdg_cache_home
-import re, shutil, time, os, sys, base64
+import ast, re, shutil, time, os, sys, base64
 from contextlib import contextmanager, nullcontext
 from collections import deque
 import lxml.etree as etree
@@ -197,9 +197,9 @@ def _fetch_auto(url, sel=None, tiers=_AUTO_TIERS, **kw) -> Response:
         except BrowserUnavailable as e:
             errs.append((tier, str(e)))
             _warn_once('browser', str(e))
-            page = None; continue
+            continue
         except Exception as e:
-            errs.append((tier, f'{type(e).__name__}: {e}')); page = None; continue
+            errs.append((tier, f'{type(e).__name__}: {e}')); continue
         if not _blocked(page):
             setattr(page, 'tier', tier)
             setattr(page, 'errs', errs)
@@ -406,7 +406,32 @@ def _nb_stem(url):
 	stem = path or urlparse(url).netloc.split('.')[0]
 	return re.sub(r'[^\w-]', '_', stem)[:50]
 
+_REPL_LINE = re.compile(r'^> ', re.M)
+_OUTPUT_ONLY = re.compile(r'^([A-Z][a-zA-Z]+Error|<(?:function|class|module)\b)')
+_PY_LIKE = re.compile(r'\b(?:def |class |import |from |return |lambda |if |for |while |with )\b')
+
+def _is_repl(code): return bool(_REPL_LINE.search(code))
+
+def _repl_to_code(code):
+	"Parse a REPL session: '> expr\noutput' -> 'expr\n# => output'"
+	lines, out, i = code.split('\n'), [], 0
+	while i < len(lines):
+		stripped = lines[i].strip()
+		if stripped.startswith('> '):
+			out.append(stripped[2:])
+			i += 1
+			output = []
+			while i < len(lines) and not lines[i].strip().startswith('> '):
+				if lines[i].strip(): output.append(lines[i].strip())
+				i += 1
+			if output: out.append('# => ' + '\n# => '.join(output))
+		else:
+			if stripped: out.append(stripped)
+			i += 1
+	return '\n'.join(out).strip()
+
 def clean_md(md):
+	md = re.sub(r'Press enter or click to view [^\n]+\n?', '', md, flags=re.I)
 	md = re.sub(r'([a-z])-\n([a-z])', r'\1\2', md)
 	md = re.sub(r'([a-z])-\n([A-Z])', r'\1-\2', md)
 	md = re.sub(r'^ +', '', md, flags=re.M)
@@ -415,15 +440,45 @@ def clean_md(md):
 
 def _text_segs(t): return [c.strip() for c in re.split(r'\n(?=#{1,3} )', t) if c.strip()]
 
+def _needs_reindent(code):
+	try: ast.parse(code); return False
+	except IndentationError: return True
+	except SyntaxError: return False
+
+def _restore_py_indent(code):
+	"Re-indent Python that had all indentation stripped (best-effort)"
+	TERM = re.compile(r'^(return|break|continue|pass|raise)\b')
+	END_COLON = re.compile(r':\s*$')
+	ELSE_KW = re.compile(r'^(else|elif\b|except\b|finally)\b')
+	stack, indent, result, pd = [], 0, [], 0
+	for raw in code.split('\n'):
+		s = raw.strip()
+		if not s: result.append(''); continue
+		if pd == 0 and ELSE_KW.match(s):
+			while stack and stack[-1][0] == 'else': stack.pop()
+			if stack: _, indent = stack.pop()
+		result.append('    ' * indent + s)
+		pd += s.count('(') - s.count(')')
+		if pd <= 0:
+			pd = 0
+			if END_COLON.search(s):
+				stack.append(('else' if ELSE_KW.match(s) else 'block', indent)); indent += 1
+			elif TERM.match(s) and stack: indent = stack[-1][1]
+	return '\n'.join(result)
+
 def _md2cells(md):
-	'Split markdown into cells; [code]...[/code] blocks from html2text become code cells'
+	'Split markdown into cells; [code]...[/code] blocks become code cells, REPL sessions and pure output handled'
 	code_re = re.compile(r'\[code\]\n\n(.*?)\n\[/code\]', re.DOTALL)
 	segments, last_end = [], 0
 	for m in code_re.finditer(md):
 		text = md[last_end:m.start()].strip()
 		if text: segments += [('markdown', s) for s in _text_segs(text)]
 		code = re.sub(r'^    ', '', m.group(1), flags=re.MULTILINE).strip()
-		if code: segments += [('code', code)]
+		if code:
+			if _is_repl(code): segments += [('code', _repl_to_code(code))]
+			elif _OUTPUT_ONLY.match(code) and not _PY_LIKE.search(code):
+				segments += [('markdown', f'```\n{code}\n```')]
+			else: segments += [('code', _restore_py_indent(code) if _needs_reindent(code) else code)]
 		last_end = m.end()
 	if text := md[last_end:].strip(): segments += [('markdown', s) for s in _text_segs(text)]
 	cells = []
@@ -475,7 +530,7 @@ def url2nb(url, # URL to convert (PDF, arxiv, or HTML page)
 	if 'arxiv.org' in url:
 		res = read_arxiv(url, save_dir=str(nb_path.parent))
 		return pdf2nb(res['pdf_path'], nb_path=nb_path, force=force, **kwargs)
-	md = to_md(fetch(url, **kwargs))
+	md = clean_md(to_md(fetch(url, **kwargs)))
 	Notebook(new_nb(cells=_md2cells(md)), path=nb_path).save()
 	return nb_path
 
@@ -718,26 +773,35 @@ def _parse_vtt(vtt:str) -> str:
         if text and (not lines or lines[-1] != text): lines.append(text)
     return ' '.join(lines)
 
+# %% ../nbs/00_core.ipynb #fb19ccef
+def _yt_opts(opts, **kw):
+    if 'verify' not in kw: return opts | kw
+    if kw.pop('verify'): return opts | kw
+    return opts | kw | dict(nocheckcertificate=True)
+
 # %% ../nbs/00_core.ipynb #1be381421eca318f
-def search_yt(q:str, # search query
-              n:int=10 # number of results to return
+def search_yt(q:str,  # search query
+              n:int=10, # number of results to return
+              **kw,   # extra opts forwarded to YoutubeDL; verify= is translated to nocheckcertificate, proxy= passed as-is
 ) -> list:
     "Search YouTube; returns L of dicts: id, title, url, duration, view_count, channel, description, thumbnail"
+    opts = _yt_opts({'quiet': True, 'extract_flat': True, 'no_warnings': True}, **kw)
     try:
-        with _ytdl().YoutubeDL({'quiet': True, 'extract_flat': True}) as ydl:
-            return ydl.extract_info(f'ytsearch{n}:{q}', download=False).get('entries',[])
+        with _ytdl().YoutubeDL(opts) as ydl:return ydl.extract_info(f'ytsearch{n}:{q}',download=False).get('entries',[])
     except Exception as e:
         print(f'search_yt error: {e}')
         return []
 
 # %% ../nbs/00_core.ipynb #449cd78d676e612f
 def read_yt(url:str, # YouTube URL or video ID
-            force:bool=False # if True, forces re-fetching even if cached
+            force:bool=False, # if True, forces re-fetching even if cached
+            **kw,  # SSL/proxy opts (e.g. **ddgs_env()); verify= translated to nocheckcertificate
 ) -> dict:
     'Fetch YouTube metadata + English transcript (auto-captions); result disk-cached by video ID'
     vid, cache = _yt_id(url), _yt_index()
     if not force and vid in cache: return cache[vid]
-    with _ytdl().YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
+
+    with _ytdl().YoutubeDL(_yt_opts({'quiet': True, 'skip_download': True}, **kw)) as ydl:
         info = ydl.extract_info(f'https://www.youtube.com/watch?v={vid}', download=False)
     caps = info.get('automatic_captions', {})
     en_caps = caps.get('en') or caps.get('en-orig') or []
@@ -761,22 +825,20 @@ def read_yt(url:str, # YouTube URL or video ID
 def download_yt(url:str, # YouTube URL or video ID
                 format:str='audio', # 'audio'|'video'|yt-dlp format string
                 save_dir:str='.', # directory to save file
-                quality:str=None # preferred audio quality (e.g. '192' for 192kbps, only used if format='audio')
+                quality:str=None, # preferred audio quality (e.g. '192' for 192kbps, only used if format='audio')
+                **kw,  # SSL/proxy opts (e.g. **ddgs_env()); verify= translated to nocheckcertificate
 ) -> Path:
     'Download YouTube media; format=\'audio\'|\'video\'|yt-dlp format string. Returns Path to saved file.'
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
     outtmpl = str(save_dir / '%(title)s.%(ext)s')
     if format == 'audio':
-        opts = {'quiet': True, 'format': 'bestaudio/best', 'outtmpl': outtmpl,
-                'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3',
-                                    'preferredquality': quality or '192'}]}
+        opts = {'quiet': True, 'format': 'bestaudio/best', 'outtmpl': outtmpl, 'postprocessors': [{
+	        'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3','preferredquality': quality or '192'}]}
     elif format == 'video':
-        opts = {'quiet': True, 'format': 'bestvideo+bestaudio/best', 'outtmpl': outtmpl,
-                'merge_output_format': 'mp4'}
-    else:
-        opts = {'quiet': True, 'format': format, 'outtmpl': outtmpl}
-    with _ytdl().YoutubeDL(opts) as ydl:
+	    opts = {'quiet': True, 'format': 'bestvideo+bestaudio/best', 'outtmpl': outtmpl, 'merge_output_format': 'mp4'}
+    else: opts = {'quiet': True, 'format': format, 'outtmpl': outtmpl}
+    with _ytdl().YoutubeDL(_yt_opts(opts,**kw)) as ydl:
         info = ydl.extract_info(url, download=True)
         stem = Path(ydl.prepare_filename(info)).stem
     ext = 'mp3' if format == 'audio' else ('mp4' if format == 'video' else '*')
