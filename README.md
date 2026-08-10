@@ -429,6 +429,8 @@ Checkout forms are read before they are filled. `s.fields()` returns every visib
 
 To log in by hand (Cloudflare / SSO / Anubis) you need a **headed** window. A running Chrome can’t switch modes, so quit it and relaunch with `headless=False` — see *Managing the debug Chrome* in the [cdp docs](cdp.html). To keep one always-on at login, install the bundled service file for your OS (`chrome_debug.plist` for launchd, `chrome_debug.service` for systemd, `chrome_debug_task.xml` for Task Scheduler).
 
+`cdp_app(url)` opens a URL as a chromeless app window — no tab strip, no address bar — in that same persistent browser. It reuses a running debug Chrome when there is one, so a window per local web app still costs a single browser process.
+
 ## CLI
 
 fossick ships a `fossick` command for shell scripts and agent harnesses that don’t have a Python kernel. All commands accept `--as_json` to return JSON instead of markdown.

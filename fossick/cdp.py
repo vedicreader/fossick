@@ -4,7 +4,7 @@
 
 # %% auto #0
 __all__ = ['BUTTON_JS', 'HIDE', 'SHOW', 'ANNOTATE_JS', 'ANNOTATE_BAR_JS', 'ANNOTATE_CLEANUP_JS', 'cdp_setup', 'cdp_connect',
-           'cdp_ws', 'JSError', 'cdp_cookies', 'ax_diff']
+           'cdp_ws', 'cdp_app', 'JSError', 'cdp_cookies', 'ax_diff']
 
 # %% ../nbs/01_cdp.ipynb #93f16b3aa77ce8ef
 import asyncio, json, time, subprocess, os, socket, re
@@ -35,9 +35,13 @@ def _chrome_flags(port, d, headless, extra_flags):
     if hasattr(os, 'geteuid') and os.geteuid() == 0: args.append('--no-sandbox')
     return args + list(extra_flags or [])
 
+def _profile_dir(user_data_dir=None):
+    "The persistent CDP Chrome profile dir: `user_data_dir`, or fastcdp's default."
+    return Path(user_data_dir).expanduser() if user_data_dir else Path.home()/'.cache'/'fastcdp'/'cdp-chrome'
+
 async def cdp_setup(port=9223, user_data_dir=None, headless=False, timeout=None, extra_flags=None):
     "Start a persistent debug Chrome on `port` with its own profile, ready for `CDP.remote`"
-    d = Path(user_data_dir) if user_data_dir else Path.home()/'.cache'/'fastcdp'/'cdp-chrome'
+    d = _profile_dir(user_data_dir)
     d.mkdir(parents=True, exist_ok=True)
     args = _chrome_flags(port, d, headless, extra_flags)
     subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
@@ -60,6 +64,23 @@ def cdp_ws(port=9223, headless=True, user_data_dir=None, extra_flags=None) -> st
     import httpx
     if not _debug_running(port): syncy(cdp_setup(port, user_data_dir, headless, extra_flags=extra_flags))
     return httpx.get(f'http://127.0.0.1:{port}/json/version').json()['webSocketDebuggerUrl']
+
+def cdp_app(url, port=9223, user_data_dir=None, wait=15):
+    'Open `url` as an app window -- no tabs, no address bar -- in the persistent debug Chrome.    '
+    import httpx
+    reused, d = _debug_ready(port), _profile_dir(user_data_dir)
+    if not reused: d = syncy(cdp_setup(port, d, headless=False, timeout=wait))
+    subprocess.Popen(_chrome_flags(port, d, False, [f'--app={url}']),
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    res = dict(ok=True, url=url, port=int(port), profile=str(d), reused=reused, target=None)
+    deadline = time.time() + min(float(wait), 5.)
+    while time.time() < deadline:
+        try: targets = httpx.get(f'http://127.0.0.1:{int(port)}/json/list', timeout=.35).json()
+        except Exception: targets = []
+        tid = first(t.get('id') for t in targets if t.get('url', '').rstrip('/') == url.rstrip('/'))
+        if tid: return res | dict(target=tid)
+        time.sleep(.1)
+    return res
 
 # %% ../nbs/01_cdp.ipynb #50ca53e6338fbf50
 # `syncy`/`_bridge` live in fossick.core and arrive here via `from .core import *`, so the whole
