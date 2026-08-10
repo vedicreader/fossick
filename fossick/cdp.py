@@ -83,9 +83,6 @@ def cdp_app(url, port=9223, user_data_dir=None, wait=15):
     return res
 
 # %% ../nbs/01_cdp.ipynb #50ca53e6338fbf50
-# `syncy`/`_bridge` live in fossick.core and arrive here via `from .core import *`, so the whole
-# package drives async work on one background loop. Imported from either module.
-
 class JSError(RuntimeError): "JavaScript raised while evaluating an expression in the page."
 
 @patch
