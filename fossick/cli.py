@@ -356,13 +356,16 @@ def research(
     query:str,            # search query
     n:int=5,              # number of top results to read
     google:bool=False,    # use direct Google ranking (stealth browser) instead of ddgs metasearch
+    region:str='auto',    # ddgs 'country-lang' region, or 'auto' to read the country off the query
+    timelimit:str=None,   # d | w | m | y — only sources from the last day/week/month/year
     sel:str=None,         # CSS selector to narrow each page before markdown
     chars:int=4000,       # max markdown chars per source
     pages:int=1,          # result pages to pull from each backend when searching
     as_json:bool=False,   # output JSON
 ):
     "Search, then read the top results into one cited markdown corpus."
-    res = _research(query, n=n, engine='google' if google else 'search', sel=sel, chars=chars, pages=pages)
+    res = _research(query, n=n, engine='google' if google else 'search', region=region,
+                    timelimit=timelimit, sel=sel, chars=chars, pages=pages)
     if as_json: print(json.dumps(res, default=str)); return
     print(f"# Research: {res['query']}\n")
     print(res['digest'])

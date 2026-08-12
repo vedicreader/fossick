@@ -55,15 +55,19 @@ def _jsonable(o):
 
 # %% ../nbs/04_mcp.ipynb #140ccc86
 @mcp.tool()
-def web_search(query:str, n:int=10, category:str='text', region:str='us-en', google:bool=False) -> list:
-    "Search the web via ddgs metasearch (no API key). category: text|images|news|videos|books. google=True gives real Google ranking via a stealth browser (slow — only when you need Google)."
-    res = _google(query, n=n) if google else _search(query, category=category, n=n, region=region)
+def web_search(query:str, n:int=10, category:str='text', region:str='auto', timelimit:str|None=None,
+               google:bool=False) -> list:
+    "Search the web via ddgs metasearch (no API key). category: text|images|news|videos|books. region is a ddgs 'country-lang' code, or 'auto' to read the country off the query — pass it whenever the answer depends on where you are (law, price, availability). timelimit d|w|m|y keeps only recent results. google=True gives real Google ranking via a stealth browser (slow — only when you need Google)."
+    res = (_google(query, n=n, region=region, timelimit=timelimit) if google
+           else _search(query, category=category, n=n, region=region, timelimit=timelimit))
     return _jsonable(res)
 
 @mcp.tool()
-def research(query:str, n:int=5, google:bool=False, sel:str|None=None, chars:int=4000) -> dict:
-    "Question -> cited answer: search, read the top n *readable* results in parallel (auto-escalating past bot walls, skipping bot-wall/empty pages and backfilling), return {query, sources, digest, dropped}. digest is cited markdown, one ## section per source, trimmed to the passages that answer the query."
-    return _jsonable(_research(query, n=n, engine='google' if google else 'search', sel=sel, chars=chars))
+def research(query:str, n:int=5, google:bool=False, region:str='auto', timelimit:str|None=None,
+             sel:str|None=None, chars:int=4000) -> dict:
+    "Question -> cited answer: search, read the top n *readable* results in parallel (auto-escalating past bot walls, skipping bot-wall/empty pages and backfilling), return {query, sources, digest, dropped, region}. digest is cited markdown, one ## section per source, trimmed to the passages that answer the query and headed with the date the source says it was published. region is a ddgs 'country-lang' code, or 'auto' to read the country off the query — set it whenever the answer depends on jurisdiction or market. timelimit d|w|m|y keeps only recent sources."
+    return _jsonable(_research(query, n=n, engine='google' if google else 'search', region=region,
+                               timelimit=timelimit, sel=sel, chars=chars))
 
 @mcp.tool()
 def lookup_doi(title:str) -> str:

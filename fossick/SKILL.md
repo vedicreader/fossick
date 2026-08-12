@@ -40,6 +40,8 @@ search query          -> search(q, max_results=10)   # ddgs metasearch, no Docke
   real Google ranking  -> google(q, n=10)             # stealth browser; slow, use when you need Google
   read a result URL    -> extract(url) | fetch(url)
 question -> answer     -> research(q, n=5)            # search + read top N -> {query, sources, digest} cited markdown
+  country matters      -> region='au-en'              # law/price/availability. Default 'auto' reads it off the query
+  recent only          -> timelimit='d'|'w'|'m'|'y'   # on search(), google() and research()
 paper title -> DOI    -> lookup_doi(title)
 -> notebook           -> url2nb(url) | pdf2nb(url_or_path)
 have a URL:
@@ -71,13 +73,15 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 
 | Function | Key params | Returns |
 |---|---|---|
-| `search(q)` | `category`, `max_results`, `region`, `backend` | list[dict] (`title, href, body`) |
+| `search(q)` | `category`, `max_results`, `region`, `timelimit`, `backend` | list[dict] (`title, href, body`) |
 | `images(q)` / `news(q)` / `videos(q)` / `books(q)` | `max_results`, `region` | list[dict] (ddgs-native fields) |
-| `google(q)` | `n`, `lang` | list[dict] (`title, href, content`; stealth browser) |
+| `google(q)` | `n`, `lang`, `region`, `timelimit` | list[dict] (`title, href, content`; stealth browser) |
+| `infer_region(q)` | `dflt` | str (ddgs region a query names, e.g. `'au-en'`) |
+| `page_date(page)` | — | str\|None (`YYYY-MM-DD` the page says it was published) |
 | `extract(url)` | — | list[dict] (page content via ddgs) |
 | `lookup_doi(title)` | — | str\|None |
 | `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `method`, `payload` | Page dict (`.tier` when `auto`) |
-| `research(q)` | `n`, `engine` ('search'\|'google'), `sel`, `chars` | dict (`query, sources, digest`) |
+| `research(q)` | `n`, `engine` ('search'\|'google'), `region`, `timelimit`, `sel`, `chars` | dict (`query, sources, digest, dropped, region`); each source has `date` |
 | `to_md(page)` | `sel`, `multi`, `wrap_tag` | str |
 | `crawl(url)` | `follow_sel`, `same_domain`, `max_pages`, `heavy`, `reuse` | list[Page] |
 | `fetch_all(urls)` | `sel`, `concurrency`, `auto` | list[Page] |
