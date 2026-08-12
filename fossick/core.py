@@ -15,7 +15,7 @@ __all__ = ['http_get', 'http_post', 'fossick_cache', 'syncy', 'html2md', 'to_md'
 import json, asyncio, threading
 from fastcore.all import Path,L,timed_cache,globtastic,parallel,run,first,AttrDict,ifnone,fdelegates,bind,patch
 from fastcore.xdg import xdg_cache_home
-import ast, re, shutil, time, os, sys, base64
+import ast, re, shutil, time, os, sys, base64, hashlib
 from contextlib import contextmanager, nullcontext
 from collections import deque
 import lxml.etree as etree
@@ -307,6 +307,23 @@ def _is_pdf(b) -> bool:
     "True when `b` starts with the %PDF- magic bytes (allowing leading whitespace/junk)."
     return isinstance(b, bytes) and b'%PDF-' in b[:1024]
 
+def _pmc_pow_pdf(url, page:bytes, timeout=60):
+    "Solve NCBI PMC's small proof-of-work challenge and return the protected PDF bytes."
+    text = page.decode(errors='replace')
+    challenge = re.search(r'const POW_CHALLENGE = \"([^\"]+)', text)
+    difficulty = re.search(r'const POW_DIFFICULTY = \"(\d+)', text)
+    cookie = re.search(r'const POW_COOKIE_NAME = \"([^\"]+)', text)
+    if not (challenge and difficulty and cookie): return None
+    challenge, difficulty = challenge.group(1), int(difficulty.group(1))
+    if difficulty > 6: return None
+    prefix, nonce = '0' * difficulty, 0
+    while not hashlib.sha256(f'{challenge}{nonce}'.encode()).hexdigest().startswith(prefix): nonce += 1
+    from curl_cffi import requests
+    s = requests.Session(impersonate='chrome')
+    s.cookies.set(cookie.group(1), f'{challenge},{nonce}', domain=urlparse(url).hostname, path='/')
+    r = s.get(url, timeout=timeout)
+    return r.content if r.status_code == 200 and _is_pdf(r.content) else None
+
 def get_pdf(url_or_path:str, # URL or local path to PDF
             save_path=None, # optional path to save the PDF (directory or full path)
             **scrapling_kw # extra kwargs passed to scrapling fetcher (e.g. verify, headers, timeout)
@@ -315,10 +332,12 @@ def get_pdf(url_or_path:str, # URL or local path to PDF
 
     Identity comes from the %PDF- magic bytes, not the URL suffix. arXiv serves its PDFs from
     extensionless URLs (`arxiv.org/pdf/1706.03762v7`), so a suffix check rejected every paper
-    fossick is most used to read."""
+    fossick is most used to read. NCBI PMC's download page is a proof-of-work interstitial;
+    its challenge is solved once here rather than mistaken for a failed PDF."""
     pth = Path(url_or_path) if not url_or_path.startswith('http') else None
     if pth: src = pth.read_bytes() if pth.exists() else None
     else: src = r.body if (r:=get_page(url_or_path, **scrapling_kw)).status == 200 else None
+    if not _is_pdf(src) and url_or_path.startswith('http'): src = _pmc_pow_pdf(url_or_path, src or b'', scrapling_kw.get('timeout', 60))
     if not _is_pdf(src): return None
     if save_path:
         pth = p/url_or_path.rsplit('/', 1)[-1].split('?')[0] if (p:=Path(save_path)).is_dir() else p

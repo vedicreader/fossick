@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.10
+bug fix
+
 ## 0.1.9
 fixes setarr
 
