@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.9
+fixes setarr
+
 ## 0.1.8
 cdp app generationapp 
 

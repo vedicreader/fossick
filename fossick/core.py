@@ -13,7 +13,7 @@ __all__ = ['http_get', 'http_post', 'fossick_cache', 'syncy', 'html2md', 'to_md'
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
-from fastcore.all import Path,L,timed_cache,globtastic,parallel,run,first,AttrDict,ifnone,fdelegates,bind,patch,setattrs
+from fastcore.all import Path,L,timed_cache,globtastic,parallel,run,first,AttrDict,ifnone,fdelegates,bind,patch
 from fastcore.xdg import xdg_cache_home
 import ast, re, shutil, time, os, sys, base64
 from contextlib import contextmanager, nullcontext
@@ -205,7 +205,9 @@ def _fetch_auto(url, sel=None, tiers=_AUTO_TIERS, **kw) -> Response:
             setattr(page, 'errs', errs)
             return page
         errs.append((tier, 'blocked'))
-    if page is not None: setattrs(page, tier='blocked', errs=errs)
+    if page is not None:
+        setattr(page, 'tier', 'blocked')
+        setattr(page, 'errs', errs)
     return page
 
 def fetch(url:str,                # URL to fetch
