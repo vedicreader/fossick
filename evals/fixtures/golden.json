@@ -1,0 +1,355 @@
+[
+  {
+    "id": "au-garage-regulation",
+    "category": "policy_jurisdiction",
+    "query": "I want to rebuild my garage in australia, cheap options, what is the regulation on it, material options",
+    "notes": "The motivating case. Jurisdiction-specific rules; lead-generation marketplaces dominate the raw ranking because they are optimised for every engine at once, which is exactly what RRF rewards. The regulator that wrote the rule should be readable before the sites selling quotes on it.",
+    "hits": [
+      {
+        "title": "How Much Does It Cost To Build A Garage? [2026]",
+        "href": "https://hipages.com.au/article/how-much-does-it-cost-to-build-a-garage",
+        "body": "Garage construction costs in Australia range widely. Get free quotes from local builders near you."
+      },
+      {
+        "title": "Garage Building Costs Guide 2026",
+        "href": "https://www.oneflare.com.au/costs/garage-builder",
+        "body": "Compare garage builder costs and get quotes from tradespeople in your area."
+      },
+      {
+        "title": "Garage Builders Near You - Get Quotes",
+        "href": "https://www.airtasker.com/garage-builders/",
+        "body": "Post your garage building task and receive offers from local Taskers."
+      },
+      {
+        "title": "Exempt and Complying Development",
+        "href": "https://www.planning.nsw.gov.au/policy-and-legislation/housing/exempt-and-complying-development",
+        "body": "Some minor building work including certain garages and carports can be carried out without planning approval if it meets the standards in the Codes SEPP."
+      },
+      {
+        "title": "How much does a garage cost to build? | ServiceSeeking",
+        "href": "https://www.serviceseeking.com.au/blog/garage-building-cost/",
+        "body": "Average garage building prices per square metre from quotes on our platform."
+      },
+      {
+        "title": "National Construction Code",
+        "href": "https://ncc.abcb.gov.au/editions/ncc-2022",
+        "body": "The National Construction Code sets the minimum required level for safety, health, amenity, accessibility and sustainability of certain buildings across Australia."
+      },
+      {
+        "title": "Colorbond vs brick garage: which should you choose?",
+        "href": "https://www.bunnings.com.au/diy-advice/outdoor/sheds-and-storage/garage-materials",
+        "body": "Comparing steel, brick and timber frame garages on cost, durability and maintenance."
+      }
+    ],
+    "expect": {
+      "region": "au-en",
+      "intent": "policy",
+      "top_domain_any_of": [
+        "planning.nsw.gov.au",
+        "abcb.gov.au"
+      ],
+      "must_include_domains": [
+        "abcb.gov.au",
+        "planning.nsw.gov.au"
+      ],
+      "required_terms": [
+        "garage"
+      ],
+      "min_results": 7,
+      "min_domains": 5,
+      "max_domain_share": 0.3,
+      "max_dup_urls": 0,
+      "plan_min": 3,
+      "plan_covers": [
+        "regulation",
+        "cheap",
+        "material"
+      ],
+      "min_sources": 6
+    }
+  },
+  {
+    "id": "uk-planning-permission",
+    "category": "policy_jurisdiction",
+    "query": "do I need planning permission for a garage in the UK",
+    "notes": "Same shape as the Australian case in a different jurisdiction — proof the authority rules generalise by suffix rather than by a hand-listed set of agencies.",
+    "hits": [
+      {
+        "title": "Garage conversion costs and quotes",
+        "href": "https://www.checkatrade.com/blog/cost-guides/garage-conversion-cost/",
+        "body": "How much does a garage conversion cost? Find vetted tradespeople near you."
+      },
+      {
+        "title": "Do you need planning permission for a garage?",
+        "href": "https://www.houzz.co.uk/magazine/garage-planning",
+        "body": "Design ideas and professionals for garage projects."
+      },
+      {
+        "title": "Planning permission - GOV.UK",
+        "href": "https://www.gov.uk/planning-permission-england-wales",
+        "body": "When you need planning permission for building work, including garages, extensions and outbuildings, and how to apply to your local council."
+      },
+      {
+        "title": "The Town and Country Planning (General Permitted Development) Order",
+        "href": "https://www.legislation.gov.uk/uksi/2015/596/contents/made",
+        "body": "Statutory instrument setting out permitted development rights in England."
+      }
+    ],
+    "expect": {
+      "region": "uk-en",
+      "intent": "policy",
+      "top_domain_any_of": [
+        "gov.uk",
+        "legislation.gov.uk"
+      ],
+      "must_include_domains": [
+        "legislation.gov.uk"
+      ],
+      "min_results": 4,
+      "max_dup_urls": 0,
+      "plan_min": 1
+    }
+  },
+  {
+    "id": "so-answer-mirrors",
+    "category": "docs_mirrors",
+    "query": "python asyncio gather exception handling docs",
+    "notes": "The mirror case. Scrapers republish the same Stack Overflow answer with better keyword density and outrank both the original and the language documentation. They carry nothing new, so they are removed rather than demoted.",
+    "hits": [
+      {
+        "title": "python - asyncio.gather exception handling",
+        "href": "https://newbedev.com/asyncio-gather-exception-handling",
+        "body": "Mirrored answer content republished from Stack Overflow."
+      },
+      {
+        "title": "Asyncio gather return_exceptions explained",
+        "href": "https://copyprogramming.com/howto/asyncio-gather-exception",
+        "body": "Scraped and reformatted question and answer pair."
+      },
+      {
+        "title": "How does asyncio.gather handle exceptions?",
+        "href": "https://stackoverflow.com/questions/58680717/asyncio-gather-exception-handling",
+        "body": "If return_exceptions is False the first raised exception is immediately propagated to the awaiting task."
+      },
+      {
+        "title": "Coroutines and Tasks - Python documentation",
+        "href": "https://docs.python.org/3/library/asyncio-task.html",
+        "body": "awaitable asyncio.gather(*aws, return_exceptions=False). If return_exceptions is True, exceptions are treated the same as successful results and aggregated in the result list."
+      },
+      {
+        "title": "asyncio gather tutorial",
+        "href": "https://www.w3cub.com/python/asyncio-task",
+        "body": "Mirrored copy of the Python documentation."
+      }
+    ],
+    "expect": {
+      "intent": "docs",
+      "top_domain_any_of": [
+        "docs.python.org"
+      ],
+      "must_include_domains": [
+        "docs.python.org",
+        "stackoverflow.com"
+      ],
+      "blocked_domains": [
+        "newbedev.com",
+        "copyprogramming.com",
+        "w3cub.com"
+      ],
+      "required_terms": [
+        "return_exceptions"
+      ],
+      "min_results": 2,
+      "max_dup_urls": 0,
+      "min_sources": 2
+    }
+  },
+  {
+    "id": "vendor-release-notes",
+    "category": "release",
+    "query": "latest Tailscale release notes subnet router changelog",
+    "notes": "Authority inverts by intent: for a changelog the vendor is the source and a video walkthrough is not.",
+    "hits": [
+      {
+        "title": "Tailscale subnet router setup (2026 guide)",
+        "href": "https://www.youtube.com/watch?v=abc123",
+        "body": "Video walkthrough of configuring a subnet router."
+      },
+      {
+        "title": "What's new in Tailscale - my notes",
+        "href": "https://medium.com/@someone/tailscale-whats-new",
+        "body": "Personal summary of recent Tailscale changes."
+      },
+      {
+        "title": "Tailscale changelog",
+        "href": "https://tailscale.com/changelog",
+        "body": "Release notes for Tailscale clients and control plane, including subnet router and exit node changes."
+      },
+      {
+        "title": "Releases - tailscale/tailscale",
+        "href": "https://github.com/tailscale/tailscale/releases",
+        "body": "Signed release artifacts and per-version notes."
+      },
+      {
+        "title": "Anyone else seeing subnet route flapping?",
+        "href": "https://www.reddit.com/r/Tailscale/comments/xyz/",
+        "body": "Community thread about subnet router behaviour after an upgrade."
+      }
+    ],
+    "expect": {
+      "intent": "release",
+      "top_domain_any_of": [
+        "tailscale.com",
+        "github.com"
+      ],
+      "must_include_domains": [
+        "tailscale.com",
+        "github.com"
+      ],
+      "min_results": 5,
+      "max_dup_urls": 0
+    }
+  },
+  {
+    "id": "community-opinion",
+    "category": "community",
+    "query": "what do people on reddit think of the framework laptop in practice, real world experiences",
+    "notes": "The inverse of the release case, and the reason authority is keyed by intent at all: here the forum thread is the answer and the vendor page is marketing.",
+    "hits": [
+      {
+        "title": "Framework Laptop 13",
+        "href": "https://frame.work/laptop13",
+        "body": "Product page and specifications."
+      },
+      {
+        "title": "Two years with a Framework: what actually broke",
+        "href": "https://www.reddit.com/r/framework/comments/abc/two_years/",
+        "body": "Long-term owner thread on repairs, hinge wear and battery life."
+      },
+      {
+        "title": "Framework laptop long term review",
+        "href": "https://news.ycombinator.com/item?id=39000000",
+        "body": "Discussion of durability and repairability tradeoffs."
+      },
+      {
+        "title": "Is the Framework worth it? - Quora",
+        "href": "https://www.quora.com/Is-the-Framework-laptop-worth-it",
+        "body": "Assorted answers of varying provenance."
+      }
+    ],
+    "expect": {
+      "intent": "community",
+      "top_domain_any_of": [
+        "reddit.com",
+        "news.ycombinator.com"
+      ],
+      "must_include_domains": [
+        "reddit.com",
+        "news.ycombinator.com"
+      ],
+      "min_results": 4,
+      "max_dup_urls": 0
+    }
+  },
+  {
+    "id": "site-constrained",
+    "category": "constrained",
+    "query": "site:reddit.com/r/LocalLLaMA best local LLM inference server 2026",
+    "notes": "The user already said where to look. Diversity capping must not fire here — a deliberately single-domain search that gets reranked away from its domain is broken, not diverse.",
+    "hits": [
+      {
+        "title": "Best local LLM inference server in 2026? : r/LocalLLaMA",
+        "href": "https://www.reddit.com/r/LocalLLaMA/comments/1abc/best_server/",
+        "body": "Thread comparing vLLM, llama.cpp server and TGI."
+      },
+      {
+        "title": "vLLM vs llama.cpp benchmarks : r/LocalLLaMA",
+        "href": "https://www.reddit.com/r/LocalLLaMA/comments/1def/benchmarks/",
+        "body": "Throughput and latency numbers on consumer GPUs."
+      },
+      {
+        "title": "My 2026 local inference stack : r/LocalLLaMA",
+        "href": "https://www.reddit.com/r/LocalLLaMA/comments/1ghi/stack/",
+        "body": "Quantised models behind an OpenAI-compatible gateway."
+      },
+      {
+        "title": "TGI is underrated : r/LocalLLaMA",
+        "href": "https://www.reddit.com/r/LocalLLaMA/comments/1jkl/tgi/",
+        "body": "Argument for text-generation-inference on multi-GPU hosts."
+      }
+    ],
+    "expect": {
+      "min_results": 4,
+      "min_domains": 1,
+      "max_domain_share": 1.0,
+      "max_dup_urls": 0
+    }
+  },
+  {
+    "id": "no-intent-neutral",
+    "category": "neutral",
+    "query": "best turntables under 1000 euro",
+    "notes": "Says nothing about what kind of source it wants, so classify abstains and no authority reranking happens. The check that matters is that abstaining is a genuine no-op rather than a silent reordering.",
+    "hits": [
+      {
+        "title": "Best turntables 2026",
+        "href": "https://www.whathifi.com/best-buys/best-turntables",
+        "body": "Expert picks tested by the review team."
+      },
+      {
+        "title": "Rega Planar 3 review",
+        "href": "https://www.stereophile.com/content/rega-planar-3-turntable",
+        "body": "Measurements and listening notes for the Planar 3 with RB330 tonearm."
+      },
+      {
+        "title": "Turntable recommendations under 1000?",
+        "href": "https://www.audiosciencereview.com/forum/index.php?threads/turntables.54321/",
+        "body": "Measurement-focused community discussion."
+      }
+    ],
+    "expect": {
+      "intent": null,
+      "top_domain_any_of": [
+        "whathifi.com"
+      ],
+      "min_results": 3,
+      "min_domains": 3,
+      "max_dup_urls": 0
+    }
+  },
+  {
+    "id": "syndicated-duplicates",
+    "category": "duplication",
+    "query": "OpenAI announces new model pricing",
+    "notes": "Five results, one story. Nothing here is dropped -- a rewrite of a press release is still corroboration -- but the report has to say the page holds fewer sources than it holds urls, which takes transitive clustering rather than pairwise counting.",
+    "hits": [
+      {
+        "title": "OpenAI announces new model pricing",
+        "href": "https://techsite-a.invalid/openai-pricing",
+        "body": "OpenAI said today that it is lowering prices for its newest model across all tiers effective immediately."
+      },
+      {
+        "title": "OpenAI announces new model pricing",
+        "href": "https://techsite-b.invalid/2026/openai-pricing",
+        "body": "OpenAI said today that it is lowering prices for its newest model across all tiers effective immediately."
+      },
+      {
+        "title": "OpenAI announces new model pricing",
+        "href": "https://techsite-c.invalid/news/openai-pricing",
+        "body": "OpenAI said today that it is lowering prices for its newest model across all tiers effective immediately."
+      },
+      {
+        "title": "New pricing for our latest model",
+        "href": "https://openai.com/index/new-pricing",
+        "body": "We are updating the per-token price of our newest model. The new rates apply to all API customers from today."
+      }
+    ],
+    "expect": {
+      "min_results": 4,
+      "min_domains": 4,
+      "max_dup_urls": 0,
+      "min_near_dups": 3,
+      "max_sources": 2
+    }
+  }
+]

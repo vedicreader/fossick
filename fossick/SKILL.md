@@ -40,6 +40,10 @@ search query          -> search(q, max_results=10)   # ddgs metasearch, no Docke
   real Google ranking  -> google(q, n=10)             # stealth browser; slow, use when you need Google
   read a result URL    -> extract(url) | fetch(url)
 question -> answer     -> research(q, n=5)            # search + read top N -> {query, sources, digest} cited markdown
+  multi-part question   -> facets=4 (default)           # splits 'cost, rules, materials' into 3 searches; 1 disables
+  junk sources          -> curated=True (default)      # drop SEO mirrors, rank gov/docs first, cap per domain
+  country matters      -> region='au-en'              # law/price/availability. Default 'auto' reads it off the query
+  recent only          -> timelimit='d'|'w'|'m'|'y'   # on search(), google() and research()
 paper title -> DOI    -> lookup_doi(title)
 -> notebook           -> url2nb(url) | pdf2nb(url_or_path)
 have a URL:
@@ -48,6 +52,7 @@ have a URL:
   bot-protected        -> fetch(url, stealthy=True)             # slow; only when blocked
   not sure / mixed     -> fetch(url, auto=True)                 # escalates plain->heavy->stealthy->session; winner on page.tier
   behind a login       -> fetch(url, session=True)             # reuses the debug Chrome's logged-in cookies, no login code
+  localhost / intranet -> fetch(url, allow_private=True)        # private+metadata addresses are refused by default (SSRF)
   many links           -> crawl(url, follow_sel='a[href]', max_pages=N)   # reuse=True keeps one browser open
   many known URLs      -> fetch_all(urls)
   hidden JSON API      -> find_xhr(url, pattern='*api*') -> paginate_api(...)
@@ -71,13 +76,24 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 
 | Function | Key params | Returns |
 |---|---|---|
-| `search(q)` | `category`, `max_results`, `region`, `backend` | list[dict] (`title, href, body`) |
+| `search(q)` | `category`, `max_results`, `region`, `timelimit`, `backend` | list[dict] (`title, href, body`) |
 | `images(q)` / `news(q)` / `videos(q)` / `books(q)` | `max_results`, `region` | list[dict] (ddgs-native fields) |
-| `google(q)` | `n`, `lang` | list[dict] (`title, href, content`; stealth browser) |
+| `google(q)` | `n`, `lang`, `region`, `timelimit` | list[dict] (`title, href, content`; stealth browser) |
+| `infer_region(q)` | `dflt` | str (`country-lang`, e.g. `'au-en'`; resolves the halves separately) |
+| `infer_country(q)` / `infer_language(q)` | — | str\|None — both abstain rather than guess |
+| `page_date(page)` | — | str\|None (`YYYY-MM-DD` the page says it was published) |
 | `extract(url)` | — | list[dict] (page content via ddgs) |
 | `lookup_doi(title)` | — | str\|None |
-| `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `method`, `payload` | Page dict (`.tier` when `auto`) |
-| `research(q)` | `n`, `engine` ('search'\|'google'), `sel`, `chars` | dict (`query, sources, digest`) |
+| `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `allow_private`, `method`, `payload` | Page dict (`.tier` when `auto`) |
+| `plan(q)` | `max_queries`, `min_words`, `rewrite` | list[str] — the searches a question is really asking; `[q]` when it is one |
+| `interleave(lists)` | `key` | list — round-robin across per-facet lists (coverage, not consensus) |
+| `curate(q, hits)` | `intent`, `max_per_domain`, `rerank` | (hits, report) — spam dropped, authority-ranked, diversity described |
+| `registrable_domain(url)` / `host(url)` | — | str (site behind a url) |
+| `cluster_sources(hits)` | `threshold` | list[dict] — syndicated copies grouped into source families |
+| `independence(hits)` | `threshold` | dict (`n, sources, clusters, method, confidence, limitations`) |
+| `diversity(hits)` | `threshold` | dict (`score, domains, dominant_domain, dup_urls, near_dups, sources`) |
+| `research(q)` | `n`, `engine` ('search'\|'google'), `region`, `timelimit`, `curated`, `intent`, `facets`, `rewrite`, `sel`, `chars` | dict (`query, sources, digest, dropped, region, curation, plan`); each source has `date`, `queries` |
+| `check_url(url)` | `allow_private` | url, or raises `BlockedURL` for private/loopback/metadata targets |
 | `to_md(page)` | `sel`, `multi`, `wrap_tag` | str |
 | `crawl(url)` | `follow_sel`, `same_domain`, `max_pages`, `heavy`, `reuse` | list[Page] |
 | `fetch_all(urls)` | `sel`, `concurrency`, `auto` | list[Page] |
