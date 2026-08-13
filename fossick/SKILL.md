@@ -51,6 +51,7 @@ have a URL:
   bot-protected        -> fetch(url, stealthy=True)             # slow; only when blocked
   not sure / mixed     -> fetch(url, auto=True)                 # escalates plain->heavy->stealthy->session; winner on page.tier
   behind a login       -> fetch(url, session=True)             # reuses the debug Chrome's logged-in cookies, no login code
+  localhost / intranet -> fetch(url, allow_private=True)        # private+metadata addresses are refused by default (SSRF)
   many links           -> crawl(url, follow_sel='a[href]', max_pages=N)   # reuse=True keeps one browser open
   many known URLs      -> fetch_all(urls)
   hidden JSON API      -> find_xhr(url, pattern='*api*') -> paginate_api(...)
@@ -81,11 +82,12 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `page_date(page)` | — | str\|None (`YYYY-MM-DD` the page says it was published) |
 | `extract(url)` | — | list[dict] (page content via ddgs) |
 | `lookup_doi(title)` | — | str\|None |
-| `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `method`, `payload` | Page dict (`.tier` when `auto`) |
+| `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `allow_private`, `method`, `payload` | Page dict (`.tier` when `auto`) |
 | `curate(q, hits)` | `intent`, `max_per_domain`, `rerank` | (hits, report) — spam dropped, authority-ranked, diversity described |
 | `registrable_domain(url)` / `host(url)` | — | str (site behind a url) |
 | `diversity(hits)` | `threshold` | dict (`score, domains, dominant_domain, dup_urls, near_dups`) |
 | `research(q)` | `n`, `engine` ('search'\|'google'), `region`, `timelimit`, `curated`, `intent`, `sel`, `chars` | dict (`query, sources, digest, dropped, region, curation`); each source has `date` |
+| `check_url(url)` | `allow_private` | url, or raises `BlockedURL` for private/loopback/metadata targets |
 | `to_md(page)` | `sel`, `multi`, `wrap_tag` | str |
 | `crawl(url)` | `follow_sel`, `same_domain`, `max_pages`, `heavy`, `reuse` | list[Page] |
 | `fetch_all(urls)` | `sel`, `concurrency`, `auto` | list[Page] |
