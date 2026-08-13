@@ -6,8 +6,8 @@ Docs: https://vedicreader.github.io/fossick/search.html.md"""
 
 # %% auto #0
 __all__ = ['TEXT_BACKENDS', 'REGION_WORDS', 'TIMELIMITS', 'text', 'images', 'news', 'videos', 'books', 'DATE_META', 'ddgs_env',
-           'get_ddgs', 'backends', 'norm_url', 'rrf', 'bm25', 'flashrank_scores', 'rerank', 'infer_region', 'search',
-           'extract', 'google', 'page_date', 'usable', 'focus', 'research']
+           'get_ddgs', 'backends', 'rrf', 'bm25', 'flashrank_scores', 'rerank', 'infer_region', 'search', 'extract',
+           'google', 'page_date', 'usable', 'focus', 'research']
 
 # %% ../nbs/02_search.ipynb #f90e2dd9
 import json, os, re, sys
@@ -18,6 +18,7 @@ from fastcore.parallel import parallel
 from scrapling import Selector
 from ddgs import DDGS
 from .core import to_md, fetch, fossick_cache, _blocked, search_yt
+from .quality import norm_url, curate as _curate, host
 
 # %% ../nbs/02_search.ipynb #7cf01c5d
 _warned = set()
@@ -79,15 +80,6 @@ def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1, **kw) ->
     return out
 
 # %% ../nbs/02_search.ipynb #694a35e3
-_TRACKING = re.compile(r'^(utm_|fbclid|gclid|msclkid|mc_[ce]id|igshid|ref$|source$)')
-
-def norm_url(u:str) -> str:
-    "Canonical form for dedup: drop scheme, fragment, tracking params, `www.` and a trailing slash."
-    try: s = urlsplit(u)
-    except ValueError: return u
-    qs = [(k, v) for k, v in parse_qsl(s.query, keep_blank_values=True) if not _TRACKING.match(k)]
-    return urlunsplit(('', s.netloc.lower().removeprefix('www.'), s.path.rstrip('/') or '/', urlencode(qs), ''))
-
 def rrf(lists:list,      # ranked result lists, one per backend
         k:int=60,        # RRF damping constant
        ) -> list:
@@ -462,18 +454,24 @@ def research(q:str,                 # search query
              auto:bool=True,        # auto-escalate fetching (plain->heavy->stealthy->session) per page
              region:str='auto',     # ddgs region, or 'auto' to read the country off the query
              timelimit:str=None,    # d | w | m | y — only sources from the last day/week/month/year
+             curated:bool=True,     # drop mirror domains and rank by source authority before reading
+             intent:str='auto',     # authority class ('policy', 'docs', …), 'auto' to read it off `q`
              focused:bool=True,     # keep query-relevant passages instead of the first `chars` chars
              candidates:int=None,   # how many hits to draw on when backfilling (default 3n)
              pages:int=1,           # result pages per backend (raise it when `candidates` exceeds one page)
              concurrency:int=8,
              **kw,                  # extra kwargs passed to fetch()
             ) -> dict:
-    "Query -> read the top `n` *readable* results -> a cited markdown corpus. Returns {query, sources, digest, dropped}."
-    if not (q and q.strip()): return dict(query=q, sources=[], digest='', dropped=[], region=_region(q, region))
+    "Query -> read the top `n` *readable* results -> a cited markdown corpus. Returns {query, sources, digest, dropped, region, curation}."
+    if not (q and q.strip()):
+        return dict(query=q, sources=[], digest='', dropped=[], region=_region(q, region), curation=None)
     cand = candidates or max(3*n, n+5)
     region = _region(q, region)
     hits = (google(q, n=cand, region=region, timelimit=timelimit) if engine == 'google'
             else search(q, n=cand, region=region, timelimit=timelimit, pages=pages))
+    # Curate before fetching, not after: `research` reads the candidates in order, so the ordering
+    # *is* the choice of which pages get read. Filtering afterwards would have paid for them first.
+    hits, curation = _curate(q, hits, intent=intent) if curated else (hits, None)
     todo, seen = [], set()
     for h in hits:
         u = h.get('href') or h.get('url')
@@ -499,5 +497,6 @@ def research(q:str,                 # search query
     digest = '\n\n---\n\n'.join(
         f'## {s["title"]}\n{s["href"]}' + (f'\npublished: {s["date"]}' if s['date'] else '') + f'\n\n{s["md"]}'
         for s in sources)
-    return dict(query=q, sources=sources, digest=digest, dropped=dropped, region=region)
+    return dict(query=q, sources=sources, digest=digest, dropped=dropped, region=region,
+                curation=curation)
 

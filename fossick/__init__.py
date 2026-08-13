@@ -1,6 +1,7 @@
 __version__ = "0.1.10"
 from .search import *
 from .core import *
+from .quality import *
 
 # `fossick.cdp` drives a real Chrome over the DevTools protocol, and `fossick.shop` builds on it;
 # together they cost ~1.3s of fastcdp + playwright + scrapling import. Most callers only ever fetch

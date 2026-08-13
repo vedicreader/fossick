@@ -40,6 +40,7 @@ search query          -> search(q, max_results=10)   # ddgs metasearch, no Docke
   real Google ranking  -> google(q, n=10)             # stealth browser; slow, use when you need Google
   read a result URL    -> extract(url) | fetch(url)
 question -> answer     -> research(q, n=5)            # search + read top N -> {query, sources, digest} cited markdown
+  junk sources          -> curated=True (default)      # drop SEO mirrors, rank gov/docs first, cap per domain
   country matters      -> region='au-en'              # law/price/availability. Default 'auto' reads it off the query
   recent only          -> timelimit='d'|'w'|'m'|'y'   # on search(), google() and research()
 paper title -> DOI    -> lookup_doi(title)
@@ -81,7 +82,10 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `extract(url)` | — | list[dict] (page content via ddgs) |
 | `lookup_doi(title)` | — | str\|None |
 | `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `method`, `payload` | Page dict (`.tier` when `auto`) |
-| `research(q)` | `n`, `engine` ('search'\|'google'), `region`, `timelimit`, `sel`, `chars` | dict (`query, sources, digest, dropped, region`); each source has `date` |
+| `curate(q, hits)` | `intent`, `max_per_domain`, `rerank` | (hits, report) — spam dropped, authority-ranked, diversity described |
+| `registrable_domain(url)` / `host(url)` | — | str (site behind a url) |
+| `diversity(hits)` | `threshold` | dict (`score, domains, dominant_domain, dup_urls, near_dups`) |
+| `research(q)` | `n`, `engine` ('search'\|'google'), `region`, `timelimit`, `curated`, `intent`, `sel`, `chars` | dict (`query, sources, digest, dropped, region, curation`); each source has `date` |
 | `to_md(page)` | `sel`, `multi`, `wrap_tag` | str |
 | `crawl(url)` | `follow_sel`, `same_domain`, `max_pages`, `heavy`, `reuse` | list[Page] |
 | `fetch_all(urls)` | `sel`, `concurrency`, `auto` | list[Page] |
