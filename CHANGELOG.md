@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.11
+increase search quality results
+
 ## 0.1.10
 bug fix
 
