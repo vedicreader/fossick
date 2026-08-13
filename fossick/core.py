@@ -1,4 +1,4 @@
-"""fetching , github, arxiv, url2md and more
+"""fetch, markdown, crawl, and specialized readers
 
 Docs: https://vedicreader.github.io/fossick/core.html.md"""
 
@@ -110,12 +110,7 @@ def _bad_ip(addr:str) -> bool:
 def check_url(url:str,                   # the URL about to be fetched
               allow_private:bool=None,   # None = honour $FOSSICK_ALLOW_PRIVATE (default: off)
              ) -> str:
-    """Return `url`, or raise `BlockedURL` when it points inside the local network.
-
-    Every resolved address is checked, not just the first: a host serving one public and one private
-    A record would otherwise pass. A guard rather than a sandbox — the fetcher resolves the name
-    again afterwards, so a record that changes in between is not caught.
-    """
+    "Raise `BlockedURL` if `url` targets a private/link-local/metadata host."
     if allow_private or (allow_private is None and _env_allows_private()): return url
     u = urlparse(url if '//' in (url or '') else f'//{url or ""}')
     if u.scheme and u.scheme.lower() not in ('http', 'https', ''):
@@ -134,6 +129,7 @@ def check_url(url:str,                   # the URL about to be fetched
         if _bad_ip(sockaddr[0]):
             raise BlockedURL(f'{h} resolves to {sockaddr[0]}, a private or reserved address{hint}')
     return url
+
 
 # %% ../nbs/00_core.ipynb #9f5a399cf870a5d1
 @cache
@@ -674,7 +670,7 @@ def read_gh_repo(path_or_url:str,  # GitHub URL, SSH address, or local path
                 )-> dict:
     'Read files from a GitHub repo filtered by glob patterns'
     repo_dir = gh_clone(path_or_url)
-    if globs is None: globs = ('README*', 'pyproject.toml', '*.py')
+    globs = ifnone(globs, ('README*', 'pyproject.toml', '*.py'))
     files = L(p for g in globs for p in globtastic(repo_dir, file_glob=g, func=Path)).unique()
     if limit: files = files[:limit]
     if as_list: return files
@@ -688,6 +684,7 @@ def read_gh_file(url:str # GitHub blob URL of the file to read
 	if (r:=http_get(raw_url)).status != 200: raise Exception(f"Failed to fetch {raw_url}: {r.status}")
 	if 'html' not in (r.headers.get('content-type') or ''): return r.body.decode(r.encoding or 'utf-8', 'replace')
 	return to_md(r)
+
 
 # %% ../nbs/00_core.ipynb #38ab5369106489f5
 def compile_pattern(pattern):

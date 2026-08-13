@@ -1,4 +1,4 @@
-"""Simple CLI for LLM agents — fetch, search, and read commands.
+"""`fossick` command-line interface
 
 Docs: https://vedicreader.github.io/fossick/cli.html.md"""
 

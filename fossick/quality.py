@@ -1,4 +1,4 @@
-"""reading the query and the results: what to ask, and which sources are worth reading
+"""what to ask, and which sources are worth reading
 
 Docs: https://vedicreader.github.io/fossick/quality.html.md"""
 
@@ -14,11 +14,11 @@ __all__ = ['MULTI_LABEL_SUFFIXES', 'DOMAIN_RULES', 'INTENT_CUES', 'SPAM_MIRRORS'
 import math, re
 from collections import Counter
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from fastcore.all import ifnone
+
 
 # %% ../nbs/06_quality.ipynb #0170b1df
-#: Registry suffixes that take three labels rather than two, so `bbc.co.uk` does not collapse to
-#: `co.uk` and put every British site under one roof. An approximation of the public suffix list,
-#: deliberately: the real one is ~10k entries and a moving target.
+#: Three-label registry suffixes (`bbc.co.uk`, not `co.uk`). Approximate PSL for countries we care about.
 MULTI_LABEL_SUFFIXES = frozenset({
     'ac.at', 'co.at', 'gv.at', 'or.at', 'priv.at',
     'com.au', 'net.au', 'org.au', 'edu.au', 'gov.au', 'asn.au', 'id.au',
@@ -36,38 +36,29 @@ MULTI_LABEL_SUFFIXES = frozenset({
 
 def host(url:str) -> str:
     "The lowercase hostname of `url`, without `www.` or a trailing dot. `''` when there isn't one."
-    try: h = urlsplit(url if '//' in (url or '') else f'//{url or ""}').hostname or ''
+    try: h = urlsplit(url if '//' in ifnone(url,'') else f'//{ifnone(url,"")}').hostname or ''
     except ValueError: return ''
     h = h.strip().rstrip('.').lower()
     return h[4:] if h.startswith('www.') else h
 
 def registrable_domain(url:str) -> str:
-    """The site behind `url` — `docs.python.org` -> `python.org`, `bbc.co.uk` -> `bbc.co.uk`.
-
-    An IP address and a single-label host are returned unchanged: there is nothing to strip, and
-    guessing would merge unrelated hosts.
-    """
+    "Site behind `url` (`docs.python.org`→`python.org`, `bbc.co.uk`→`bbc.co.uk`). IP/single-label unchanged."
     h = host(url)
     if not h or re.fullmatch(r'[\d.]+|\[[0-9a-f:]+\]', h): return h
     labels = [x for x in h.split('.') if x]
     if len(labels) < 3: return '.'.join(labels)
     return '.'.join(labels[-3:] if '.'.join(labels[-2:]) in MULTI_LABEL_SUFFIXES else labels[-2:])
 
+
 # %% ../nbs/06_quality.ipynb #3243a53b
-#: Parameters that identify a *click*, never a page. Dropping them is what makes the same article
-#: shared from six places dedup to one.
+#: Click/tracking params — drop so the same article from six shares is one key.
 _TRACKING = re.compile(r'^(utm_|fbclid|gclid|dclid|msclkid|yclid|mkt_tok|mc_[ce]id|igshid|'
                        r'vero_id|oly_(anon|enc)_id|_ga$|ref$|source$)')
 
 _DFLT_PORT = {'http': 80, 'https': 443, 'ftp': 21}
 
 def norm_url(u:str) -> str:
-    """Canonical form for dedup: no scheme, no fragment, no tracking params, no `www.`, no default
-    port, no trailing slash — and the surviving query sorted.
-
-    The scheme goes entirely, unlike most canonicalisers: `http://x.com/a` and `https://x.com/a` are
-    one page, and this string is only ever used as a key.
-    """
+    "Dedup key: no scheme/fragment/tracking/`www.`/default port/trailing slash; query sorted."
     try: s = urlsplit(u)
     except ValueError: return u
     try: port = s.port
@@ -79,9 +70,9 @@ def norm_url(u:str) -> str:
     qs = sorted((k, v) for k, v in parse_qsl(s.query, keep_blank_values=True) if not _TRACKING.match(k))
     return urlunsplit(('', h, s.path.rstrip('/') or '/', urlencode(qs), ''))
 
+
 # %% ../nbs/06_quality.ipynb #04f248d1
-#: Boost/demote domains per intent class. Keyed by class because authority is not global: a changelog
-#: beats a forum on `release`, and the reverse is true on `community`.
+#: Boost/demote domains per intent — authority is not global.
 DOMAIN_RULES = {
     'docs': dict(
         boost=('docs.', 'developer.', 'devdocs.', 'api.', 'github.com', 'readthedocs.io',
@@ -91,14 +82,10 @@ DOMAIN_RULES = {
                 'geeksforgeeks.org', 'w3schools.com', 'tutorialspoint.com'),
     ),
     'policy': dict(
-        # Suffix rules do the real work here: one `.gov.au` covers every Australian agency, which a
-        # list of named departments never would.
         boost=('.gov', '.gov.au', '.gov.uk', '.govt.nz', '.gov.in', '.gov.sg', '.gov.za',
                '.gc.ca', '.europa.eu', '.int', '.mil', '.edu', '.ac.uk', '.edu.au',
                'legislation.gov.uk', 'abcb.gov.au', 'standards.org.au', 'standards.org',
                'iso.org', 'nist.gov', 'oecd.org', 'who.int', 'eur-lex.europa.eu'),
-        # Lead-generation marketplaces are legitimate businesses and the wrong answer to a question
-        # about rules: they sell quotes, and they outrank the regulator that wrote the rule.
         demote=('scribd.com', 'researchgate.net', 'slideshare.net', 'academia.edu', 'medium.com',
                 'youtube.com', 'quora.com', 'pinterest.com', 'hipages.com.au', 'oneflare.com.au',
                 'airtasker.com', 'serviceseeking.com.au', 'checkatrade.com', 'houzz.com',
@@ -116,8 +103,6 @@ DOMAIN_RULES = {
         demote=('youtube.com', 'medium.com', 'reddit.com', 'linkedin.com'),
     ),
     'community': dict(
-        # Deliberately the inverse of the others: the question is what people found, not what a
-        # vendor published.
         boost=('reddit.com', 'news.ycombinator.com', 'stackexchange.com', 'stackoverflow.com',
                'forum.', 'forums.', 'community.', 'discourse.'),
         demote=('pinterest.com', 'quora.com', 'answers.com'),
@@ -125,12 +110,7 @@ DOMAIN_RULES = {
 }
 
 def domain_matches(domain:str, rule:str) -> bool:
-    """Does `domain` match an authority `rule`?
-
-    `docs.` matches a leading label, `.gov.au` matches a suffix, anything else matches exactly or as
-    a true subdomain. Never a bare `startswith`: that would hand `openai.com.evil.example` the boost
-    meant for `openai.com`.
-    """
+    "Match `docs.` (label), `.gov.au` (suffix), or exact/subdomain — never bare startswith."
     if not domain or not rule: return False
     if rule.endswith('.'): return domain.startswith(rule)
     # `.gov.uk` has to match the registry itself as well as everything under it, or the rule
@@ -140,12 +120,9 @@ def domain_matches(domain:str, rule:str) -> bool:
     return domain == rule or domain.endswith(f'.{rule}')
 
 def blocked_matches(domain:str, rule:str) -> bool:
-    """Strict matcher for block and allow lists: exact domain or true subdomain, nothing else.
-
-    Separate from `domain_matches` on purpose — a blocklist must not grow a prefix or suffix clause,
-    or `newbedev.com.evil.example` blocks and, worse, an allow-rule rescues far more than it names.
-    """
+    "True if host is in the blocked list (exact or subdomain)."
     return bool(domain) and (domain == rule or domain.endswith(f'.{rule}'))
+
 
 # %% ../nbs/06_quality.ipynb #3e1b3546
 #: Cue words per intent class. Matched on word boundaries against the lowercased query.
@@ -174,12 +151,7 @@ def _cue_pats():
     return _cue_rx
 
 def classify(q:str) -> str:
-    """The intent class a query is asking for, or `None` when it says nothing or says two things.
-
-    Abstaining is the useful behaviour: a wrong class reranks *against* the answer, which is worse
-    than not reranking. A tie is a genuine ambiguity — "reddit release notes" is both, so it is
-    neither — and returns `None` rather than picking.
-    """
+    "Intent class from cue table, or None when cues disagree/tie."
     ql = (q or '').lower()
     hits = {k: len(rx.findall(ql)) for k, rx in _cue_pats().items()}
     hits = {k: n for k, n in hits.items() if n}
@@ -187,6 +159,7 @@ def classify(q:str) -> str:
     top = max(hits.values())
     winners = [k for k, n in hits.items() if n == top]
     return winners[0] if len(winners) == 1 else None
+
 
 # %% ../nbs/06_quality.ipynb #c3423b47
 #: Sites that republish other people's answers. Removed rather than demoted: they add nothing over the
@@ -206,12 +179,7 @@ SPAM_MIRRORS = (
 _SITE_OP = re.compile(r'\bsite:([a-z0-9][a-z0-9.-]*)', re.I)
 
 def site_domains(q:str, include=()) -> list:
-    """Domains the caller explicitly constrained the search to — `site:` operators plus `include`.
-
-    An explicit constraint is intent. Constrained domains are exempt from spam filtering, and their
-    presence turns domain capping off: a search told to look at one site must not be reranked away
-    from it.
-    """
+    "Domains from `site:` ops in `q` plus any explicit `include` list."
     ds = [d.lower().rstrip('.') for d in _SITE_OP.findall(q or '')]
     ds += [str(d).strip().lower() for d in (include or []) if str(d).strip()]
     return sorted(set(ds))
@@ -230,15 +198,15 @@ def drop_spam(hits:list, blocked=(), allowed=()) -> tuple:
         kept.append(h)
     return kept, sorted(set(removed))
 
+
 # %% ../nbs/06_quality.ipynb #8d2f9b2d
-#: Conversational scaffolding. It tells a person what you want and tells a keyword engine nothing,
-#: so it is stripped before the query is split.
+#: Conversational lead-ins stripped before splitting.
 LEAD_INS = (r"i (?:want|need|would like|wanna|have) to", r"i(?:'m| am) (?:looking|trying) to",
             r"can you (?:tell me|help me|find|look up)", r"(?:please )?(?:tell me|help me|find me)",
             r"how (?:do|can|would) i", r"what (?:do|should) i", r"i (?:want|need)",
             r"give me", r"looking for")
 
-#: Phrases that survive clause splitting and carry no search signal.
+#: Filler phrases with no search signal.
 FILLER = (r"what (?:is|are|was|were) (?:the |a |an )?", r"things to consider(?: are)?",
           r"i (?:want|need) to know", r"(?:on|about|for|with) (?:it|this|that|them|these)",
           r"tell me", r"please", r"kindly", r"etc\.?", r"and so on", r"as well", r"also",
@@ -274,13 +242,7 @@ def plan(q:str,                  # the question as asked
          min_words:int=6,        # below this a query has no room for two questions
          rewrite=None,           # optional `f(q) -> list[str]`, e.g. a model. Overrides the heuristic.
         ) -> list:
-    """Split one multi-part question into the searches it is really asking. `[q]` when it is not.
-
-    `q` itself is always first, so every facet is added recall on top of the ordinary answer and a
-    bad split cannot cost you the good result. Abstains — returning `[q]` unchanged — on a short
-    query, a query with no clause boundary, and a query already carrying a `site:` constraint, so
-    the extra fan-outs are only ever paid for where there is genuinely more than one question.
-    """
+    "Split multi-part `q` into searches; always `[q]` first. Abstains when no second question."
     q = (q or '').strip()
     if not q: return []
     if rewrite is not None:
@@ -302,16 +264,7 @@ def _dedup(qs:list) -> list:
     return out
 
 def interleave(lists:list, key=None) -> list:
-    """Round-robin across per-facet result lists, deduping by url. Coverage, not consensus.
-
-    RRF is the right way to fuse *backends* answering one question and the wrong way to fuse *facets*
-    of different questions — it rewards the page that ranks for all of them, which on a three-part
-    question is precisely the "complete guide" written to rank for all of them. The page that is
-    authoritative on exactly one facet is the one worth reading, and only a round-robin keeps it.
-
-    Every hit records the sub-queries that found it in `queries`, so a source answering two facets is
-    still visible as such downstream.
-    """
+    "Round-robin merge of result lists; dedup by `key` (default norm_url)."
     key = key or (lambda h: norm_url(h.get('href') or h.get('url') or ''))
     out, seen = [], {}
     for row in zip(*(list(l) + [None] * (max(map(len, lists), default=0) - len(l)) for l in lists)) \
@@ -325,13 +278,10 @@ def interleave(lists:list, key=None) -> list:
                 seen[k] = dict(h); out.append(seen[k])
     return out
 
+
 # %% ../nbs/06_quality.ipynb #884e65fc
 def authority_rerank(hits:list, cls:str) -> tuple:
-    """Reorder `hits` by the `cls` rules, keeping the existing order as the tiebreak.
-
-    Returns `(hits, report)`. `cls=None` or an unknown class is a no-op, reported as such, so a caller
-    never has to check before calling.
-    """
+    "Stable boost/demote by DOMAIN_RULES for `cls`; lossless."
     rules = DOMAIN_RULES.get(cls or '')
     if not hits or not rules:
         return hits, dict(intent=cls, applied=False, boosted=[], demoted=[])
@@ -348,11 +298,7 @@ def authority_rerank(hits:list, cls:str) -> tuple:
                      top_before=host(_url(hits[0])), top_after=host(_url(out[0])))
 
 def cap_per_domain(hits:list, max_per:int=2) -> tuple:
-    """Move a domain's overflow behind the head so one site cannot own the page.
-
-    Returns `(hits, n_demoted)`. Nothing is dropped: the fifth page from one publisher is still
-    evidence, it just should not push out the second publisher.
-    """
+    "Stable per-domain soft cap: overflow keeps relative order in the tail."
     if max_per < 1 or len(hits) < 3: return hits, 0
     head, tail, seen = [], [], Counter()
     for h in hits:
@@ -360,6 +306,7 @@ def cap_per_domain(hits:list, max_per:int=2) -> tuple:
         if d and seen[d] >= max_per: tail.append(h); continue
         seen[d] += 1; head.append(h)
     return head + tail, len(tail)
+
 
 # %% ../nbs/06_quality.ipynb #b9ff2545
 def shingles(text:str, n:int=3) -> set:
@@ -387,23 +334,11 @@ def _union_find(n:int):
 def cluster_sources(hits:list,             # search hits or research sources
                     threshold:float=0.6,   # trigram Jaccard above which two texts are one story
                    ) -> list:
-    """Group results that are the same story into source families. Returns a list of clusters.
-
-    Two signals, unioned transitively: the same canonical url, and text similar above `threshold`.
-    Transitivity is the point — A~B and B~C makes one family even where A and C alone fall short,
-    which is what a chain of rewrites of one press release looks like.
-
-    Each cluster is represented by its first member in input order. After `curate` that is the
-    highest-authority member, so a family is named by the original rather than by a copy of it.
-    """
+    "Union-find clusters by canonical URL + Jaccard≥threshold; representative is first in input order."
     return _analyse(hits, threshold)[0]
 
 def _analyse(hits:list, threshold:float) -> tuple:
-    """The one pairwise pass behind both `cluster_sources` and `diversity`. Returns `(clusters, near)`.
-
-    Shingles are built once per hit rather than once per comparison, and the two callers share the
-    single O(n²) sweep: computing them inside the loop made a 60-result page cost 59ms to describe.
-    """
+    "Union-find by canonical URL + Jaccard≥threshold; first member is representative."
     hits = [h for h in hits if isinstance(h, dict)]
     n = len(hits)
     if not n: return [], 0
@@ -426,14 +361,7 @@ def _analyse(hits:list, threshold:float) -> tuple:
     return clusters, near
 
 def independence(hits:list, threshold:float=0.6) -> dict:
-    """How many *sources* a result set holds, as opposed to how many urls.
-
-    `sources` is the number a reader needs: four rewrites of one wire story are one source, and
-    treating their agreement as corroboration is the mistake this exists to prevent.
-
-    `method` and `limitations` are part of the answer, not decoration. With too little text to compare,
-    this degrades to url-identity only and says so rather than reporting a confident 1.0.
-    """
+    "Cluster count / n — fraction of independent stories."
     hits = [h for h in hits if isinstance(h, dict)]
     n = len(hits)
     if not n:
@@ -450,6 +378,7 @@ def independence(hits:list, threshold:float=0.6) -> dict:
         limitations=['two sites reporting one press release in their own words are not detectable '
                      'by text overlap'] + ([] if textual else
                      ['too little text to compare: only identical urls were clustered']))
+
 
 # %% ../nbs/06_quality.ipynb #cd5f778f
 _WORD = re.compile(r'[^\W_]+', re.UNICODE)
@@ -468,12 +397,7 @@ def _text(h) -> str:
     return ' '.join(str(h.get(k) or '') for k in ('title', 'body', 'content', 'snippet', 'md'))
 
 def diversity(hits:list, threshold:float=0.6) -> dict:
-    """Describe a result set: domain spread, url duplication, near-duplicate text, dominant publisher.
-
-    Pure description — this never reorders or drops anything, which is why it is always safe to run and
-    always reported. `score` weights domain spread highest because that is the failure that survives
-    every other check: five distinct urls from one site are five urls and one source.
-    """
+    "Describe dominant domain, near-dups, and independent source count."
     hits = [h for h in hits if isinstance(h, dict)]
     n = len(hits)
     if not n: return dict(score=0.0, n=0, domains=0, dominant_domain=None, dup_urls=0,
@@ -494,6 +418,7 @@ def diversity(hits:list, threshold:float=0.6) -> dict:
                 sources=len(clusters),
                 dominant_domain=dict(domain=top[0], share=round(top[1]/n, 4)) if top else None)
 
+
 # %% ../nbs/06_quality.ipynb #2026423d
 def curate(q:str,                  # the query, read for intent and `site:` constraints
            hits:list,              # search hits (dicts with `href`/`url`, `title`, `body`)
@@ -502,10 +427,7 @@ def curate(q:str,                  # the query, read for intent and `site:` cons
            blocked=(), allowed=(), # extra mirror domains, and rescues from the built-in list
            rerank:bool=True,       # False: describe only, return `hits` untouched
           ) -> tuple:
-    """Filter, rerank and describe a result set. Returns `(hits, report)`.
-
-    A query naming its own `site:` is left alone apart from the report: it already said where to look.
-    """
+    "Filter/rerank/describe hits → `(hits, report)`. `site:` skips spam drop and domain cap."
     sites = site_domains(q)
     rep = dict(intent=None, site_constrained=sites, dropped=[], demoted=0, authority=None)
     if not hits:
@@ -523,3 +445,4 @@ def curate(q:str,                  # the query, read for intent and `site:` cons
         rep['intent'] = classify(q) if intent == 'auto' else intent
     rep['diversity'] = diversity(out)
     return out, rep
+
