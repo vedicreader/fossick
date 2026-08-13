@@ -1,4 +1,4 @@
-"""MCP server for fossick — search, fetch, read, hidden-API discovery, and browser automation as MCP tools, so Claude, Codex, and any other MCP client can drive the full toolkit.
+"""fossick as an MCP server for coding agents
 
 Docs: https://vedicreader.github.io/fossick/mcp.html.md"""
 

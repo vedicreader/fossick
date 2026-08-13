@@ -1,4 +1,4 @@
-"""web search for AI agents — text, images, news & videos via ddgs, plus direct Google via a stealth browser
+"""metasearch, fuse, rerank, and research
 
 Docs: https://vedicreader.github.io/fossick/search.html.md"""
 
@@ -14,12 +14,13 @@ __all__ = ['TEXT_BACKENDS', 'COUNTRY_WORDS', 'COUNTRY_LANG', 'LANG_WORDS', 'TIME
 import json, os, re, sys
 from math import log
 from urllib.parse import quote_plus, urlsplit, urlunsplit, parse_qsl, urlencode
-from fastcore.all import first, bind
+from fastcore.all import first, bind, ifnone
 from fastcore.parallel import parallel
 from scrapling import Selector
 from ddgs import DDGS
 from .core import to_md, fetch, fossick_cache, _blocked, search_yt
 from .quality import norm_url, curate as _curate, host, plan as _plan, interleave
+
 
 # %% ../nbs/02_search.ipynb #7cf01c5d
 _warned = set()
@@ -56,7 +57,7 @@ def _engine_hits(be:str, q:str, region='us-en', page=1, timeout=8, tries=2, **kw
     if cls is None: return []
     for _ in range(tries):
         try:
-            hits = cls(timeout=timeout, **ddgs_env()).search(q, region=region, page=page, **kw) or []
+            hits = ifnone(cls(timeout=timeout, **ddgs_env()).search(q, region=region, page=page, **kw), [])
             if hits: return [dict(h.__dict__, engine=be, rank=i+1) for i, h in enumerate(hits)]
         except Exception: pass
     return []
@@ -79,6 +80,7 @@ def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1, **kw) ->
                 merged.append(dict(h, rank=len(merged)+1))    # rank runs on across pages, so RRF sees one list
         if merged: out.append(merged)
     return out
+
 
 # %% ../nbs/02_search.ipynb #694a35e3
 def rrf(lists:list,      # ranked result lists, one per backend
@@ -170,9 +172,7 @@ def rerank(q:str,               # search query
     return hits[:n] if n else hits
 
 # %% ../nbs/02_search.ipynb #677a80fd
-#: Location words worth acting on: the ones where the answer changes with the country — law, price,
-#: availability, what is even for sale. Cities earn their place by being unambiguous enough that the
-#: other place with the name is not what anyone means.
+#: Place words where the answer changes with country (law/price/availability).
 COUNTRY_WORDS = {
     'au': ('australia', 'australian', 'aussie', 'nsw', 'qld', 'sydney', 'melbourne', 'brisbane',
            'canberra', 'adelaide'),
@@ -236,24 +236,16 @@ def _alt(name:str, table:dict):
     return _pats[name]
 
 def infer_country(q:str) -> str:
-    """The country a query names, as an ISO-3166 alpha-2 code — or `None`.
-
-    Two different countries in one query is a comparison, and answers to `None`: biasing "australian
-    vs german building codes" towards either side is worse than biasing it towards neither.
-    """
+    "ISO country from `q`, or None when none/ambiguous."
     rx, keys = _alt('country', COUNTRY_WORDS)
-    found = {keys[m.lastindex - 1] for m in rx.finditer((q or '').lower())}
+    found = {keys[m.lastindex - 1] for m in rx.finditer(ifnone(q,'').lower())}
     return found.pop() if len(found) == 1 else None
 
 def infer_language(q:str) -> str:
-    """The language a query is written in, from its function words — or `None` when it cannot tell.
-
-    Needs at least two hits and one clear winner. A single shared word ('la', 'de', 'e' belong to
-    several languages at once) is not evidence, and a tie is not a decision.
-    """
+    "Language code from function words in `q`, or None when unclear/tied."
     rx, keys = _alt('lang', LANG_WORDS)
     counts = {}
-    for m in rx.finditer((q or '').lower()): counts[keys[m.lastindex - 1]] = counts.get(keys[m.lastindex - 1], 0) + 1
+    for m in rx.finditer(ifnone(q,'').lower()): counts[keys[m.lastindex - 1]] = counts.get(keys[m.lastindex - 1], 0) + 1
     if not counts or (top := max(counts.values())) < 2: return None
     winners = [k for k, n in counts.items() if n == top]
     return winners[0] if len(winners) == 1 else None
@@ -261,17 +253,7 @@ def infer_language(q:str) -> str:
 def infer_region(q:str,             # the query, read for a place and a language
                  dflt:str='us-en',  # used for whichever half the query does not settle
                 ) -> str:
-    """The ddgs `country-lang` region a query asks for — 'rebuild my garage in australia' -> 'au-en'.
-
-    The halves are resolved separately and for different reasons. **Where** comes from location words:
-    a fact about the subject. **What language** comes from the query's own function words: a fact about
-    who is asking. An English question about France wants French sources and English pages, so it
-    resolves to `fr-en` rather than `fr-fr` — resolving the two together is how a locale guesser starts
-    returning pages its caller cannot read.
-
-    A country's own language is the last resort, consulted only when the query gave no signal at all,
-    which is what sends an untranslated German question to `at-de`.
-    """
+    "ddgs `country-lang` from `q`, or `dflt` when auto has nothing to say."
     dc, _, dl = (dflt or 'us-en').partition('-')
     c, lang = infer_country(q), infer_language(q)
     return f'{c or dc}-{lang or (COUNTRY_LANG.get(c, "en") if c else dl or "en")}'
@@ -420,13 +402,7 @@ def _ld_nodes(html:str):
     return out
 
 def page_date(page) -> str:
-    """When a page says it was published, as `YYYY-MM-DD` — or None when it does not say.
-
-    Three sources, in the order they can be trusted: schema.org JSON-LD, the publication `<meta>`
-    tags, and finally a `/2024/03/` in the url. Undated is left undated rather than guessed, because
-    a wrong date is worse than none: a price or a regulation you cannot place in time is a fact you
-    cannot use, and `research()` puts this on every source so the reader can tell.
-    """
+    "Publication date from JSON-LD / meta / URL path, or None."
     # Duck-typed like `core._blocked`, not via `core._html`: that one returns None for anything
     # that isn't a scrapling Response, and a page here can be any object carrying markup.
     html = page if isinstance(page, str) else (getattr(page, 'html', None) or getattr(page, 'html_content', '') or '')
