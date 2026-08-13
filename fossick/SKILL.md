@@ -78,7 +78,8 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `search(q)` | `category`, `max_results`, `region`, `timelimit`, `backend` | list[dict] (`title, href, body`) |
 | `images(q)` / `news(q)` / `videos(q)` / `books(q)` | `max_results`, `region` | list[dict] (ddgs-native fields) |
 | `google(q)` | `n`, `lang`, `region`, `timelimit` | list[dict] (`title, href, content`; stealth browser) |
-| `infer_region(q)` | `dflt` | str (ddgs region a query names, e.g. `'au-en'`) |
+| `infer_region(q)` | `dflt` | str (`country-lang`, e.g. `'au-en'`; resolves the halves separately) |
+| `infer_country(q)` / `infer_language(q)` | — | str\|None — both abstain rather than guess |
 | `page_date(page)` | — | str\|None (`YYYY-MM-DD` the page says it was published) |
 | `extract(url)` | — | list[dict] (page content via ddgs) |
 | `lookup_doi(title)` | — | str\|None |
