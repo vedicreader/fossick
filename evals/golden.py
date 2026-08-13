@@ -59,7 +59,7 @@ except Exception as e:                                    # pragma: no cover - e
 FIXTURES = Path(__file__).parent / 'fixtures' / 'golden.json'
 BODY_CHARS = 300           # keep recorded fixtures reviewable by a person
 CHECKS = ('region', 'intent', 'top_domain_any_of', 'must_include_domains', 'blocked_domains',
-          'required_terms', 'min_results', 'min_domains', 'max_domain_share', 'max_dup_urls', 'min_near_dups', 'plan_min', 'plan_covers')
+          'required_terms', 'min_results', 'min_domains', 'max_domain_share', 'max_dup_urls', 'min_near_dups', 'plan_min', 'plan_covers', 'min_sources', 'max_sources')
 
 
 def validate(fx: dict) -> list:
@@ -120,6 +120,10 @@ def evaluate(fx: dict) -> dict:
         fail.append(f'duplicate urls: want <={m}, got {div["dup_urls"]}')
     if (m := exp.get('min_near_dups')) is not None and div['near_dups'] < m:
         fail.append(f'near-duplicate pairs: want >={m}, got {div["near_dups"]} (syndication undetected)')
+    if (m := exp.get('min_sources')) is not None and div['sources'] < m:
+        fail.append(f'independent sources: want >={m}, got {div["sources"]}')
+    if (m := exp.get('max_sources')) is not None and div['sources'] > m:
+        fail.append(f'independent sources: want <={m}, got {div["sources"]} (syndication not clustered)')
 
     return dict(id=fx['id'], category=fx.get('category'), query=q,
                 status='fail' if fail else 'ok', failures=fail, skipped=skip,
@@ -194,7 +198,9 @@ def main() -> int:
         if a.verbose:
             if len(r['plan']) > 1: print(f'       plan:  {" | ".join(r["plan"][1:])}')
             print(f'       order: {" > ".join(r["order"])}')
-            print(f'       dropped={r["dropped"]} demoted={r["demoted"]} diversity={r["diversity"]["score"]}')
+            print(f'       dropped={r["dropped"]} demoted={r["demoted"]} '
+                  f'urls={r["diversity"]["n"]} sources={r["diversity"]["sources"]} '
+                  f'diversity={r["diversity"]["score"]}')
     bad = [r for r in rows if r['status'] != 'ok']
     skipped = sum(len(r['skipped']) for r in rows)
     print(f'\n{len(rows)-len(bad)}/{len(rows)} pass' + (f' ({skipped} checks skipped)' if skipped else ''))

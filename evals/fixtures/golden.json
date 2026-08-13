@@ -64,7 +64,8 @@
         "regulation",
         "cheap",
         "material"
-      ]
+      ],
+      "min_sources": 6
     }
   },
   {
@@ -159,7 +160,8 @@
         "return_exceptions"
       ],
       "min_results": 2,
-      "max_dup_urls": 0
+      "max_dup_urls": 0,
+      "min_sources": 2
     }
   },
   {
@@ -319,7 +321,7 @@
     "id": "syndicated-duplicates",
     "category": "duplication",
     "query": "OpenAI announces new model pricing",
-    "notes": "Five results, one story. Nothing here is dropped — a rewrite of a press release is still corroboration — but the report has to say that the page holds fewer sources than it holds urls.",
+    "notes": "Five results, one story. Nothing here is dropped -- a rewrite of a press release is still corroboration -- but the report has to say the page holds fewer sources than it holds urls, which takes transitive clustering rather than pairwise counting.",
     "hits": [
       {
         "title": "OpenAI announces new model pricing",
@@ -346,7 +348,8 @@
       "min_results": 4,
       "min_domains": 4,
       "max_dup_urls": 0,
-      "min_near_dups": 3
+      "min_near_dups": 3,
+      "max_sources": 2
     }
   }
 ]

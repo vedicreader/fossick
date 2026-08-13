@@ -89,7 +89,9 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `interleave(lists)` | `key` | list — round-robin across per-facet lists (coverage, not consensus) |
 | `curate(q, hits)` | `intent`, `max_per_domain`, `rerank` | (hits, report) — spam dropped, authority-ranked, diversity described |
 | `registrable_domain(url)` / `host(url)` | — | str (site behind a url) |
-| `diversity(hits)` | `threshold` | dict (`score, domains, dominant_domain, dup_urls, near_dups`) |
+| `cluster_sources(hits)` | `threshold` | list[dict] — syndicated copies grouped into source families |
+| `independence(hits)` | `threshold` | dict (`n, sources, clusters, method, confidence, limitations`) |
+| `diversity(hits)` | `threshold` | dict (`score, domains, dominant_domain, dup_urls, near_dups, sources`) |
 | `research(q)` | `n`, `engine` ('search'\|'google'), `region`, `timelimit`, `curated`, `intent`, `facets`, `rewrite`, `sel`, `chars` | dict (`query, sources, digest, dropped, region, curation, plan`); each source has `date`, `queries` |
 | `check_url(url)` | `allow_private` | url, or raises `BlockedURL` for private/loopback/metadata targets |
 | `to_md(page)` | `sel`, `multi`, `wrap_tag` | str |

@@ -7,8 +7,8 @@ Docs: https://vedicreader.github.io/fossick/quality.html.md"""
 # %% auto #0
 __all__ = ['MULTI_LABEL_SUFFIXES', 'DOMAIN_RULES', 'INTENT_CUES', 'SPAM_MIRRORS', 'LEAD_INS', 'FILLER', 'host',
            'registrable_domain', 'norm_url', 'domain_matches', 'blocked_matches', 'classify', 'site_domains',
-           'drop_spam', 'facets', 'plan', 'interleave', 'authority_rerank', 'cap_per_domain', 'snippet_similarity',
-           'diversity', 'curate']
+           'drop_spam', 'facets', 'plan', 'interleave', 'authority_rerank', 'cap_per_domain', 'shingles', 'jaccard',
+           'cluster_sources', 'independence', 'snippet_similarity', 'diversity', 'curate']
 
 # %% ../nbs/06_quality.ipynb #b57cdbf4
 import math, re
@@ -361,6 +361,96 @@ def cap_per_domain(hits:list, max_per:int=2) -> tuple:
         seen[d] += 1; head.append(h)
     return head + tail, len(tail)
 
+# %% ../nbs/06_quality.ipynb #b9ff2545
+def shingles(text:str, n:int=3) -> set:
+    "Word n-grams of `text`. Fewer than `n` words has no evidence and yields nothing, never a match."
+    w = _WORD.findall((text or '').casefold())
+    return {tuple(w[i:i+n]) for i in range(len(w) - n + 1)} if len(w) >= n else set()
+
+def jaccard(a:set, b:set) -> float:
+    "|a ∩ b| / |a ∪ b|, and 0.0 when either side is empty — absence of evidence is not similarity."
+    return len(a & b) / len(a | b) if a and b else 0.0
+
+def _union_find(n:int):
+    "Iterative find with path compression: a result page is small, but recursion here buys nothing."
+    parent = list(range(n))
+    def find(i):
+        root = i
+        while parent[root] != root: root = parent[root]
+        while parent[i] != root: parent[i], i = root, parent[i]
+        return root
+    def union(i, j):
+        ri, rj = find(i), find(j)
+        if ri != rj: parent[max(ri, rj)] = min(ri, rj)      # keep the earliest index as the root
+    return find, union
+
+def cluster_sources(hits:list,             # search hits or research sources
+                    threshold:float=0.6,   # trigram Jaccard above which two texts are one story
+                   ) -> list:
+    """Group results that are the same story into source families. Returns a list of clusters.
+
+    Two signals, unioned transitively: the same canonical url, and text similar above `threshold`.
+    Transitivity is the point — A~B and B~C makes one family even where A and C alone fall short,
+    which is what a chain of rewrites of one press release looks like.
+
+    Each cluster is represented by its first member in input order. After `curate` that is the
+    highest-authority member, so a family is named by the original rather than by a copy of it.
+    """
+    return _analyse(hits, threshold)[0]
+
+def _analyse(hits:list, threshold:float) -> tuple:
+    """The one pairwise pass behind both `cluster_sources` and `diversity`. Returns `(clusters, near)`.
+
+    Shingles are built once per hit rather than once per comparison, and the two callers share the
+    single O(n²) sweep: computing them inside the loop made a 60-result page cost 59ms to describe.
+    """
+    hits = [h for h in hits if isinstance(h, dict)]
+    n = len(hits)
+    if not n: return [], 0
+    find, union = _union_find(n)
+    keys = [norm_url(_url(h)) for h in hits]
+    sigs = [shingles(_text(h)) for h in hits]
+    near = 0
+    for i in range(n):
+        for j in range(i):
+            same = bool(keys[i]) and keys[i] == keys[j]
+            alike = jaccard(sigs[i], sigs[j]) >= threshold
+            near += alike
+            if same or alike: union(i, j)
+    groups = {}
+    for i in range(n): groups.setdefault(find(i), []).append(i)
+    clusters = [dict(canonical=_url(hits[g[0]]), title=hits[g[0]].get('title') or '',
+                     members=[_url(hits[i]) for i in g], size=len(g),
+                     domains=sorted({d for i in g if (d := registrable_domain(_url(hits[i])))}))
+                for g in (groups[k] for k in sorted(groups))]
+    return clusters, near
+
+def independence(hits:list, threshold:float=0.6) -> dict:
+    """How many *sources* a result set holds, as opposed to how many urls.
+
+    `sources` is the number a reader needs: four rewrites of one wire story are one source, and
+    treating their agreement as corroboration is the mistake this exists to prevent.
+
+    `method` and `limitations` are part of the answer, not decoration. With too little text to compare,
+    this degrades to url-identity only and says so rather than reporting a confident 1.0.
+    """
+    hits = [h for h in hits if isinstance(h, dict)]
+    n = len(hits)
+    if not n:
+        return dict(n=0, sources=0, score=0.0, clusters=[], method='none', confidence='low',
+                    limitations=[])
+    cl = _analyse(hits, threshold)[0]
+    textual = sum(1 for h in hits if shingles(_text(h))) >= 2
+    fams = {d for c in cl for d in c['domains']}
+    return dict(
+        n=n, sources=len(cl), clusters=cl,
+        score=round(0.7 * len(cl) / n + 0.3 * (len(fams) / n if fams else 0.0), 4),
+        method='url+text' if textual else 'url',
+        confidence='medium' if textual and n > 1 else 'low',
+        limitations=['two sites reporting one press release in their own words are not detectable '
+                     'by text overlap'] + ([] if textual else
+                     ['too little text to compare: only identical urls were clustered']))
+
 # %% ../nbs/06_quality.ipynb #cd5f778f
 _WORD = re.compile(r'[^\W_]+', re.UNICODE)
 
@@ -386,21 +476,22 @@ def diversity(hits:list, threshold:float=0.6) -> dict:
     """
     hits = [h for h in hits if isinstance(h, dict)]
     n = len(hits)
-    if not n: return dict(score=0.0, n=0, domains=0, dominant_domain=None, dup_urls=0, near_dups=0)
+    if not n: return dict(score=0.0, n=0, domains=0, dominant_domain=None, dup_urls=0,
+                          near_dups=0, sources=0)
     doms = Counter(d for d in (registrable_domain(_url(h)) for h in hits) if d)
     seen, dup_urls = set(), 0
     for h in hits:
         k = norm_url(_url(h))
         if k in seen: dup_urls += 1
         elif k: seen.add(k)
-    txt = [_text(h) for h in hits]
+    clusters, near = _analyse(hits, threshold)
     pairs = n * (n - 1) // 2
-    near = sum(1 for i in range(n) for j in range(i) if snippet_similarity(txt[j], txt[i]) >= threshold)
     dom_div, url_uniq = (len(doms) / n), 1.0 - dup_urls / n
     content = 1.0 if not pairs else 1.0 - near / pairs
     top = doms.most_common(1)[0] if doms else None
     return dict(score=round(0.5*dom_div + 0.3*max(0., url_uniq) + 0.2*max(0., content), 4),
                 n=n, domains=len(doms), dup_urls=dup_urls, near_dups=near,
+                sources=len(clusters),
                 dominant_domain=dict(domain=top[0], share=round(top[1]/n, 4)) if top else None)
 
 # %% ../nbs/06_quality.ipynb #2026423d
