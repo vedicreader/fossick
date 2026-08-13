@@ -19,7 +19,7 @@ from fastcore.parallel import parallel
 from scrapling import Selector
 from ddgs import DDGS
 from .core import to_md, fetch, fossick_cache, _blocked, search_yt
-from .quality import norm_url, curate as _curate, host
+from .quality import norm_url, curate as _curate, host, plan as _plan, interleave
 
 # %% ../nbs/02_search.ipynb #7cf01c5d
 _warned = set()
@@ -517,6 +517,8 @@ def research(q:str,                 # search query
              timelimit:str=None,    # d | w | m | y — only sources from the last day/week/month/year
              curated:bool=True,     # drop mirror domains and rank by source authority before reading
              intent:str='auto',     # authority class ('policy', 'docs', …), 'auto' to read it off `q`
+             facets:int=4,          # searches to fan out over when `q` holds more than one question; 1 disables
+             rewrite=None,          # optional `f(q) -> list[str]` (a model) in place of the heuristic planner
              focused:bool=True,     # keep query-relevant passages instead of the first `chars` chars
              candidates:int=None,   # how many hits to draw on when backfilling (default 3n)
              pages:int=1,           # result pages per backend (raise it when `candidates` exceeds one page)
@@ -525,11 +527,19 @@ def research(q:str,                 # search query
             ) -> dict:
     "Query -> read the top `n` *readable* results -> a cited markdown corpus. Returns {query, sources, digest, dropped, region, curation}."
     if not (q and q.strip()):
-        return dict(query=q, sources=[], digest='', dropped=[], region=_region(q, region), curation=None)
+        return dict(query=q, sources=[], digest='', dropped=[], region=_region(q, region),
+                    curation=None, plan=[])
     cand = candidates or max(3*n, n+5)
     region = _region(q, region)
-    hits = (google(q, n=cand, region=region, timelimit=timelimit) if engine == 'google'
-            else search(q, n=cand, region=region, timelimit=timelimit, pages=pages))
+    qs = _plan(q, max_queries=facets, rewrite=rewrite)
+    def _hits(sq):
+        got = (google(sq, n=cand, region=region, timelimit=timelimit) if engine == 'google'
+               else search(sq, n=cand, region=region, timelimit=timelimit, pages=pages))
+        return [dict(h, queries=[sq]) for h in got]
+    # Interleaved, not fused. RRF across facets would promote whatever ranks for all three, which is
+    # the generalist guide rather than the source that actually owns one of them.
+    hits = _hits(qs[0]) if len(qs) < 2 else interleave(
+        list(parallel(_hits, qs, n_workers=len(qs), threadpool=True)))
     # Curate before fetching, not after: `research` reads the candidates in order, so the ordering
     # *is* the choice of which pages get read. Filtering afterwards would have paid for them first.
     hits, curation = _curate(q, hits, intent=intent) if curated else (hits, None)
@@ -550,14 +560,19 @@ def research(q:str,                 # search query
             if len(md.strip()) < _MIN_CHARS:
                 dropped.append(dict(title=title, href=u, reason=_why(pg))); continue
             sources.append(dict(title=title, href=u, tier=getattr(pg, 'tier', 'plain'),
-                                date=page_date(pg),
+                                date=page_date(pg), queries=h.get('queries') or [q],
                                 md=focus(md, q, chars) if focused else md[:chars]))
     sources = sources[:n]
     # The date goes in the digest, not just the dict: the model reading this is the one that has to
     # notice the price it is quoting was published in 2018.
-    digest = '\n\n---\n\n'.join(
-        f'## {s["title"]}\n{s["href"]}' + (f'\npublished: {s["date"]}' if s['date'] else '') + f'\n\n{s["md"]}'
-        for s in sources)
+    def _head(s):
+        # Which facet a source answers is worth as much as its date: it tells the reader this page is
+        # the cost answer, not the regulation one.
+        bits = [f'## {s["title"]}', s['href']]
+        if s['date']: bits.append(f'published: {s["date"]}')
+        if (qq := [x for x in s['queries'] if x != q]): bits.append(f'answers: {"; ".join(qq)}')
+        return '\n'.join(bits)
+    digest = '\n\n---\n\n'.join(f'{_head(s)}\n\n{s["md"]}' for s in sources)
     return dict(query=q, sources=sources, digest=digest, dropped=dropped, region=region,
-                curation=curation)
+                curation=curation, plan=qs)
 

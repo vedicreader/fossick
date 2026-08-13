@@ -58,7 +58,13 @@
       "min_results": 7,
       "min_domains": 5,
       "max_domain_share": 0.3,
-      "max_dup_urls": 0
+      "max_dup_urls": 0,
+      "plan_min": 3,
+      "plan_covers": [
+        "regulation",
+        "cheap",
+        "material"
+      ]
     }
   },
   {
@@ -99,7 +105,8 @@
         "legislation.gov.uk"
       ],
       "min_results": 4,
-      "max_dup_urls": 0
+      "max_dup_urls": 0,
+      "plan_min": 1
     }
   },
   {

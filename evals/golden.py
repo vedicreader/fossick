@@ -38,7 +38,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 try:
-    from fossick.quality import classify, curate, diversity, host, registrable_domain
+    from fossick.quality import classify, curate, diversity, host, plan, registrable_domain
 except Exception:
     # `import fossick` pulls the browser stack in through `fossick.search`. `quality` itself is
     # stdlib-only, so load it directly and let a checkout without scrapling still score a ranking.
@@ -46,7 +46,7 @@ except Exception:
     _spec = importlib.util.spec_from_file_location(
         'fossick_quality', Path(__file__).resolve().parents[1] / 'fossick' / 'quality.py')
     _q = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_q)
-    classify, curate, diversity = _q.classify, _q.curate, _q.diversity
+    classify, curate, diversity, plan = _q.classify, _q.curate, _q.diversity, _q.plan
     host, registrable_domain = _q.host, _q.registrable_domain
 
 # `infer_region` does live in `fossick.search`, so the region check is the one thing that needs the
@@ -59,7 +59,7 @@ except Exception as e:                                    # pragma: no cover - e
 FIXTURES = Path(__file__).parent / 'fixtures' / 'golden.json'
 BODY_CHARS = 300           # keep recorded fixtures reviewable by a person
 CHECKS = ('region', 'intent', 'top_domain_any_of', 'must_include_domains', 'blocked_domains',
-          'required_terms', 'min_results', 'min_domains', 'max_domain_share', 'max_dup_urls', 'min_near_dups')
+          'required_terms', 'min_results', 'min_domains', 'max_domain_share', 'max_dup_urls', 'min_near_dups', 'plan_min', 'plan_covers')
 
 
 def validate(fx: dict) -> list:
@@ -93,6 +93,12 @@ def evaluate(fx: dict) -> dict:
     if (want := exp.get('region')) is not None:
         if infer_region is None: skip.append(f'region ({_REGION_ERR})')
         elif (got := infer_region(q)) != want: fail.append(f'region: want {want}, got {got}')
+    sub = plan(q)
+    if (m := exp.get('plan_min')) is not None and len(sub) < m:
+        fail.append(f'plan: want >={m} searches, got {len(sub)} ({sub})')
+    for term in exp.get('plan_covers') or []:
+        if not any(term.lower() in s.lower() for s in sub[1:]):
+            fail.append(f'plan covers nothing about {term!r}: {sub[1:]}')
     if 'intent' in exp and (got := classify(q)) != exp['intent']:
         fail.append(f'intent: want {exp["intent"]}, got {got}')
     if (any_of := exp.get('top_domain_any_of')) and not any(named(w, hosts[:1] + doms[:1]) for w in any_of):
@@ -117,7 +123,7 @@ def evaluate(fx: dict) -> dict:
 
     return dict(id=fx['id'], category=fx.get('category'), query=q,
                 status='fail' if fail else 'ok', failures=fail, skipped=skip,
-                intent=rep['intent'], top=hosts[0] if hosts else None,
+                intent=rep['intent'], plan=sub, top=hosts[0] if hosts else None,
                 order=hosts, dropped=rep['dropped'], demoted=rep['demoted'],
                 diversity=div)
 
@@ -186,6 +192,7 @@ def main() -> int:
         for s in r['skipped']: print(f'       skipped check: {s}')
         for f in r['failures']: print(f'       {f}')
         if a.verbose:
+            if len(r['plan']) > 1: print(f'       plan:  {" | ".join(r["plan"][1:])}')
             print(f'       order: {" > ".join(r["order"])}')
             print(f'       dropped={r["dropped"]} demoted={r["demoted"]} diversity={r["diversity"]["score"]}')
     bad = [r for r in rows if r['status'] != 'ok']
