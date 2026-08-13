@@ -132,7 +132,9 @@ def domain_matches(domain:str, rule:str) -> bool:
     """
     if not domain or not rule: return False
     if rule.endswith('.'): return domain.startswith(rule)
-    if rule.startswith('.'): return domain.endswith(rule)
+    # `.gov.uk` has to match the registry itself as well as everything under it, or the rule
+    # covers every UK government department except gov.uk.
+    if rule.startswith('.'): return domain == rule[1:] or domain.endswith(rule)
     if '/' in rule: return domain == rule.split('/', 1)[0]
     return domain == rule or domain.endswith(f'.{rule}')
 

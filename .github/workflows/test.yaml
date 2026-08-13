@@ -5,3 +5,18 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps: [uses: answerdotai/workflows/nbdev3-ci@master]
+
+  evals:
+    # Offline replay of evals/fixtures/golden.json — no network, no provider quota, deterministic.
+    # It asserts which source wins a ranking, which the nbdev tests cannot see.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # The eval falls back to loading fossick/quality.py directly when the package will not import,
+      # so a failed install degrades it to "region checks skipped" rather than a red build for the
+      # wrong reason. Install anyway, so the region checks actually run.
+      - run: pip install -e . || echo "install failed; region checks will be reported as skipped"
+      - run: python evals/golden.py
