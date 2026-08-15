@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.12
+lxml readability true
+
 ## 0.1.11
 increase search quality results
 
