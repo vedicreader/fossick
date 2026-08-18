@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.13
+pdf2md layout scrambliing fix
+
 ## 0.1.12
 lxml readability true
 

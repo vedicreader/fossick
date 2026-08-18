@@ -7,10 +7,10 @@ Docs: https://vedicreader.github.io/fossick/core.html.md"""
 # %% auto #0
 __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', 'html_title', 'html2md', 'to_md', 'BlockedURL',
            'check_url', 'BrowserUnavailable', 'http_page', 'get_page', 'fetch', 'browser_session', 'crawl',
-           'get_options', 'fetch_all', 'get_pdf', 'read_arxiv', 'lookup_doi', 'clean_md', 'ocr_parse', 'pdf2md',
-           'url2nb', 'pdf2nb', 'gh_clone', 'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr',
-           'json_records', 'paginate_api', 'download_files', 'search_yt', 'read_yt', 'download_yt', 'repo_root',
-           'mv_skill_md']
+           'get_options', 'fetch_all', 'get_pdf', 'read_arxiv', 'lookup_doi', 'clean_md', 'orphan_vals',
+           'scrambled_layout', 'fix_layout', 'ocr_parse', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_clone', 'read_gh_repo',
+           'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records', 'paginate_api',
+           'download_files', 'search_yt', 'read_yt', 'download_yt', 'repo_root', 'mv_skill_md']
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
@@ -530,13 +530,30 @@ def _repl_to_code(code):
 			i += 1
 	return '\n'.join(out).strip()
 
-def clean_md(md):
+def clean_md(md, preserve_layout=False):
 	md = re.sub(r'Press enter or click to view [^\n]+\n?', '', md, flags=re.I)
 	md = re.sub(r'([a-z])-\n([a-z])', r'\1\2', md)
 	md = re.sub(r'([a-z])-\n([A-Z])', r'\1-\2', md)
-	md = re.sub(r'^ +', '', md, flags=re.M)
-	md = re.sub(r' {2,}', ' ', md)
+	if not preserve_layout:                       # indentation and space runs *are* the column alignment
+		md = re.sub(r'^ +', '', md, flags=re.M)
+		md = re.sub(r' {2,}', ' ', md)
 	return re.sub(r'\n{3,}', '\n\n', md)
+
+_orphan_re = re.compile(r'^[\$\-\s]*[\d,]+\.\d{2}\s*$', flags=re.M)
+
+def orphan_vals(md:str) -> int:
+	'Count value-only lines — what a column layout reflowed into stream order leaves behind.'
+	return len(_orphan_re.findall(md))
+
+def scrambled_layout(md:str) -> bool:
+	'True when the text layer is fine but markdown conversion cut values loose from their labels.'
+	return orphan_vals(md) > 0
+
+def fix_layout(pdf:PdfDocument, page:int, md:str, preserve_layout=False) -> str:
+	'Swap a page whose markdown cut values loose from their labels for its plain-text layer.'
+	if not scrambled_layout(md): return md
+	txt = clean_md(pdf.to_plain_text(page, preserve_layout), preserve_layout)
+	return txt if txt.strip() and orphan_vals(txt) < orphan_vals(md) else md
 
 def _text_segs(t): return [c.strip() for c in re.split(r'\n(?=#{1,3} )', t) if c.strip()]
 
@@ -588,11 +605,12 @@ def _md2cells(md):
 	return cells
 
 def ocr_parse(pdf:PdfDocument, # PdfDocument object
+              preserve_layout=False, # keep the column alignment pdf-oxide emitted
               **kw  # extra kwargs passed to LiteParse (e.g. dpi, num_workers, extract_links)
 ) -> str:
 	lp = LiteParse(ocr_enabled=True, dpi=300, num_workers=4, extract_links=True, **kw)
 	md = lp.parse(pdf.to_bytes()).text
-	md = clean_md(md)
+	md = clean_md(md, preserve_layout)
 	return md
 
 @fdelegates(ocr_parse)
@@ -603,18 +621,20 @@ def pdf2md(pdf:PdfDocument,  # PdfDocument object
            ocr_selection:str='auto'  # choosing ocr (auto, off, on). auto uses pdf-oxide's ocr detection
            ) -> str:
 	'PdfDocument to markdown; if OCR is required, uses LiteParse for better formatting'
-	if ocr_selection == 'on': return ocr_parse(pdf)
 	cwd = os.getcwd()
 	out_path = Path(out_path).resolve()
 	try:                                     # restore cwd even when pdf-oxide raises
 		os.chdir(out_path.parent)
 		imdir = Path(out_path.stem) / image_dir
 		Path(imdir).mkdir(exist_ok=True, parents=True)
-		md = clean_md(pdf.to_markdown_all(preserve_layout, include_images=True,
-		                                  embed_images=False, image_output_dir=str(imdir)))
+		kw = dict(include_images=True, embed_images=False, image_output_dir=str(imdir))
+		pages = [fix_layout(pdf, i, clean_md(pdf.to_markdown(i, preserve_layout, **kw), preserve_layout), preserve_layout)
+		         for i in range(int(pdf.page_count))]
 	finally: os.chdir(cwd)
+	md = '\n---\n'.join(pages)
 	if ocr_selection == 'off': return md
-	if '> [OCR REQUIRED' in md.strip(): return ocr_parse(pdf)
+	if ocr_selection == 'on' or '> [OCR REQUIRED' in md.strip():
+		if (ocr := ocr_parse(pdf, preserve_layout)).strip(): return ocr
 	return md
 
 @fdelegates(fetch)
