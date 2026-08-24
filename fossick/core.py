@@ -424,12 +424,24 @@ def get_pdf(url_or_path:str, # URL or local path to PDF
         pth.mk_bytes(src)
     return PdfDocument.from_bytes(src)
 
+# %% ../nbs/00_core.ipynb #jsoncache
+def _json_index(name):
+    """A `diskcache.Index` that stores JSON, not pickle.
+
+    Everything cached here is JSON-able already, and `JSONDisk` keeps a crafted cache file from
+    being unpickled: GHSA-w8v5-vhqr-4h9v, which has no fixed release. The `_json` filenames are new,
+    so a cache written by an older fossick is left alone rather than read in the wrong format.
+    """
+    from diskcache import Cache, Index, JSONDisk
+    # `Index(dir, disk=...)` takes keywords as *items*, so it stores the Disk and pickles anyway.
+    return Index.fromcache(Cache(str(fossick_cache(name)), disk=JSONDisk))
+
+
 # %% ../nbs/00_core.ipynb #da946b97ed964105
 @cache
 def _arxiv_index():
     "Disk cache for arXiv metadata, opened on first use rather than at import."
-    from diskcache import Index
-    return Index(str(fossick_cache('arxiv_cache.db')))
+    return _json_index('arxiv_cache_json.db')
 
 def _fetch_arxiv_meta(arxiv_id:str, **kw):
     "Fetch and parse arxiv metadata for a given ID; result is cached to disk"
@@ -906,8 +918,7 @@ def _ytdl():
 @cache
 def _yt_index():
     "Disk cache for `read_yt`, opened on first use rather than at import."
-    from diskcache import Index
-    return Index(str(fossick_cache('yt_cache.db')))
+    return _json_index('yt_cache_json.db')
 
 def _yt_id(url:str) -> str:
     "Extract 11-char video ID from any YouTube URL or pass through bare ID"
