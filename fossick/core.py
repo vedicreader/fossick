@@ -426,14 +426,8 @@ def get_pdf(url_or_path:str, # URL or local path to PDF
 
 # %% ../nbs/00_core.ipynb #jsoncache
 def _json_index(name):
-    """A `diskcache.Index` that stores JSON, not pickle.
-
-    Everything cached here is JSON-able already, and `JSONDisk` keeps a crafted cache file from
-    being unpickled: GHSA-w8v5-vhqr-4h9v, which has no fixed release. The `_json` filenames are new,
-    so a cache written by an older fossick is left alone rather than read in the wrong format.
-    """
+    "A `diskcache.Index` that stores JSON, not pickle."
     from diskcache import Cache, Index, JSONDisk
-    # `Index(dir, disk=...)` takes keywords as *items*, so it stores the Disk and pickles anyway.
     return Index.fromcache(Cache(str(fossick_cache(name)), disk=JSONDisk))
 
 
