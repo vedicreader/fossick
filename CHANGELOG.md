@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.14
+json cache instead of pickle cache
+
 ## 0.1.13
 pdf2md layout scrambliing fix
 
