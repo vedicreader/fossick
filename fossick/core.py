@@ -10,7 +10,8 @@ __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', '
            'get_options', 'fetch_all', 'get_pdf', 'read_arxiv', 'lookup_doi', 'clean_md', 'orphan_vals',
            'scrambled_layout', 'fix_layout', 'ocr_parse', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_clone', 'read_gh_repo',
            'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records', 'paginate_api',
-           'download_files', 'search_yt', 'read_yt', 'download_yt', 'repo_root', 'mv_skill_md']
+           'download_files', 'search_yt', 'read_yt', 'download_yt', 'what_is', 'md_title', 'pdf_pages', 'read',
+           'repo_root', 'mv_skill_md']
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
@@ -1001,6 +1002,105 @@ def download_yt(url:str, # YouTube URL or video ID
     ext = 'mp3' if format == 'audio' else ('mp4' if format == 'video' else '*')
     candidates = sorted(save_dir.glob(f'{stem}*.{ext}'))
     return candidates[0] if candidates else save_dir / f'{stem}.{ext}'
+
+# %% ../nbs/00_core.ipynb #871d40d06733
+_ARXIV_ID = re.compile(r'\d{4}\.\d{4,5}(?:v\d+)?')
+_GH_URL   = re.compile(r'https?://github\.com/([^/]+)/([^/]+)')
+_GH_BLOB  = re.compile(r'https?://github\.com/([^/]+)/([^/]+)/blob/[^/]+/(.+)')
+_YT_URL   = re.compile(r'youtube\.com|youtu\.be')
+
+def what_is(target:str  # a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a path
+            ) -> str:
+    """Which reader a target names: `dir`, `file`, `arxiv`, `youtube`, `github`, `ghfile`, `pdf`
+    or `web`. Order matters: a path on disk beats a URL, a blob URL beats a repo URL."""
+    if (p := Path(target)).is_dir(): return 'dir'
+    if p.exists(): return 'file'
+    if 'arxiv.org' in target or _ARXIV_ID.fullmatch(target.strip()): return 'arxiv'
+    if _YT_URL.search(target): return 'youtube'
+    if _GH_URL.match(target): return 'ghfile' if '/blob/' in target else 'github'
+    path = urlparse(target).path.rstrip('/').lower()
+    if path.endswith('.pdf') or path.endswith('/pdf'): return 'pdf'
+    if target.startswith('http'): return 'web'
+    raise ValueError(f'not a URL, an arXiv id, a file or a directory: {target}')
+
+# %% ../nbs/00_core.ipynb #a59994053f6e
+def _read(kind:str, source:str, text='', title:str=None, ok:bool=None, skipped:str=None, **meta):
+    'The one shape every reader returns.'
+    return AttrDict(ok=bool(text) if ok is None else ok, kind=kind, title=title or '',
+                    source=source, text=text, skipped=skipped, meta=dict(meta, fetched_at=time.time()))
+
+def md_title(md:str,           # markdown to take a title from
+             fallback:str=''   # what to use when it has no heading and no first line
+             ) -> str:
+    "A document's own title: its first heading, else its first non-empty line, else `fallback`."
+    for ln in (md or '').splitlines():
+        if (t := ln.strip()).startswith('#'): return t.lstrip('# ').strip()[:120]
+    return next((l.strip()[:120] for l in (md or '').splitlines() if l.strip()), fallback)
+
+# %% ../nbs/00_core.ipynb #dc68fa5d1ddd
+def pdf_pages(pdf:PdfDocument,      # an open PDF
+              out_path:str|Path,    # where extracted images go, as `pdf2md` takes it
+              **kw                  # forwarded to `pdf2md`
+              ) -> list:
+    "A PDF as `[(page_no, markdown)]`. `pdf2md` joins these with `---`; a citation needs them apart."
+    md = pdf2md(pdf, out_path, **kw)
+    return list(enumerate(md.split('\n---\n')))
+
+# %% ../nbs/00_core.ipynb #77efa066440f
+def read(target:str,          # a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a local path
+         sel:str=None,        # CSS selector, for the web cases
+         auto:bool=True,      # escalate plain -> heavy -> stealthy -> logged-in Chrome past bot walls
+         pages:bool=False,    # PDFs as `[(page_no, text)]` rather than one string
+         save_dir:str='.',    # where a downloaded PDF is kept
+         force:bool=False,    # ignore whatever the reader has cached
+         **kw                 # forwarded to whichever reader the target names
+         ) -> AttrDict:       # `(ok, kind, title, source, text, skipped, meta)`
+    """Read anything into markdown, by looking at what it is.
+
+    `ok` is False with a reason in `skipped` when the target could not be read: a bot wall, a
+    video with no transcript, a URL that is not a PDF. `dir` and `github` name a tree rather than
+    a document, so they come back with the local path in `meta` and no text."""
+    kind = what_is(target)
+    if kind == 'dir':  return _read('dir', str(target), ok=True, title=Path(target).name,
+                                    skipped='a directory: walk it', path=str(Path(target).resolve()))
+    if kind == 'github':
+        d = gh_clone(target)
+        return _read('github', target, ok=True, title=target.rstrip('/').rsplit('/', 1)[-1],
+                     skipped='a repo: walk the clone', path=str(d))
+    if kind == 'file':
+        txt = Path(target).read_text(errors='replace')
+        return _read('file', str(Path(target).resolve()), txt, md_title(txt, Path(target).name))
+    if kind == 'arxiv':
+        p = read_arxiv(target, save_dir=save_dir, force=force, **kw)
+        txt = f"# {p['title']}\n\n{p.get('summary','')}\n\n{p.get('source') or ''}".strip()
+        return _read('arxiv', p.get('link') or target, txt, p['title'],
+                     authors=list(p.get('authors') or []), published=p.get('published'),
+                     pdf_path=p.get('pdf_path'))
+    if kind == 'youtube':
+        v = read_yt(target, force=force, **kw)
+        if not (v.get('source') or '').strip():
+            return _read('youtube', target, title=v.get('title'), ok=False, skipped='no transcript')
+        txt = f"# {v['title']}\n\n{v.get('description','')}\n\n## Transcript\n\n{v['source']}"
+        return _read('youtube', target, txt, v['title'], channel=v.get('channel'),
+                     duration=v.get('duration'), upload_date=v.get('upload_date'))
+    if kind == 'ghfile':
+        owner, repo, path = _GH_BLOB.match(target).groups()
+        return _read('ghfile', target, read_gh_file(target), Path(path).name,
+                     repo=f'{owner}/{repo}', path=path)
+    if kind == 'pdf':
+        if (doc := get_pdf(target, **kw)) is None:
+            return _read('pdf', target, ok=False, skipped='not a PDF, or could not be fetched')
+        stem = target.rsplit('/', 1)[-1].split('?')[0] or 'pdf'
+        out = Path(save_dir)/stem
+        txt = pdf_pages(doc, out) if pages else pdf2md(doc, out)
+        return _read('pdf', target, txt, stem, ok=bool(txt), url=target)
+    pg = fetch(target, sel=sel, auto=auto, **kw)
+    text, st = (to_md(pg, sel=sel) if pg is not None else ''), getattr(pg, 'status', None)
+    # a failed fetch is None, and a bot wall is a 4xx that still returns a page
+    if not text.strip() or (st or 200) >= 400:
+        return _read('web', target, ok=False, skipped=f'could not read the page (status {st})', status=st)
+    return _read('web', target, text,
+                 md_title(text, urlparse(target).path.rsplit('/', 1)[-1] or target), status=st)
 
 # %% ../nbs/00_core.ipynb #a23a6173
 def repo_root() -> Path:
