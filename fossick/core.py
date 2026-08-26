@@ -1011,8 +1011,7 @@ _YT_URL   = re.compile(r'youtube\.com|youtu\.be')
 
 def what_is(target:str  # a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a path
             ) -> str:
-    """Which reader a target names: `dir`, `file`, `arxiv`, `youtube`, `github`, `ghfile`, `pdf`
-    or `web`. Order matters: a path on disk beats a URL, a blob URL beats a repo URL."""
+    "Return the reader kind for `target`."
     if (p := Path(target)).is_dir(): return 'dir'
     if p.exists(): return 'file'
     if 'arxiv.org' in target or _ARXIV_ID.fullmatch(target.strip()): return 'arxiv'
@@ -1025,14 +1024,14 @@ def what_is(target:str  # a URL, an arXiv id, a YouTube link, a GitHub repo or f
 
 # %% ../nbs/00_core.ipynb #a59994053f6e
 def _read(kind:str, source:str, text='', title:str=None, ok:bool=None, skipped:str=None, **meta):
-    'The one shape every reader returns.'
+    'Build a result with the fields returned by every reader.'
     return AttrDict(ok=bool(text) if ok is None else ok, kind=kind, title=title or '',
                     source=source, text=text, skipped=skipped, meta=dict(meta, fetched_at=time.time()))
 
 def md_title(md:str,           # markdown to take a title from
              fallback:str=''   # what to use when it has no heading and no first line
              ) -> str:
-    "A document's own title: its first heading, else its first non-empty line, else `fallback`."
+    "Return the first heading, first non-empty line, or `fallback`."
     for ln in (md or '').splitlines():
         if (t := ln.strip()).startswith('#'): return t.lstrip('# ').strip()[:120]
     return next((l.strip()[:120] for l in (md or '').splitlines() if l.strip()), fallback)
@@ -1042,7 +1041,7 @@ def pdf_pages(pdf:PdfDocument,      # an open PDF
               out_path:str|Path,    # where extracted images go, as `pdf2md` takes it
               **kw                  # forwarded to `pdf2md`
               ) -> list:
-    "A PDF as `[(page_no, markdown)]`. `pdf2md` joins these with `---`; a citation needs them apart."
+    "Return a PDF as `(page_number, markdown)` pairs."
     md = pdf2md(pdf, out_path, **kw)
     return list(enumerate(md.split('\n---\n')))
 
@@ -1055,11 +1054,10 @@ def read(target:str,          # a URL, an arXiv id, a YouTube link, a GitHub rep
          force:bool=False,    # ignore whatever the reader has cached
          **kw                 # forwarded to whichever reader the target names
          ) -> AttrDict:       # `(ok, kind, title, source, text, skipped, meta)`
-    """Read anything into markdown, by looking at what it is.
+    """Read a supported target and return a common result.
 
-    `ok` is False with a reason in `skipped` when the target could not be read: a bot wall, a
-    video with no transcript, a URL that is not a PDF. `dir` and `github` name a tree rather than
-    a document, so they come back with the local path in `meta` and no text."""
+    Read failures set `ok=False` and give the reason in `skipped`. Directories and GitHub
+    repositories set `meta['path']` and leave `text` empty."""
     kind = what_is(target)
     if kind == 'dir':  return _read('dir', str(target), ok=True, title=Path(target).name,
                                     skipped='a directory: walk it', path=str(Path(target).resolve()))
@@ -1096,7 +1094,6 @@ def read(target:str,          # a URL, an arXiv id, a YouTube link, a GitHub rep
         return _read('pdf', target, txt, stem, ok=bool(txt), url=target)
     pg = fetch(target, sel=sel, auto=auto, **kw)
     text, st = (to_md(pg, sel=sel) if pg is not None else ''), getattr(pg, 'status', None)
-    # a failed fetch is None, and a bot wall is a 4xx that still returns a page
     if not text.strip() or (st or 200) >= 400:
         return _read('web', target, ok=False, skipped=f'could not read the page (status {st})', status=st)
     return _read('web', target, text,
