@@ -2,6 +2,30 @@
 
 <!-- do not remove -->
 
+## Unreleased
+
+**`to_text` reads a page without building markdown.** It runs `resiliparse`, which extracts the main
+content and converts it in one C++ pass: 7x `to_md` on a 315KB article page, 25.1ms against 175.3ms.
+It returns text, so it is for callers that were going to strip the markup anyway. Quality scoring,
+deduplication, and anything headed for an embedder. `html2text_fast` is the same thing on a raw HTML
+string. Both take the `sel`, `multi` and `wrap_tag` arguments `to_md` takes.
+
+**`to_md` no longer returns nothing on a page with no article in it.** `readability` finds no article
+on a link aggregator and returns an empty summary, and `search()` then dropped the source for falling
+under `_MIN_CHARS`. A Hacker News front page converted to 0 characters. It falls back to the whole
+document when the summary comes back under 32 characters, and the same page now yields 4,169. The
+threshold is deliberately small: a short summary `readability` chose is its call to make, and
+`readability=False` is how a caller overrides it.
+
+`to_md` is otherwise unchanged. `mdhtml` was measured as a replacement for the `html2text` half and
+does not fit. MDHTML is an authoring dialect that lowers markdown to HTML. It has no arbitrary-HTML
+entry point, and `mdhtml2md` passes through every tag it does not recognise. On `docs.python.org` it
+returns 313,243 characters holding 13,446 raw HTML tags, against 8,793 clean ones from the current
+pipeline. `readability` is the expensive stage anyway, 173.4ms of the 185ms, and nothing replaces it
+while keeping markdown.
+
+`resiliparse` joins the dependencies.
+
 ## 0.1.15
 fossick single door with read
 

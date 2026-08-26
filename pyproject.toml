@@ -26,6 +26,7 @@ dependencies = [
     "liteparse>=2.1.1",
     "pdf-oxide>=0.3.67",
     "readability-lxml>=0.8.4.1",
+    "resiliparse>=1.0.9",
     "scrapling[fetchers]>=0.4.8",
     "yt-dlp>=2026.3.17",
     "mcp>=1.2.0,<2",
