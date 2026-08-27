@@ -1011,8 +1011,7 @@ _YT_URL   = re.compile(r'youtube\.com|youtu\.be')
 
 def what_is(target:str  # a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a path
             ) -> str:
-    """Which reader a target names: `dir`, `file`, `arxiv`, `youtube`, `github`, `ghfile`, `pdf`
-    or `web`. Order matters: a path on disk beats a URL, a blob URL beats a repo URL."""
+    'Which reader a target names. A path on disk beats a URL, and a blob URL beats a repo URL.'
     if (p := Path(target)).is_dir(): return 'dir'
     if p.exists(): return 'file'
     if 'arxiv.org' in target or _ARXIV_ID.fullmatch(target.strip()): return 'arxiv'
@@ -1057,9 +1056,8 @@ def read(target:str,          # a URL, an arXiv id, a YouTube link, a GitHub rep
          ) -> AttrDict:       # `(ok, kind, title, source, text, skipped, meta)`
     """Read anything into markdown, by looking at what it is.
 
-    `ok` is False with a reason in `skipped` when the target could not be read: a bot wall, a
-    video with no transcript, a URL that is not a PDF. `dir` and `github` name a tree rather than
-    a document, so they come back with the local path in `meta` and no text."""
+    `ok` is False with the reason in `skipped` for a bot wall, a video with no transcript, or a URL
+    that is not a PDF. `dir` and `github` name a tree, so they carry a path in `meta` and no text."""
     kind = what_is(target)
     if kind == 'dir':  return _read('dir', str(target), ok=True, title=Path(target).name,
                                     skipped='a directory: walk it', path=str(Path(target).resolve()))
