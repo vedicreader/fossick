@@ -7,11 +7,11 @@ Docs: https://vedicreader.github.io/fossick/core.html.md"""
 # %% auto #0
 __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', 'html_title', 'html2md', 'to_md', 'BlockedURL',
            'check_url', 'BrowserUnavailable', 'http_page', 'get_page', 'fetch', 'browser_session', 'crawl',
-           'get_options', 'fetch_all', 'get_pdf', 'read_arxiv', 'lookup_doi', 'clean_md', 'orphan_vals',
-           'scrambled_layout', 'fix_layout', 'ocr_parse', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_clone', 'read_gh_repo',
-           'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records', 'paginate_api',
+           'get_options', 'fetch_all', 'get_pdf', 'read_arxiv', 'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_clone',
+           'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records', 'paginate_api',
            'download_files', 'search_yt', 'read_yt', 'download_yt', 'what_is', 'md_title', 'pdf_pages', 'read',
-           'repo_root', 'mv_skill_md']
+           'repo_root', 'mv_skill_md', 'clean_md', 'fix_layout', 'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc',
+           'pdf_md']
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
@@ -379,7 +379,6 @@ def fetch_all(urls:list,           # URLs to fetch
     return parallel(fetch, urls, sel=sel, heavy=heavy, stealthy=stealthy, threadpool=True, n_workers=concurrency, **kw)
 
 # %% ../nbs/00_core.ipynb #a808c2b15c3cec10
-from liteparse import LiteParse
 from pdf_oxide import PdfDocument
 
 # %% ../nbs/00_core.ipynb #80f691ca933d706
@@ -537,112 +536,22 @@ def _repl_to_code(code):
 			i += 1
 	return '\n'.join(out).strip()
 
-def clean_md(md, preserve_layout=False):
-	md = re.sub(r'Press enter or click to view [^\n]+\n?', '', md, flags=re.I)
-	md = re.sub(r'([a-z])-\n([a-z])', r'\1\2', md)
-	md = re.sub(r'([a-z])-\n([A-Z])', r'\1-\2', md)
-	if not preserve_layout:                       # indentation and space runs *are* the column alignment
-		md = re.sub(r'^ +', '', md, flags=re.M)
-		md = re.sub(r' {2,}', ' ', md)
-	return re.sub(r'\n{3,}', '\n\n', md)
 
-_orphan_re = re.compile(r'^[\$\-\s]*[\d,]+\.\d{2}\s*$', flags=re.M)
+from pdflite import clean_md, fix_layout, needs_ocr, ocr_parse, orphan_vals, pdf_doc, pdf_md
 
-def orphan_vals(md:str) -> int:
-	'Count value-only lines — what a column layout reflowed into stream order leaves behind.'
-	return len(_orphan_re.findall(md))
+# re-exported so a caller holding fossick has one import, not two
+_all_ = ['clean_md', 'fix_layout', 'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc', 'pdf_md']
 
-def scrambled_layout(md:str) -> bool:
-	'True when the text layer is fine but markdown conversion cut values loose from their labels.'
-	return orphan_vals(md) > 0
-
-def fix_layout(pdf:PdfDocument, page:int, md:str, preserve_layout=False) -> str:
-	'Swap a page whose markdown cut values loose from their labels for its plain-text layer.'
-	if not scrambled_layout(md): return md
-	txt = clean_md(pdf.to_plain_text(page, preserve_layout), preserve_layout)
-	return txt if txt.strip() and orphan_vals(txt) < orphan_vals(md) else md
-
-def _text_segs(t): return [c.strip() for c in re.split(r'\n(?=#{1,3} )', t) if c.strip()]
-
-def _needs_reindent(code):
-	try: ast.parse(code); return False
-	except IndentationError: return True
-	except SyntaxError: return False
-
-def _restore_py_indent(code):
-	"Re-indent Python that had all indentation stripped (best-effort)"
-	TERM = re.compile(r'^(return|break|continue|pass|raise)\b')
-	END_COLON = re.compile(r':\s*$')
-	ELSE_KW = re.compile(r'^(else|elif\b|except\b|finally)\b')
-	stack, indent, result, pd = [], 0, [], 0
-	for raw in code.split('\n'):
-		s = raw.strip()
-		if not s: result.append(''); continue
-		if pd == 0 and ELSE_KW.match(s):
-			while stack and stack[-1][0] == 'else': stack.pop()
-			if stack: _, indent = stack.pop()
-		result.append('    ' * indent + s)
-		pd += s.count('(') - s.count(')')
-		if pd <= 0:
-			pd = 0
-			if END_COLON.search(s):
-				stack.append(('else' if ELSE_KW.match(s) else 'block', indent)); indent += 1
-			elif TERM.match(s) and stack: indent = stack[-1][1]
-	return '\n'.join(result)
-
-def _md2cells(md):
-	'Split markdown into cells; [code]...[/code] blocks become code cells, REPL sessions and pure output handled'
-	code_re = re.compile(r'\[code\]\n\n(.*?)\n\[/code\]', re.DOTALL)
-	segments, last_end = [], 0
-	for m in code_re.finditer(md):
-		text = md[last_end:m.start()].strip()
-		if text: segments += [('markdown', s) for s in _text_segs(text)]
-		code = re.sub(r'^    ', '', m.group(1), flags=re.MULTILINE).strip()
-		if code:
-			if _is_repl(code): segments += [('code', _repl_to_code(code))]
-			elif _OUTPUT_ONLY.match(code) and not _PY_LIKE.search(code):
-				segments += [('markdown', f'```\n{code}\n```')]
-			else: segments += [('code', _restore_py_indent(code) if _needs_reindent(code) else code)]
-		last_end = m.end()
-	if text := md[last_end:].strip(): segments += [('markdown', s) for s in _text_segs(text)]
-	cells = []
-	for i, (kind, content) in enumerate(segments):
-		if kind == 'code': cells.append(mk_cell(content, 'code'))
-		else: cells.append(mk_cell(content, 'markdown'))
-	return cells
-
-def ocr_parse(pdf:PdfDocument, # PdfDocument object
-              preserve_layout=False, # keep the column alignment pdf-oxide emitted
-              **kw  # extra kwargs passed to LiteParse (e.g. dpi, num_workers, extract_links)
+@fdelegates(pdf_md)
+def pdf2md(pdf,                    # a PdfDocument, path, bytes or URL
+           out_path:str|Path,      # notebook path; images go under its stem
+           image_dir:str='images',
+           **kw                    # forwarded to pdflite.pdf_md
 ) -> str:
-	lp = LiteParse(ocr_enabled=True, dpi=300, num_workers=4, extract_links=True, **kw)
-	md = lp.parse(pdf.to_bytes()).text
-	md = clean_md(md, preserve_layout)
-	return md
+    'A PDF as one markdown string, pages joined by `---`.'
+    out_path = Path(out_path).resolve()
+    return pdf_md(pdf, out_path.parent/out_path.stem, image_dir=image_dir, **kw)
 
-@fdelegates(ocr_parse)
-def pdf2md(pdf:PdfDocument,  # PdfDocument object
-           out_path:str|Path,  # Path to notebook file (used to determine image output dir)
-           image_dir='images',  # subdir for extracted images
-           preserve_layout=False,  # preserrve layout in pdf-oxide
-           ocr_selection:str='auto'  # choosing ocr (auto, off, on). auto uses pdf-oxide's ocr detection
-           ) -> str:
-	'PdfDocument to markdown; if OCR is required, uses LiteParse for better formatting'
-	cwd = os.getcwd()
-	out_path = Path(out_path).resolve()
-	try:                                     # restore cwd even when pdf-oxide raises
-		os.chdir(out_path.parent)
-		imdir = Path(out_path.stem) / image_dir
-		Path(imdir).mkdir(exist_ok=True, parents=True)
-		kw = dict(include_images=True, embed_images=False, image_output_dir=str(imdir))
-		pages = [fix_layout(pdf, i, clean_md(pdf.to_markdown(i, preserve_layout, **kw), preserve_layout), preserve_layout)
-		         for i in range(int(pdf.page_count))]
-	finally: os.chdir(cwd)
-	md = '\n---\n'.join(pages)
-	if ocr_selection == 'off': return md
-	if ocr_selection == 'on' or '> [OCR REQUIRED' in md.strip():
-		if (ocr := ocr_parse(pdf, preserve_layout)).strip(): return ocr
-	return md
 
 @fdelegates(fetch)
 def url2nb(url, # URL to convert (PDF, arxiv, or HTML page)

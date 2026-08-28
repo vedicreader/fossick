@@ -17,7 +17,6 @@ from urllib.parse import quote_plus, urlsplit, urlunsplit, parse_qsl, urlencode
 from fastcore.all import first, bind, ifnone
 from fastcore.parallel import parallel
 from scrapling import Selector
-from ddgs import DDGS
 from .core import to_md, fetch, fossick_cache, _blocked, search_yt
 from .quality import norm_url, curate as _curate, host, plan as _plan, interleave
 
