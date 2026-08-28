@@ -966,11 +966,6 @@ dependencies = [
     { name = "yt-dlp" },
 ]
 
-[package.optional-dependencies]
-rerank = [
-    { name = "flashrank" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "certifi" },
@@ -990,7 +985,6 @@ requires-dist = [
     { name = "diskcache", specifier = ">=5.6.3" },
     { name = "fastcdp", specifier = ">=0.0.5" },
     { name = "fastcore", specifier = ">=1.12.31" },
-    { name = "flashrank", marker = "extra == 'rerank'", specifier = ">=0.2.10" },
     { name = "html2text", specifier = ">=2025.4.15" },
     { name = "liteparse", specifier = ">=2.1.1" },
     { name = "mcp", specifier = ">=1.2.0,<2" },
@@ -999,7 +993,6 @@ requires-dist = [
     { name = "scrapling", extras = ["fetchers"], specifier = ">=0.4.8" },
     { name = "yt-dlp", specifier = ">=2026.3.17" },
 ]
-provides-extras = ["rerank"]
 
 [package.metadata.requires-dev]
 dev = [
