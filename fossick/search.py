@@ -163,7 +163,7 @@ def rerank(q:str,               # search query
             if method == 'flashrank': raise
             rs = None                                      # 'auto' degrades to lexical, never to nothing
     if rs is None:
-        if method == 'flashrank': raise ImportError('flashrank is not installed: pip install fossick[rerank]')
+        if method == 'flashrank': raise ImportError('flashrank is not installed: pip install flashrank')
         rs = bm25(q, texts)
     ret = _unit([h.get('score', 0.0) for h in hits])
     rel = _unit(rs)
