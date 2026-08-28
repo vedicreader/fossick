@@ -66,9 +66,7 @@ fossick = { workspace = true }
 dev = [
     "certifi>=2026.7.22",
     "flashrank>=0.2.10",       # `method='flashrank'`, imported on use
-    "fossick",
     "ipykernel>=7.3.0",
-    "koshas>=0.0.9",
     "nbdev>=3.0.12",
     "notebook>=7.5.5",
 ]
