@@ -38,7 +38,10 @@ def ddgs_env() -> dict:
 _ddgs = None
 def get_ddgs(timeout:int=10):
 	global _ddgs
-	if _ddgs is None: _ddgs = DDGS(timeout=timeout, **ddgs_env())
+	if _ddgs is None:
+		try: from ddgs import DDGS
+		except ImportError as e: raise ImportError('web search needs ddgs: pip install ddgs') from e
+		_ddgs = DDGS(timeout=timeout, **ddgs_env())
 	return _ddgs
 
 # %% ../nbs/02_search.ipynb #921db403a2b19be1
