@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="metasearch, fuse, rerank, and research">
+
+<title>search – fossick</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-d63a2c9c8df14b07662b36303925c8cc.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="search – fossick">
+<meta property="og:description" content="metasearch, fuse, rerank, and research">
+<meta property="og:site_name" content="fossick">
+<meta name="twitter:title" content="search – fossick">
+<meta name="twitter:description" content="metasearch, fuse, rerank, and research">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fossick</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./search.html">search</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fossick</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cdp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">cdp</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./search.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">search</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">cli</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./mcp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">mcp</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./shop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">shop</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./quality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">quality</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#client" id="toc-client" class="nav-link active" data-scroll-target="#client">Client</a></li>
+  <li><a href="#backends" id="toc-backends" class="nav-link" data-scroll-target="#backends">Backends</a></li>
+  <li><a href="#fuse" id="toc-fuse" class="nav-link" data-scroll-target="#fuse">Fuse</a></li>
+  <li><a href="#rerank" id="toc-rerank" class="nav-link" data-scroll-target="#rerank">Rerank</a></li>
+  <li><a href="#where-when" id="toc-where-when" class="nav-link" data-scroll-target="#where-when">Where &amp; when</a></li>
+  <li><a href="#search" id="toc-search" class="nav-link" data-scroll-target="#search"><code>search</code></a></li>
+  <li><a href="#google" id="toc-google" class="nav-link" data-scroll-target="#google"><code>google</code></a></li>
+  <li><a href="#research" id="toc-research" class="nav-link" data-scroll-target="#research"><code>research</code></a></li>
+  <li><a href="#tests" id="toc-tests" class="nav-link" data-scroll-target="#tests">Tests</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="search.html.md"><i class="bi bi-file-code"></i>Markdown</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">search</h1>
+</div>
+
+<div>
+  <div class="description">
+    metasearch, fuse, rerank, and research
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>Parallel backends via <a href="https://github.com/deedy5/ddgs">ddgs</a>, fused with RRF, then BM25 (or flashrank). <a href="https://vedicreader.github.io/fossick/search.html#google"><code>google()</code></a> uses a stealth browser for real Google ranking. <a href="https://vedicreader.github.io/fossick/cli.html#research"><code>research()</code></a> searches, reads, and returns a cited digest.</p>
+<section id="client" class="level2">
+<h2 class="anchored" data-anchor-id="client">Client</h2>
+<p>One shared <code>DDGS</code> with TTL cache. Env vars from <a href="https://vedicreader.github.io/fossick/search.html#ddgs_env"><code>ddgs_env()</code></a> cover SSL/proxy.</p>
+<div id="c0b5bf86" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:13.834828+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.050142+00:00&quot;,&quot;total&quot;:0.21531978699999854}}" data-execution_count="3">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L39" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="get_ddgs" class="level3">
+<h3 class="anchored" data-anchor-id="get_ddgs">get_ddgs</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_ddgs(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    timeout:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Call self as a function.</em></p>
+</section>
+</div>
+<div id="1b7f669b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.050320+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.054841+00:00&quot;,&quot;total&quot;:0.004523756000011758}}" data-execution_count="4">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L32" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="ddgs_env" class="level3">
+<h3 class="anchored" data-anchor-id="ddgs_env">ddgs_env</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ddgs_env()<span class="op">-&gt;</span><span class="bu">dict</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Proxy + CA settings for ddgs, read from the environment (<code>HTTPS_PROXY</code>, <code>SSL_CERT_FILE</code>, …).</em></p>
+</section>
+</div>
+</section>
+<section id="backends" class="level2">
+<h2 class="anchored" data-anchor-id="backends">Backends</h2>
+<p>Each backend keeps its own rank order. We do not use ddgs’ aggregator (random backends + Wikipedia bias).</p>
+<div id="21fa0b0b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.060140+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.064065+00:00&quot;,&quot;total&quot;:0.003928905000009308}}" data-execution_count="6">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L50" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="backends-1" class="level3">
+<h3 class="anchored" data-anchor-id="backends-1">backends</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> backends(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    category:<span class="bu">str</span><span class="op">=</span><span class="st">'text'</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Every ddgs backend available for <code>category</code>.</em></p>
+</section>
+</div>
+</section>
+<section id="fuse" class="level2">
+<h2 class="anchored" data-anchor-id="fuse">Fuse</h2>
+<p>RRF over per-backend ranks; <a href="https://vedicreader.github.io/fossick/quality.html#norm_url"><code>norm_url</code></a> dedups. <code>engines</code> lists which backends hit.</p>
+<div id="9a5e7dbb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.067122+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.072666+00:00&quot;,&quot;total&quot;:0.005547905000000242}}" data-execution_count="8">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L88" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="rrf" class="level3">
+<h3 class="anchored" data-anchor-id="rrf">rrf</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rrf(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    lists:<span class="bu">list</span>, <span class="co"># ranked result lists, one per backend</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    k:<span class="bu">int</span><span class="op">=</span><span class="dv">60</span>, <span class="co"># RRF damping constant</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Reciprocal rank fusion: score each url as <code>sum 1/(k+rank)</code> across the lists it appears in.</em></p>
+</section>
+</div>
+</section>
+<section id="rerank" class="level2">
+<h2 class="anchored" data-anchor-id="rerank">Rerank</h2>
+<p><code>method='lexical'</code> (BM25), <code>'flashrank'</code>, <code>'auto'</code>, or <code>'none'</code> (fused list as-is).</p>
+<div id="beccac00" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.081813+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.087463+00:00&quot;,&quot;total&quot;:0.005653891999997995}}" data-execution_count="10">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L153" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="rerank-1" class="level3">
+<h3 class="anchored" data-anchor-id="rerank-1">rerank</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rerank(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, <span class="co"># search query</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    hits:<span class="bu">list</span>, <span class="co"># fused hits (from `rrf`) or any list of result dicts</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    n:<span class="bu">int</span><span class="op">=</span><span class="va">None</span>, <span class="co"># keep the top n (None = all)</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    method:<span class="bu">str</span><span class="op">=</span><span class="st">'none'</span>, <span class="co"># none | lexical | flashrank | auto</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    mix:<span class="bu">float</span><span class="op">=</span><span class="fl">0.4</span>, <span class="co"># weight on the retrieval score vs the reranker (1 = ignore the reranker)</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Re-order hits by relevance to <code>q</code>, blending the reranker with the retrieval score.</em></p>
+</section>
+</div>
+<div id="0d5c13b9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.087595+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.092576+00:00&quot;,&quot;total&quot;:0.004985049999987723}}" data-execution_count="11">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L134" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="flashrank_scores" class="level3">
+<h3 class="anchored" data-anchor-id="flashrank_scores">flashrank_scores</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> flashrank_scores(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, texts:<span class="bu">list</span>, model:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, cache_dir:<span class="bu">str</span><span class="op">=</span><span class="va">None</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span> <span class="op">|</span> <span class="va">None</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Cross-encoder scores from flashrank, or None when it isn’t installed (<code>pip install flashrank</code>).</em></p>
+</section>
+</div>
+<div id="977a2d2f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.092701+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.098340+00:00&quot;,&quot;total&quot;:0.005642475000001923}}" data-execution_count="12">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L108" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="bm25" class="level3">
+<h3 class="anchored" data-anchor-id="bm25">bm25</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bm25(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, docs:<span class="bu">list</span>, k1:<span class="bu">float</span><span class="op">=</span><span class="fl">1.5</span>, b:<span class="bu">float</span><span class="op">=</span><span class="fl">0.75</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>BM25 scores for <code>docs</code> against <code>q</code>, with idf computed from <code>docs</code> themselves (no index needed).</em></p>
+</section>
+</div>
+</section>
+<section id="where-when" class="level2">
+<h2 class="anchored" data-anchor-id="where-when">Where &amp; when</h2>
+<p><code>region='auto'</code> resolves country from the query and language from the asker separately (<code>fr-en</code> for an English question about France). <code>timelimit='d'|'w'|'m'|'y'</code> restricts recency.</p>
+<div id="eb5bd06a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.109632+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.113787+00:00&quot;,&quot;total&quot;:0.004157844000005184}}" data-execution_count="14">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L255" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="infer_region" class="level3">
+<h3 class="anchored" data-anchor-id="infer_region">infer_region</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> infer_region(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, <span class="co"># the query, read for a place and a language</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    dflt:<span class="bu">str</span><span class="op">=</span><span class="st">'us-en'</span>, <span class="co"># used for whichever half the query does not settle</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>ddgs <code>country-lang</code> from <code>q</code>, or <code>dflt</code> when auto has nothing to say.</em></p>
+</section>
+</div>
+<div id="ae0e666b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.113915+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.118364+00:00&quot;,&quot;total&quot;:0.0044542840000048045}}" data-execution_count="15">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L246" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="infer_language" class="level3">
+<h3 class="anchored" data-anchor-id="infer_language">infer_language</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> infer_language(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Language code from function words in <code>q</code>, or None when unclear/tied.</em></p>
+</section>
+</div>
+<div id="0490fa3e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.118493+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.122609+00:00&quot;,&quot;total&quot;:0.004120419000003039}}" data-execution_count="16">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L240" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="infer_country" class="level3">
+<h3 class="anchored" data-anchor-id="infer_country">infer_country</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> infer_country(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>ISO country from <code>q</code>, or None when none/ambiguous.</em></p>
+</section>
+</div>
+</section>
+<section id="search" class="level2">
+<h2 class="anchored" data-anchor-id="search"><a href="https://vedicreader.github.io/fossick/cli.html#search"><code>search</code></a></h2>
+<p>Fan-out is independent of <code>n</code>. <code>pages&gt;1</code> widens the candidate pool.</p>
+<div id="91ad7699" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.128860+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.132524+00:00&quot;,&quot;total&quot;:0.0036678569999963884}}" data-execution_count="18">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L321" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="extract" class="level3">
+<h3 class="anchored" data-anchor-id="extract">extract</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> extract(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    url, <span class="op">**</span>kw</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Call self as a function.</em></p>
+</section>
+</div>
+<div id="5be7164d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.132657+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.146698+00:00&quot;,&quot;total&quot;:0.014045582999997919}}" data-execution_count="19">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L68" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="search-1" class="level3">
+<h3 class="anchored" data-anchor-id="search-1">search</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, <span class="co"># search query</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    category:<span class="bu">str</span><span class="op">=</span><span class="st">'text'</span>, <span class="co"># text | images | news | videos | books</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    n:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, <span class="co"># number of results to return</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    fuse:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># fan out across backends and fuse with RRF (text only)</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    backend:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># restrict to a single ddgs backend, e.g. 'google'</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    method:<span class="bu">str</span><span class="op">=</span><span class="st">'none'</span>, <span class="co"># rerank method: none | lexical | flashrank | auto</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    pages:<span class="bu">int</span><span class="op">=</span><span class="dv">1</span>, <span class="co"># result pages to pull from each backend (raises the candidate pool)</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    region:<span class="bu">str</span><span class="op">=</span><span class="st">'auto'</span>, <span class="co"># ddgs region, or 'auto' to read the country off the query</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    timelimit:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># d | w | m | y — only results from the last day/week/month/year</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    timeout:<span class="bu">int</span><span class="op">=</span><span class="dv">8</span>, <span class="op">**</span>kw</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>: <span class="co"># extra kwargs passed to ddgs (max_results, safesearch, page)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Search the web. Text results are fused across backends with RRF; pass method=‘lexical’ or ‘flashrank’ to rerank.</em></p>
+</section>
+</div>
+</section>
+<section id="google" class="level2">
+<h2 class="anchored" data-anchor-id="google"><a href="https://vedicreader.github.io/fossick/search.html#google"><code>google</code></a></h2>
+<p>Stealth browser past Google’s JS wall. Same result shape as <a href="https://vedicreader.github.io/fossick/cli.html#search"><code>search</code></a>.</p>
+<div id="ebd30ee3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.152656+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.157768+00:00&quot;,&quot;total&quot;:0.005116184000002022}}" data-execution_count="21">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L357" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="google-1" class="level3">
+<h3 class="anchored" data-anchor-id="google-1">google</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> google(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, <span class="co"># search query</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    n:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, <span class="co"># number of results</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    lang:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># `hl`; defaults to the language half of `region`</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    region:<span class="bu">str</span><span class="op">=</span><span class="st">'auto'</span>, <span class="co"># ddgs-style region, or 'auto' to read the country off the query</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    timelimit:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># d | w | m | y — Google's own `tbs=qdr:` filter</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Search Google directly via a stealth browser (real Google ranking). Returns dicts, same shape as search().</em></p>
+</section>
+</div>
+</section>
+<section id="research" class="level2">
+<h2 class="anchored" data-anchor-id="research"><a href="https://vedicreader.github.io/fossick/cli.html#research"><code>research</code></a></h2>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#plan"><code>plan</code></a> → search each facet → <a href="https://vedicreader.github.io/fossick/quality.html#curate"><code>curate</code></a> → fetch readable pages → cited digest. Bot-wall 200s go to <code>dropped</code> and are backfilled. See <code>06_quality</code> for plan/curate.</p>
+<div id="3296a0e0" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># pagination: ranks run on across pages, and page 2's repeats of page 1 don't get counted twice</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>_seen <span class="op">=</span> []</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _fake(be, q, region<span class="op">=</span><span class="st">'us-en'</span>, page<span class="op">=</span><span class="dv">1</span>, timeout<span class="op">=</span><span class="dv">8</span>, tries<span class="op">=</span><span class="dv">2</span>, <span class="op">**</span>kw):</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    _seen.append((be, page))</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    start <span class="op">=</span> (page<span class="op">-</span><span class="dv">1</span>)<span class="op">*</span><span class="dv">2</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [<span class="bu">dict</span>(title<span class="op">=</span><span class="ss">f'</span><span class="sc">{</span>be<span class="sc">}{</span>i<span class="sc">}</span><span class="ss">'</span>, href<span class="op">=</span><span class="ss">f'https://e.com/</span><span class="sc">{</span>be<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span>, body<span class="op">=</span><span class="st">''</span>, engine<span class="op">=</span>be, rank<span class="op">=</span>i<span class="op">-</span>start<span class="op">+</span><span class="dv">1</span>)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(start, start<span class="op">+</span><span class="dv">3</span>)]        <span class="co"># 3 hits/page, overlapping the next page by one</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>_real, _engine_hits <span class="op">=</span> _engine_hits, _fake</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    one <span class="op">=</span> _backend_lists(<span class="st">'q'</span>, (<span class="st">'brave'</span>,), pages<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    two <span class="op">=</span> _backend_lists(<span class="st">'q'</span>, (<span class="st">'brave'</span>,), pages<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="cf">finally</span>: _engine_hits <span class="op">=</span> _real</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">sorted</span>(_seen) <span class="op">==</span> [(<span class="st">'brave'</span>,<span class="dv">1</span>), (<span class="st">'brave'</span>,<span class="dv">1</span>), (<span class="st">'brave'</span>,<span class="dv">2</span>)], _seen   <span class="co"># one job per (backend, page)</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(one[<span class="dv">0</span>]) <span class="op">==</span> <span class="dv">3</span> <span class="kw">and</span> <span class="bu">len</span>(two[<span class="dv">0</span>]) <span class="op">==</span> <span class="dv">5</span>                             <span class="co"># 3+3 minus the one repeat</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> [h[<span class="st">'rank'</span>] <span class="cf">for</span> h <span class="kw">in</span> two[<span class="dv">0</span>]] <span class="op">==</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]                        <span class="co"># continuous, not 1,2,3,1,2,3</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>({h[<span class="st">'href'</span>] <span class="cf">for</span> h <span class="kw">in</span> two[<span class="dv">0</span>]}) <span class="op">==</span> <span class="dv">5</span>                             <span class="co"># deduped within the backend</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="da3e42ee" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.181223+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.192207+00:00&quot;,&quot;total&quot;:0.010988280999995936}}" data-execution_count="23">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L355" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="research-1" class="level3">
+<h3 class="anchored" data-anchor-id="research-1">research</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> research(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, <span class="co"># search query</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    n:<span class="bu">int</span><span class="op">=</span><span class="dv">5</span>, <span class="co"># number of readable sources to gather</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    engine:<span class="bu">str</span><span class="op">=</span><span class="st">'search'</span>, <span class="co"># 'search' (fused metasearch) or 'google' (stealth browser ranking)</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># CSS selector to narrow each page before markdown</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    chars:<span class="bu">int</span><span class="op">=</span><span class="dv">4000</span>, <span class="co"># max markdown chars kept per page</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    auto:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># auto-escalate fetching (plain-&gt;heavy-&gt;stealthy-&gt;session) per page</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    region:<span class="bu">str</span><span class="op">=</span><span class="st">'auto'</span>, <span class="co"># ddgs region, or 'auto' to read the country off the query</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    timelimit:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># d | w | m | y — only sources from the last day/week/month/year</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    curated:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># drop mirror domains and rank by source authority before reading</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    intent:<span class="bu">str</span><span class="op">=</span><span class="st">'auto'</span>, <span class="co"># authority class ('policy', 'docs', …), 'auto' to read it off `q`</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    facets:<span class="bu">int</span><span class="op">=</span><span class="dv">4</span>, <span class="co"># searches to fan out over when `q` holds more than one question; 1 disables</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    rewrite:NoneType<span class="op">=</span><span class="va">None</span>, <span class="co"># optional `f(q) -&gt; list[str]` (a model) in place of the heuristic planner</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    focused:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># keep query-relevant passages instead of the first `chars` chars</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    candidates:<span class="bu">int</span><span class="op">=</span><span class="va">None</span>, <span class="co"># how many hits to draw on when backfilling (default 3n)</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    pages:<span class="bu">int</span><span class="op">=</span><span class="dv">1</span>, <span class="co"># result pages per backend (raise it when `candidates` exceeds one page)</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    concurrency:<span class="bu">int</span><span class="op">=</span><span class="dv">8</span>, <span class="op">**</span>kw</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">dict</span>: <span class="co"># extra kwargs passed to fetch()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Query -&gt; read the top <code>n</code> </em>readable* results -&gt; a cited markdown corpus. Returns {query, sources, digest, dropped, region, curation}.*</p>
+</section>
+</div>
+<div id="f53df1be" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.192369+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.198828+00:00&quot;,&quot;total&quot;:0.006461649000002012}}" data-execution_count="24">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L453" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="focus" class="level3">
+<h3 class="anchored" data-anchor-id="focus">focus</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> focus(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    md:<span class="bu">str</span>, <span class="co"># page markdown</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, <span class="co"># query to keep relevant to</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    chars:<span class="bu">int</span><span class="op">=</span><span class="dv">4000</span>, <span class="co"># character budget</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    reserve:<span class="bu">float</span><span class="op">=</span><span class="fl">0.3</span>, <span class="co"># fraction of the budget spent on the top of the page before ranking</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    lead:<span class="bu">float</span><span class="op">=</span><span class="fl">0.6</span>, <span class="co"># extra score for blocks near the top (intros define things)</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Keep the parts of <code>md</code> that answer <code>q</code>, in document order, within <code>chars</code>.</em></p>
+</section>
+</div>
+<div id="2e672ad7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.198966+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.202877+00:00&quot;,&quot;total&quot;:0.003914623000000006}}" data-execution_count="25">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L432" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="usable" class="level3">
+<h3 class="anchored" data-anchor-id="usable">usable</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> usable(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    pg, min_chars:<span class="bu">int</span><span class="op">=</span><span class="dv">400</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">bool</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Did this fetch return a readable page, or an error / bot wall / empty JS shell?</em></p>
+</section>
+</div>
+<div id="3ae64612" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-30T04:28:14.203011+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-30T04:28:14.208671+00:00&quot;,&quot;total&quot;:0.005663466000001449}}" data-execution_count="26">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/search.py#L406" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="page_date" class="level3">
+<h3 class="anchored" data-anchor-id="page_date">page_date</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> page_date(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    page</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Publication date from JSON-LD / meta / URL path, or None.</em></p>
+</section>
+</div>
+</section>
+<section id="tests" class="level2">
+<h2 class="anchored" data-anchor-id="tests">Tests</h2>
+<div id="f997359f" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># empty query is a no-op for every entry point (no network)</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> search(<span class="st">''</span>) <span class="op">==</span> []</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> research(<span class="st">''</span>)[<span class="st">'sources'</span>] <span class="op">==</span> []</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> rrf([]) <span class="op">==</span> [] <span class="kw">and</span> rerank(<span class="st">'x'</span>, []) <span class="op">==</span> []</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Google SERP parser works on a static fixture (no browser/network)</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>_serp <span class="op">=</span> (<span class="st">'&lt;html&gt;&lt;body&gt;&lt;div class="MjjYud"&gt;&lt;div class="g"&gt;'</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>         <span class="st">'&lt;a href="https://ex.com/p"&gt;&lt;h3&gt;Example Page&lt;/h3&gt;&lt;/a&gt;'</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>         <span class="st">'&lt;div class="VwiC3b"&gt;A short snippet.&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;'</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>         <span class="st">'&lt;div&gt;&lt;a href="https://www.google.com/aclk"&gt;&lt;h3&gt;Ad&lt;/h3&gt;&lt;/a&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;'</span>)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>_g <span class="op">=</span> _parse_google(_serp, <span class="dv">5</span>)</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(_g) <span class="op">==</span> <span class="dv">1</span>, <span class="ss">f'expected 1 organic result, got </span><span class="sc">{</span><span class="bu">len</span>(_g)<span class="sc">}</span><span class="ss">'</span>   <span class="co"># google.com ad link filtered out</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _g[<span class="dv">0</span>][<span class="st">'href'</span>] <span class="op">==</span> <span class="st">'https://ex.com/p'</span> <span class="kw">and</span> _g[<span class="dv">0</span>][<span class="st">'title'</span>] <span class="op">==</span> <span class="st">'Example Page'</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _g[<span class="dv">0</span>][<span class="st">'content'</span>] <span class="op">==</span> <span class="st">'A short snippet.'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="36213dd4" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># urls that differ only by scheme/www/trailing slash/tracking params are one page</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> norm_url(<span class="st">'https://www.x.com/a/?utm_source=t#frag'</span>) <span class="op">==</span> norm_url(<span class="st">'http://x.com/a'</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> norm_url(<span class="st">'https://x.com/a'</span>) <span class="op">!=</span> norm_url(<span class="st">'https://x.com/b'</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>_g <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://x.com/1'</span>, rank<span class="op">=</span><span class="dv">1</span>, engine<span class="op">=</span><span class="st">'google'</span>), <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://x.com/8'</span>, rank<span class="op">=</span><span class="dv">8</span>, engine<span class="op">=</span><span class="st">'google'</span>)]</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>_b <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://x.com/8'</span>, rank<span class="op">=</span><span class="dv">8</span>, engine<span class="op">=</span><span class="st">'brave'</span>),  <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://x.com/2'</span>, rank<span class="op">=</span><span class="dv">2</span>, engine<span class="op">=</span><span class="st">'brave'</span>)]</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co"># two urls, one backend each: the better-ranked one wins. ddgs ties them and orders by thread completion.</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>_solo <span class="op">=</span> rrf([_g[:<span class="dv">1</span>], _b[<span class="dv">1</span>:]])</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> [h[<span class="st">'href'</span>] <span class="cf">for</span> h <span class="kw">in</span> _solo] <span class="op">==</span> [<span class="st">'https://x.com/1'</span>, <span class="st">'https://x.com/2'</span>], _solo</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co"># agreement across backends still outranks a single strong hit — that part of ddgs' instinct is right</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>_f <span class="op">=</span> rrf([_g, _b])</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _f[<span class="dv">0</span>][<span class="st">'href'</span>] <span class="op">==</span> <span class="st">'https://x.com/8'</span> <span class="kw">and</span> _f[<span class="dv">0</span>][<span class="st">'engines'</span>] <span class="op">==</span> [<span class="st">'google'</span>, <span class="st">'brave'</span>]</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(_f) <span class="op">==</span> <span class="dv">3</span>                                                    <span class="co"># deduped across backends</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="co"># nothing is hoisted by domain: wikipedia earns its place from rank like everything else</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>_w <span class="op">=</span> rrf([[<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://en.wikipedia.org/wiki/Rust'</span>, rank<span class="op">=</span><span class="dv">7</span>, engine<span class="op">=</span><span class="st">'google'</span>),</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>           <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://actix.rs/'</span>, rank<span class="op">=</span><span class="dv">1</span>, engine<span class="op">=</span><span class="st">'google'</span>)]])</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _w[<span class="dv">0</span>][<span class="st">'href'</span>] <span class="op">==</span> <span class="st">'https://actix.rs/'</span>, _w</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="4caa05e9" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># BM25 ranks the doc that actually covers the query terms</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>_docs <span class="op">=</span> [<span class="st">'sqlite wal mode benchmark write ahead log'</span>, <span class="st">'a recipe for banana bread'</span>, <span class="st">'wal mode'</span>]</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>_s <span class="op">=</span> bm25(<span class="st">'sqlite wal mode benchmark'</span>, _docs)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _s[<span class="dv">0</span>] <span class="op">==</span> <span class="bu">max</span>(_s) <span class="kw">and</span> _s[<span class="dv">1</span>] <span class="op">==</span> <span class="fl">0.0</span>, _s</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="co"># rerank pulls the on-topic hit up past a higher-retrieval-score off-topic one</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>_hits <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://a.com/cake'</span>, title<span class="op">=</span><span class="st">'Banana bread'</span>, body<span class="op">=</span><span class="st">'baking'</span>, score<span class="op">=</span><span class="fl">1.0</span>),</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>         <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://b.com/sqlite-wal-benchmark'</span>, title<span class="op">=</span><span class="st">'SQLite WAL benchmark'</span>, body<span class="op">=</span><span class="st">'wal vs journal'</span>, score<span class="op">=</span><span class="fl">0.9</span>)]</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> rerank(<span class="st">'sqlite wal benchmark'</span>, _hits, method<span class="op">=</span><span class="st">'lexical'</span>)[<span class="dv">0</span>][<span class="st">'href'</span>].startswith(<span class="st">'https://b.com'</span>)</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a><span class="co"># focus() keeps the passage that answers the query, not the first N chars</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>_md <span class="op">=</span> (<span class="st">'Cookie notice. We use cookies.</span><span class="ch">\n\n</span><span class="st">'</span> <span class="op">+</span> <span class="st">'Navigation menu home about contact.</span><span class="ch">\n\n</span><span class="st">'</span><span class="op">*</span><span class="dv">8</span> <span class="op">+</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>       <span class="st">'WAL mode allows readers and writers to proceed concurrently, unlike the rollback journal.</span><span class="ch">\n\n</span><span class="st">'</span> <span class="op">+</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>       <span class="st">'Subscribe to our newsletter.</span><span class="ch">\n\n</span><span class="st">'</span><span class="op">*</span><span class="dv">8</span>)</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>_f <span class="op">=</span> focus(_md, <span class="st">'wal mode concurrent readers writers'</span>, chars<span class="op">=</span><span class="dv">200</span>)</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="st">'concurrently'</span> <span class="kw">in</span> _f <span class="kw">and</span> <span class="bu">len</span>(_f) <span class="op">&lt;=</span> <span class="dv">260</span>, _f</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="st">'concurrently'</span> <span class="kw">not</span> <span class="kw">in</span> _md[:<span class="dv">200</span>]      <span class="co"># head truncation would have missed it</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="a1fbcf09" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a Cloudflare interstitial is a 200 that must NOT reach the corpus</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> _P:</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, status<span class="op">=</span><span class="dv">200</span>, html<span class="op">=</span><span class="st">''</span>): <span class="va">self</span>.status, <span class="va">self</span>.html_content, <span class="va">self</span>.html <span class="op">=</span> status, html, html</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="kw">not</span> usable(_P(<span class="dv">200</span>, <span class="st">'&lt;html&gt;&lt;head&gt;&lt;title&gt;Just a moment...&lt;/title&gt;&lt;/head&gt;&lt;body&gt;Enable JavaScript and cookies to continue&lt;/body&gt;&lt;/html&gt;'</span>))</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="kw">not</span> usable(_P(<span class="dv">403</span>, <span class="st">'&lt;html&gt;'</span> <span class="op">+</span> <span class="st">'x'</span><span class="op">*</span><span class="dv">500</span> <span class="op">+</span> <span class="st">'&lt;/html&gt;'</span>))</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="kw">not</span> usable(<span class="va">None</span>)</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> usable(_P(<span class="dv">200</span>, <span class="st">'&lt;html&gt;&lt;body&gt;'</span> <span class="op">+</span> <span class="st">'real prose about sqlite. '</span><span class="op">*</span><span class="dv">40</span> <span class="op">+</span> <span class="st">'&lt;/body&gt;&lt;/html&gt;'</span>))</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _why(_P(<span class="dv">429</span>)) <span class="op">==</span> <span class="st">'http 429'</span> <span class="kw">and</span> _why(<span class="va">None</span>) <span class="op">==</span> <span class="st">'fetch failed'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="b928350e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># where and what-language are separate questions with separate answers</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_country(<span class="st">'rebuild my garage in australia'</span>) <span class="op">==</span> <span class="st">'au'</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_country(<span class="st">'garage rebuild sydney quotes'</span>) <span class="op">==</span> <span class="st">'au'</span>           <span class="co"># cities count</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_country(<span class="st">'planning permission in the UK'</span>) <span class="op">==</span> <span class="st">'uk'</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_country(<span class="st">'compare australia and germany building codes'</span>) <span class="kw">is</span> <span class="va">None</span>   <span class="co"># a comparison: neither</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_country(<span class="st">'garage rebuild cost'</span>) <span class="kw">is</span> <span class="va">None</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_country(<span class="st">'give us a quote'</span>) <span class="kw">is</span> <span class="va">None</span>                        <span class="co"># bare 'us' is the pronoun</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_country(<span class="st">'australianism'</span>) <span class="kw">is</span> <span class="va">None</span>                          <span class="co"># word boundaries</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_language(<span class="st">'what is the best way to do this for my house'</span>) <span class="op">==</span> <span class="st">'en'</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_language(<span class="st">'welche Vorschriften gelten für eine Garage in Österreich'</span>) <span class="op">==</span> <span class="st">'de'</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_language(<span class="st">'garage'</span>) <span class="kw">is</span> <span class="va">None</span>                                <span class="co"># one word is not evidence</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_language(<span class="st">'la'</span>) <span class="kw">is</span> <span class="va">None</span>                                    <span class="co"># shared across languages</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a><span class="co"># the join: country from the subject, language from the asker</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_region(<span class="st">'I want to rebuild my garage in australia, what is the regulation'</span>) <span class="op">==</span> <span class="st">'au-en'</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_region(<span class="st">'garage rebuild sydney'</span>) <span class="op">==</span> <span class="st">'au-en'</span></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_region(<span class="st">'do I need planning permission for a garage in the UK'</span>) <span class="op">==</span> <span class="st">'uk-en'</span></span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_region(<span class="st">'what is the cost of living in france'</span>) <span class="op">==</span> <span class="st">'fr-en'</span>  <span class="co"># French sources, English pages</span></span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_region(<span class="st">'welche Vorschriften gelten für eine Garage in Österreich'</span>) <span class="op">==</span> <span class="st">'at-de'</span></span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_region(<span class="st">'aktuelle KI Regulierung Österreich Unternehmen 2026'</span>) <span class="op">==</span> <span class="st">'at-de'</span>  <span class="co"># no function words: fall to the country</span></span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_region(<span class="st">'compare australia and germany building codes'</span>) <span class="op">==</span> <span class="st">'us-en'</span>         <span class="co"># abstains to the default</span></span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_region(<span class="st">'garage rebuild cost'</span>) <span class="op">==</span> <span class="st">'us-en'</span></span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> infer_region(<span class="st">''</span>, dflt<span class="op">=</span><span class="st">'au-en'</span>) <span class="op">==</span> <span class="st">'au-en'</span> <span class="kw">and</span> infer_region(<span class="va">None</span>) <span class="op">==</span> <span class="st">'us-en'</span></span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _region(<span class="st">'garage in australia'</span>, <span class="st">'uk-en'</span>) <span class="op">==</span> <span class="st">'uk-en'</span>              <span class="co"># explicit beats inferred</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="b9b1951e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># region and timelimit reach every backend: search() used to build the fused call without **kw,</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co"># so `timelimit=` was accepted, ignored, and indistinguishable from having no effect.</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>_calls <span class="op">=</span> []</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _spy(be, q, region<span class="op">=</span><span class="st">'us-en'</span>, page<span class="op">=</span><span class="dv">1</span>, timeout<span class="op">=</span><span class="dv">8</span>, tries<span class="op">=</span><span class="dv">2</span>, <span class="op">**</span>kw):</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    _calls.append(<span class="bu">dict</span>(be<span class="op">=</span>be, region<span class="op">=</span>region, <span class="op">**</span>kw))</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [<span class="bu">dict</span>(title<span class="op">=</span>be, href<span class="op">=</span><span class="ss">f'https://e.com/</span><span class="sc">{</span>be<span class="sc">}</span><span class="ss">'</span>, body<span class="op">=</span><span class="st">''</span>, engine<span class="op">=</span>be, rank<span class="op">=</span><span class="dv">1</span>)]</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>_real, _engine_hits <span class="op">=</span> _engine_hits, _spy</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    search(<span class="st">'sqlite wal mode'</span>, timelimit<span class="op">=</span><span class="st">'y'</span>)</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> [c[<span class="st">'timelimit'</span>] <span class="cf">for</span> c <span class="kw">in</span> _calls] <span class="op">==</span> [<span class="st">'y'</span>]<span class="op">*</span><span class="bu">len</span>(TEXT_BACKENDS), _calls</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> {c[<span class="st">'region'</span>] <span class="cf">for</span> c <span class="kw">in</span> _calls} <span class="op">==</span> {<span class="st">'us-en'</span>}</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    _calls.clear()<span class="op">;</span> search(<span class="st">'rebuild my garage in australia'</span>)</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> {c[<span class="st">'region'</span>] <span class="cf">for</span> c <span class="kw">in</span> _calls} <span class="op">==</span> {<span class="st">'au-en'</span>}, _calls</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> <span class="kw">not</span> <span class="bu">any</span>(<span class="st">'timelimit'</span> <span class="kw">in</span> c <span class="cf">for</span> c <span class="kw">in</span> _calls)          <span class="co"># absent, not None: ddgs defaults it</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    _calls.clear()<span class="op">;</span> search(<span class="st">'garage in australia'</span>, region<span class="op">=</span><span class="st">'uk-en'</span>, timelimit<span class="op">=</span><span class="st">'m'</span>, safesearch<span class="op">=</span><span class="st">'off'</span>)</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> {c[<span class="st">'region'</span>] <span class="cf">for</span> c <span class="kw">in</span> _calls} <span class="op">==</span> {<span class="st">'uk-en'</span>}</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> <span class="bu">all</span>(c[<span class="st">'timelimit'</span>] <span class="op">==</span> <span class="st">'m'</span> <span class="kw">and</span> c[<span class="st">'safesearch'</span>] <span class="op">==</span> <span class="st">'off'</span> <span class="cf">for</span> c <span class="kw">in</span> _calls)</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    _calls.clear()<span class="op">;</span> <span class="cf">assert</span> search(<span class="st">'  '</span>) <span class="op">==</span> [] <span class="kw">and</span> _calls <span class="op">==</span> []   <span class="co"># empty query still touches no backend</span></span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a><span class="cf">finally</span>: _engine_hits <span class="op">=</span> _real</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="833a5fc0" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a page's publication date, from the three places a page states it -- and None when it states none</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> _D:</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, html<span class="op">=</span><span class="st">''</span>, url<span class="op">=</span><span class="st">''</span>): <span class="va">self</span>.html, <span class="va">self</span>.url <span class="op">=</span> html, url</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>_ld <span class="op">=</span> <span class="kw">lambda</span> s: _D(<span class="ss">f'&lt;script type="application/ld+json"&gt;</span><span class="sc">{</span>s<span class="sc">}</span><span class="ss">&lt;/script&gt;'</span>)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_ld(<span class="st">'{"@type":"Article","datePublished":"2024-03-07T09:00:00Z"}'</span>)) <span class="op">==</span> <span class="st">'2024-03-07'</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_ld(<span class="st">'{"@graph":[{"@type":"WebSite"},{"datePublished":"2019-11-02"}]}'</span>)) <span class="op">==</span> <span class="st">'2019-11-02'</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_ld(<span class="st">'{"datePublished":"not a date","dateModified":"2024-05-05"}'</span>)) <span class="op">==</span> <span class="st">'2024-05-05'</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_D(<span class="st">'&lt;meta property="article:published_time" content="2022-06-15T10:11:12+00:00"&gt;'</span>)) <span class="op">==</span> <span class="st">'2022-06-15'</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_D(<span class="st">'&lt;meta name="DC.date.issued" content="2021-1-5"&gt;'</span>)) <span class="op">==</span> <span class="st">'2021-01-05'</span>      <span class="co"># zero-padded</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_D(<span class="st">'&lt;meta name="viewport" content="width=1"&gt;&lt;meta name="date" content="2025-12-31"&gt;'</span>)) <span class="op">==</span> <span class="st">'2025-12-31'</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_D(<span class="st">'&lt;time datetime="2023-08-01"&gt;last August&lt;/time&gt;'</span>)) <span class="op">==</span> <span class="st">'2023-08-01'</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_D(<span class="st">''</span>, <span class="st">'https://blog.example.com/2018/09/wal-mode'</span>)) <span class="op">==</span> <span class="st">'2018-09-01'</span>   <span class="co"># month only -&gt; day 01</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_D(<span class="st">'&lt;p&gt;nothing dated here&lt;/p&gt;'</span>, <span class="st">'https://e.com/x'</span>)) <span class="kw">is</span> <span class="va">None</span>            <span class="co"># undated stays undated</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="co"># a malformed JSON-LD block must not swallow the meta tag underneath it</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> page_date(_D(<span class="st">'&lt;script type="application/ld+json"&gt;{oops&lt;/script&gt;'</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>                    <span class="st">'&lt;meta name="pubdate" content="2020-02-29"&gt;'</span>)) <span class="op">==</span> <span class="st">'2020-02-29'</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a><span class="co"># the month/day alternation has to prefer the longest branch, or 2019-11-02 reads as 2019-01-01</span></span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _iso(<span class="st">'2019-11-02'</span>) <span class="op">==</span> <span class="st">'2019-11-02'</span> <span class="kw">and</span> _iso(<span class="st">'2025-12-31'</span>) <span class="op">==</span> <span class="st">'2025-12-31'</span></span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _iso(<span class="st">'v1.2 build 7'</span>) <span class="kw">is</span> <span class="va">None</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="45a24104" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># research() reports the region it resolved, and keeps one shape whether or not it found anything</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>_r <span class="op">=</span> research(<span class="st">''</span>)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _r[<span class="st">'sources'</span>] <span class="op">==</span> [] <span class="kw">and</span> _r[<span class="st">'digest'</span>] <span class="op">==</span> <span class="st">''</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">sorted</span>(_r) <span class="op">==</span> [<span class="st">'curation'</span>, <span class="st">'digest'</span>, <span class="st">'dropped'</span>, <span class="st">'plan'</span>, <span class="st">'query'</span>, <span class="st">'region'</span>, <span class="st">'sources'</span>]</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _r[<span class="st">'plan'</span>] <span class="op">==</span> []</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _r[<span class="st">'region'</span>] <span class="op">==</span> <span class="st">'us-en'</span> <span class="kw">and</span> research(<span class="st">''</span>, region<span class="op">=</span><span class="st">'au-en'</span>)[<span class="st">'region'</span>] <span class="op">==</span> <span class="st">'au-en'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="a4276313" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># text search — every backend queried in parallel, fused with RRF, then reranked</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> search(<span class="st">'fasthtml python web framework'</span>, n<span class="op">=</span><span class="dv">5</span>):</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>r[<span class="st">'score'</span>]<span class="sc">:.4f}</span><span class="ss"> </span><span class="sc">{</span><span class="bu">str</span>(r.get(<span class="st">'engines'</span>))<span class="sc">:40s}</span><span class="ss"> </span><span class="sc">{</span>r[<span class="st">'title'</span>][:<span class="dv">50</span>]<span class="sc">}</span><span class="ss"> — </span><span class="sc">{</span>r[<span class="st">'href'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0.0320 ['brave', 'startpage']                   Python FastHTML: A Beginner’s Guide with Examples  — https://www.datacamp.com/tutorial/python-fasthtml
+0.0318 ['brave', 'startpage']                   FastHTML - Modern web applications in pure Python — https://fastht.ml/
+0.0315 ['brave', 'startpage']                   FastHTML: Revolutionizing Web Development with Pyt — https://www.geeksforgeeks.org/python/fasthtml-modern-web-application-in-pure-python/
+0.0315 ['brave', 'startpage']                   python-fasthtml · PyPI — https://pypi.org/project/python-fasthtml/
+0.0296 ['brave', 'startpage']                   GitHub - AnswerDotAI/fasthtml: The fastest way to  — https://github.com/AnswerDotAI/fasthtml</code></pre>
+</div>
+</div>
+<div id="81a206fd" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> search(<span class="st">'red panda'</span>, <span class="st">'images'</span>,n<span class="op">=</span><span class="dv">3</span>): <span class="bu">print</span>(r[<span class="st">'title'</span>], <span class="st">'—'</span>, r[<span class="st">'image'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Happy Red Panda — https://animalfactguide.com/wp-content/uploads/2020/12/red_panda_220-scaled.jpg
+Cute Red Panda — https://i.natgeofe.com/k/63b1a8a7-0081-493e-8b53-81d01261ab5d/red-panda-full-body_16x9.jpg
+Red Panda Animal Endangered Red Pandas Seized From Smuggler In Laos, — https://cincinnatizoo.org/wp-content/uploads/2012/04/Red-Panda-Image-for-Endangered-Excursion-scaled.jpg</code></pre>
+</div>
+</div>
+<div id="34c287dc" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># news search</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> search(<span class="st">'open source LLMs'</span>, <span class="st">'news'</span>, n<span class="op">=</span><span class="dv">3</span>, pages<span class="op">=</span><span class="dv">2</span>): <span class="bu">print</span>(r[<span class="st">'date'</span>], r[<span class="st">'title'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2025-03-20T10:45:00+00:00 The Open-Source LLM Revolution: Transforming Enterprise AI For A New Era
+2026-07-25T00:15:00+00:00 Nvidia, other tech giants caution against open-source AI ban in open letter
+2023-06-20T00:00:00+00:00 Open-source AI chatbots are booming — what does this mean for researchers?</code></pre>
+</div>
+</div>
+<div id="26eaf0936ffd7d26" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> videos(q<span class="op">=</span><span class="st">'aditya hrudayam'</span>, n<span class="op">=</span><span class="dv">1</span>): <span class="bu">print</span>(r)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ERROR: query "aditya hrudayam" page 1: Unable to download API page: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1018) (caused by CertificateVerifyError('[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1018)')); please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>search_yt error: ERROR: query "aditya hrudayam" page 1: Unable to download API page: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1018) (caused by CertificateVerifyError('[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1018)')); please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U</code></pre>
+</div>
+</div>
+<div id="27fadccf" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># real Google ranking via stealth browser (slower; use when you need Google specifically)</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> google(<span class="st">'vedicreader website'</span>, n<span class="op">=</span><span class="dv">5</span>): <span class="bu">print</span>(r[<span class="st">'title'</span>], <span class="st">'—'</span>, r[<span class="st">'href'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[2026-08-09 15:39:05] INFO: Fetched (200) &lt;GET https://www.google.com/search?q=vedicreader+website&amp;hl=en&amp;num=7&amp;sei=dRJ4arGzHuGihvcP0anygAk&gt; (referer: https://www.google.com/)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>VedicReader — https://vedicreader.com/
+VedicReader — https://vedicreader.com/a/lgn
+vedicreader.com to help absorb vedic texts easily — https://www.reddit.com/r/AdvaitaVedanta/comments/1lpr29l/vedicreadercom_to_help_absorb_vedic_texts_easily/
+VedSearch — Read the Vedas in Sanskrit, Hindi &amp; English — https://vedsearch.org/
+Ved Portal - Search &amp; Read — https://www.xn--j2b3a4c.com/en/</code></pre>
+</div>
+</div>
+<div id="6f211eb1" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># research(): search -&gt; read the top n results -&gt; one cited markdown corpus</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> research(<span class="st">'what is the raft consensus algorithm'</span>, n<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">set</span>(res) <span class="op">==</span> {<span class="st">'query'</span>, <span class="st">'sources'</span>, <span class="st">'digest'</span>, <span class="st">'dropped'</span>}, res.keys()</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> res[<span class="st">'query'</span>] <span class="kw">and</span> <span class="bu">isinstance</span>(res[<span class="st">'sources'</span>], <span class="bu">list</span>) <span class="kw">and</span> res[<span class="st">'sources'</span>]</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">all</span>({<span class="st">'title'</span>,<span class="st">'href'</span>,<span class="st">'md'</span>,<span class="st">'tier'</span>} <span class="op">&lt;=</span> <span class="bu">set</span>(s) <span class="cf">for</span> s <span class="kw">in</span> res[<span class="st">'sources'</span>])</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> res[<span class="st">'digest'</span>]</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(res[<span class="st">'sources'</span>]), <span class="st">'sources |'</span>, <span class="bu">len</span>(res[<span class="st">'digest'</span>]), <span class="st">'chars |'</span>, <span class="bu">len</span>(res[<span class="st">'dropped'</span>]), <span class="st">'skipped'</span>)</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> d <span class="kw">in</span> res[<span class="st">'dropped'</span>]: <span class="bu">print</span>(<span class="st">'  skipped:'</span>, d[<span class="st">'reason'</span>], d[<span class="st">'href'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[2026-08-09 15:39:10] INFO: Fetched (200) &lt;GET https://www.geeksforgeeks.org/system-design/raft-consensus-algorithm/&gt; (referer: https://www.google.com/)
+[2026-08-09 15:39:10] INFO: Fetched (200) &lt;GET https://raft.github.io/&gt; (referer: https://www.google.com/)
+[2026-08-09 15:39:10] INFO: Fetched (200) &lt;GET https://en.wikipedia.org/wiki/Raft_(algorithm)&gt; (referer: https://www.google.com/)</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>3 sources | 10171 chars | 0 skipped</code></pre>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/vedicreader\.github\.io\/fossick");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
