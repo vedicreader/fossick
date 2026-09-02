@@ -33,11 +33,12 @@ def fetch(
     heavy:bool=False,     # JS rendering via headless browser
     stealthy:bool=False,  # Anti-bot stealth fetcher
     session:bool=False,   # Route through the persistent debug Chrome (reuses its logged-in cookies)
+    engine:str=None,      # Browser for the JS tier: default launches Chrome, 'obscura' uses a Chromium-free CDP server
     auto:bool=False,      # Auto-escalate plain->heavy->stealthy->session on bot-block detection
     as_json:bool=False,   # Output JSON instead of markdown
 ):
     "Fetch a URL and print as markdown."
-    page = _fetch(url, sel=sel, heavy=heavy, stealthy=stealthy, session=session, auto=auto)
+    page = _fetch(url, sel=sel, heavy=heavy, stealthy=stealthy, session=session, engine=engine, auto=auto)
     if as_json: print(json.dumps({'url': page['url'], 'status': page['status'], 'tier': getattr(page,'tier',None), 'content': to_md(page)}))
     else: print(to_md(page))
 

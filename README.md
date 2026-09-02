@@ -104,6 +104,7 @@ search('query', n=10, region='auto', timelimit='y')
 research('query', n=5)                    # search, read, and build a cited digest
 fetch(url, auto=True)                     # escalate past bot walls
 crawl(url, max_pages=5, same_domain=True)
+fetch(url, engine='obscura')              # JS tier on a Chromium-free browser: ~10ms to start, ~25MB
 google('query', n=10)                     # real Google via stealth browser
 cdp_connect(); pg = await cdp.new_page(url); print(await pg.snapshot())
 ```

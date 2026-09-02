@@ -6,7 +6,7 @@ Docs: https://vedicreader.github.io/fossick/cdp.html.md"""
 
 # %% auto #0
 __all__ = ['BUTTON_JS', 'HIDE', 'SHOW', 'ANNOTATE_JS', 'ANNOTATE_BAR_JS', 'ANNOTATE_CLEANUP_JS', 'cdp_setup', 'cdp_connect',
-           'cdp_ws', 'cdp_app', 'JSError', 'cdp_cookies', 'ax_diff']
+           'cdp_ws', 'obscura_connect', 'cdp_app', 'JSError', 'cdp_cookies', 'ax_diff']
 
 # %% ../nbs/01_cdp.ipynb #93f16b3aa77ce8ef
 import asyncio, json, time, subprocess, os, socket, re
@@ -66,6 +66,19 @@ def cdp_ws(port=9223, headless=True, user_data_dir=None, extra_flags=None) -> st
     import httpx
     if not _debug_running(port): syncy(cdp_setup(port, user_data_dir, headless, extra_flags=extra_flags))
     return httpx.get(f'http://127.0.0.1:{port}/json/version').json()['webSocketDebuggerUrl']
+
+async def obscura_connect(port=None, storage_dir=None, stealth=None):
+    """Connect to an `obscura serve` on `port`, starting one if needed — `cdp_connect` without Chrome.
+
+    Returns the same `CDP` object, so `snapshot`, `act` and friends are all reachable. Read
+    "What obscura covers" below first: the accessibility tree it serves is not Chrome's, and the
+    label-driven helpers are the ones that notice."""
+    # stealth=None so `obscura_ws` still reads $FOSSICK_OBSCURA_STEALTH: hardcoding True here would
+    # quietly re-enable TLS impersonation for anyone who turned it off to get through a MITM proxy.
+    obscura_ws(port, storage_dir=storage_dir, stealth=stealth)  # starts it, waits for /json/version
+    cdp = await CDP.remote(port or OBSCURA_PORT)
+    cdp.ws.protocol.max_message_size = 2**30
+    return cdp
 
 def cdp_app(url, port=9223, user_data_dir=None, wait=15):
     'Open `url` as an app window -- no tabs, no address bar -- in the persistent debug Chrome.    '
