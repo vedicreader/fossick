@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.19
+- `debug_ready` is public in `fossick.cdp`: it tells you whether the debug Chrome on a port answers at `/json/version`, without starting one. `_debug_ready` stays as an alias.
+
 ## 0.1.18
 - `url2nb` and `pdf2nb` work again: `_md2cells` and its helpers, lost in the move to pdflite, are back.
 - `pdf2nb` hands its OCR choice to pdflite as `ocr=`.
