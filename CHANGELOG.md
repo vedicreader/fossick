@@ -7,7 +7,7 @@
 - `pdf2nb` hands its OCR choice to pdflite as `ocr=`.
 - `usable(min_chars=...)` checks the page has that much readable markdown; `research` passes 0 and measures the markdown it keeps.
 - README links `search`, `fetch`, `crawl` and `research` to the library functions, not the CLI.
-- CI: the cells that need a live debug Chrome are `eval: false`; `dev` is an extra, as nbdev's CI installs it, with the uv group pointing at it.
+- CI: the cells that need a live debug Chrome are `eval: false`; the HTTP tests use httpbin.org, as httpbun.com no longer answers; `dev` is an extra, as nbdev's CI installs it, with the uv group pointing at it.
 
 ## 0.1.17
 pdflite upgrades
