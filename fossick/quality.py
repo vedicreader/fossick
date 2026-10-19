@@ -1,4 +1,4 @@
-"""what to ask, and which sources are worth reading
+"""Choosing which search results are worth reading, and what to search for
 
 Docs: https://vedicreader.github.io/fossick/quality.html.md"""
 
@@ -35,14 +35,14 @@ MULTI_LABEL_SUFFIXES = frozenset({
 })
 
 def host(url:str) -> str:
-    "The lowercase hostname of `url`, without `www.` or a trailing dot. `''` when there isn't one."
+    "Return the host name of `url` in lower case, without `www.` or a trailing dot, or `''` when it has none."
     try: h = urlsplit(url if '//' in ifnone(url,'') else f'//{ifnone(url,"")}').hostname or ''
     except ValueError: return ''
     h = h.strip().rstrip('.').lower()
     return h[4:] if h.startswith('www.') else h
 
 def registrable_domain(url:str) -> str:
-    "Site behind `url` (`docs.python.org`→`python.org`, `bbc.co.uk`→`bbc.co.uk`). IP/single-label unchanged."
+    "Return the registered site behind `url`, such as `python.org` for `docs.python.org` or `bbc.co.uk` for `www.bbc.co.uk`."
     h = host(url)
     if not h or re.fullmatch(r'[\d.]+|\[[0-9a-f:]+\]', h): return h
     labels = [x for x in h.split('.') if x]
@@ -58,7 +58,7 @@ _TRACKING = re.compile(r'^(utm_|fbclid|gclid|dclid|msclkid|yclid|mkt_tok|mc_[ce]
 _DFLT_PORT = {'http': 80, 'https': 443, 'ftp': 21}
 
 def norm_url(u:str) -> str:
-    "Dedup key: no scheme/fragment/tracking/`www.`/default port/trailing slash; query sorted."
+    "Return a key for `url` that is the same for every URL of one page."
     try: s = urlsplit(u)
     except ValueError: return u
     try: port = s.port
@@ -110,7 +110,7 @@ DOMAIN_RULES = {
 }
 
 def domain_matches(domain:str, rule:str) -> bool:
-    "Match `docs.` (label), `.gov.au` (suffix), or exact/subdomain — never bare startswith."
+    "Return True when `domain` matches `rule`, read as a leading label, a domain ending, or a domain and its subdomains."
     if not domain or not rule: return False
     if rule.endswith('.'): return domain.startswith(rule)
     # `.gov.uk` has to match the registry itself as well as everything under it, or the rule
@@ -120,7 +120,7 @@ def domain_matches(domain:str, rule:str) -> bool:
     return domain == rule or domain.endswith(f'.{rule}')
 
 def blocked_matches(domain:str, rule:str) -> bool:
-    "True if host is in the blocked list (exact or subdomain)."
+    "Return True when `domain` is the domain `rule` or one of its subdomains."
     return bool(domain) and (domain == rule or domain.endswith(f'.{rule}'))
 
 
@@ -151,7 +151,7 @@ def _cue_pats():
     return _cue_rx
 
 def classify(q:str) -> str:
-    "Intent class from cue table, or None when cues disagree/tie."
+    "Return the kind of question `q` asks, read from its cue words, or None when the cues are absent or tie."
     ql = (q or '').lower()
     hits = {k: len(rx.findall(ql)) for k, rx in _cue_pats().items()}
     hits = {k: n for k, n in hits.items() if n}
@@ -179,7 +179,7 @@ SPAM_MIRRORS = (
 _SITE_OP = re.compile(r'\bsite:([a-z0-9][a-z0-9.-]*)', re.I)
 
 def site_domains(q:str, include=()) -> list:
-    "Domains from `site:` ops in `q` plus any explicit `include` list."
+    "Return the domains named by `site:` in `q`, together with any in `include`."
     ds = [d.lower().rstrip('.') for d in _SITE_OP.findall(q or '')]
     ds += [str(d).strip().lower() for d in (include or []) if str(d).strip()]
     return sorted(set(ds))
@@ -187,7 +187,7 @@ def site_domains(q:str, include=()) -> list:
 def _url(h) -> str: return h.get('href') or h.get('url') or '' if isinstance(h, dict) else str(h)
 
 def drop_spam(hits:list, blocked=(), allowed=()) -> tuple:
-    "Remove hits from mirror domains. Returns `(kept, removed_domains)`; `allowed` rescues a domain."
+    "Remove results from copycat sites and return the remaining results and the domains removed."
     rules = tuple(SPAM_MIRRORS) + tuple(str(d).strip().lower() for d in blocked if str(d).strip())
     ok = tuple(str(d).strip().lower() for d in allowed if str(d).strip())
     kept, removed = [], []
@@ -233,7 +233,7 @@ def _content(s:str) -> list:
     return out
 
 def facets(q:str) -> list:
-    "The clauses of `q` as content-word lists, lead-in stripped. `[]` when there is nothing to split."
+    "Return the parts of `q` as lists of topic words, or `[]` when there is only one part."
     parts = [p for p in _SPLIT_RX.split(_LEAD_RX.sub('', q or '').strip()) if p.strip()]
     return [c for p in parts if (c := _content(p))] if len(parts) > 1 else []
 
@@ -242,7 +242,7 @@ def plan(q:str,                  # the question as asked
          min_words:int=6,        # below this a query has no room for two questions
          rewrite=None,           # optional `f(q) -> list[str]`, e.g. a model. Overrides the heuristic.
         ) -> list:
-    "Split multi-part `q` into searches; always `[q]` first. Abstains when no second question."
+    "Split a question that asks several things into one search per part, with the original question first."
     q = (q or '').strip()
     if not q: return []
     if rewrite is not None:
@@ -264,7 +264,7 @@ def _dedup(qs:list) -> list:
     return out
 
 def interleave(lists:list, key=None) -> list:
-    "Round-robin merge of result lists; dedup by `key` (default norm_url)."
+    "Merge result lists by taking one from each in turn, keeping each page once."
     key = key or (lambda h: norm_url(h.get('href') or h.get('url') or ''))
     out, seen = [], {}
     for row in zip(*(list(l) + [None] * (max(map(len, lists), default=0) - len(l)) for l in lists)) \
@@ -281,7 +281,7 @@ def interleave(lists:list, key=None) -> list:
 
 # %% ../nbs/06_quality.ipynb #884e65fc
 def authority_rerank(hits:list, cls:str) -> tuple:
-    "Stable boost/demote by DOMAIN_RULES for `cls`; lossless."
+    "Move results from sites favoured for the kind of question `cls` up and disfavoured ones down, dropping none."
     rules = DOMAIN_RULES.get(cls or '')
     if not hits or not rules:
         return hits, dict(intent=cls, applied=False, boosted=[], demoted=[])
@@ -298,7 +298,7 @@ def authority_rerank(hits:list, cls:str) -> tuple:
                      top_before=host(_url(hits[0])), top_after=host(_url(out[0])))
 
 def cap_per_domain(hits:list, max_per:int=2) -> tuple:
-    "Stable per-domain soft cap: overflow keeps relative order in the tail."
+    "Keep at most `max_per` results per site near the top and move the rest, in order, to the end."
     if max_per < 1 or len(hits) < 3: return hits, 0
     head, tail, seen = [], [], Counter()
     for h in hits:
@@ -310,12 +310,12 @@ def cap_per_domain(hits:list, max_per:int=2) -> tuple:
 
 # %% ../nbs/06_quality.ipynb #b9ff2545
 def shingles(text:str, n:int=3) -> set:
-    "Word n-grams of `text`. Fewer than `n` words has no evidence and yields nothing, never a match."
+    "Return the set of `n`-word sequences in `text`, empty when it has fewer than `n` words."
     w = _WORD.findall((text or '').casefold())
     return {tuple(w[i:i+n]) for i in range(len(w) - n + 1)} if len(w) >= n else set()
 
 def jaccard(a:set, b:set) -> float:
-    "|a ∩ b| / |a ∪ b|, and 0.0 when either side is empty — absence of evidence is not similarity."
+    "Return the size of the overlap of two sets divided by the size of their union, or 0.0 when either is empty."
     return len(a & b) / len(a | b) if a and b else 0.0
 
 def _union_find(n:int):
@@ -334,7 +334,7 @@ def _union_find(n:int):
 def cluster_sources(hits:list,             # search hits or research sources
                     threshold:float=0.6,   # trigram Jaccard above which two texts are one story
                    ) -> list:
-    "Union-find clusters by canonical URL + Jaccard≥threshold; representative is first in input order."
+    "Group results that are the same page or share most of their text, and return the groups."
     return _analyse(hits, threshold)[0]
 
 def _analyse(hits:list, threshold:float) -> tuple:
@@ -361,7 +361,7 @@ def _analyse(hits:list, threshold:float) -> tuple:
     return clusters, near
 
 def independence(hits:list, threshold:float=0.6) -> dict:
-    "Cluster count / n — fraction of independent stories."
+    "Return how many separate stories and sites a result list holds, with a score and the method's limits."
     hits = [h for h in hits if isinstance(h, dict)]
     n = len(hits)
     if not n:
@@ -388,7 +388,7 @@ def _trigrams(text:str) -> set:
     return {tuple(w[i:i+3]) for i in range(len(w) - 2)} if len(w) >= 3 else set()
 
 def snippet_similarity(a:str, b:str) -> float:
-    "Jaccard over word trigrams. Text shorter than three words scores 0 — no evidence, not a match."
+    "Return the Jaccard similarity of two texts' three-word sequences, or 0.0 when either has fewer than three words."
     x, y = _trigrams(a), _trigrams(b)
     return len(x & y) / len(x | y) if x and y else 0.0
 
@@ -397,7 +397,7 @@ def _text(h) -> str:
     return ' '.join(str(h.get(k) or '') for k in ('title', 'body', 'content', 'snippet', 'md'))
 
 def diversity(hits:list, threshold:float=0.6) -> dict:
-    "Describe dominant domain, near-dups, and independent source count."
+    "Describe how varied a result list is: its sites, repeated URLs, look-alike pairs and separate stories."
     hits = [h for h in hits if isinstance(h, dict)]
     n = len(hits)
     if not n: return dict(score=0.0, n=0, domains=0, dominant_domain=None, dup_urls=0,
@@ -427,7 +427,7 @@ def curate(q:str,                  # the query, read for intent and `site:` cons
            blocked=(), allowed=(), # extra mirror domains, and rescues from the built-in list
            rerank:bool=True,       # False: describe only, return `hits` untouched
           ) -> tuple:
-    "Filter/rerank/describe hits → `(hits, report)`. `site:` skips spam drop and domain cap."
+    "Remove copycat sites, reorder by authority, limit results per site, and return the results with a report."
     sites = site_domains(q)
     rep = dict(intent=None, site_constrained=sites, dropped=[], demoted=0, authority=None)
     if not hits:

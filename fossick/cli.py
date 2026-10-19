@@ -1,4 +1,4 @@
-"""`fossick` command-line interface
+"""The `fossick` shell command
 
 Docs: https://vedicreader.github.io/fossick/cli.html.md"""
 
@@ -10,8 +10,7 @@ __all__ = ['CMDS', 'fetch', 'crawl', 'search', 'read_arxiv', 'lookup_doi', 'read
            'images', 'news', 'videos', 'research', 'ax', 'shop', 'main']
 
 # %% ../nbs/03_cli.ipynb #d4e5f6a7
-"""CLI for fossick — fetch, search, and read commands for LLM agents.
-Default output is readable markdown; pass --as-json for JSON (piping/harnesses)."""
+"""The `fossick` command: fetch, search and read from the shell, printing markdown, or JSON with --as-json."""
 
 import json, sys
 from fastcore.script import call_parse, anno_parser
@@ -36,7 +35,7 @@ def fetch(
     auto:bool=False,      # Auto-escalate plain->heavy->stealthy->session on bot-block detection
     as_json:bool=False,   # Output JSON instead of markdown
 ):
-    "Fetch a URL and print as markdown."
+    "Fetch a URL and print it as markdown."
     page = _fetch(url, sel=sel, heavy=heavy, stealthy=stealthy, session=session, auto=auto)
     if as_json: print(json.dumps({'url': page['url'], 'status': page['status'], 'tier': getattr(page,'tier',None), 'content': to_md(page)}))
     else: print(to_md(page))
@@ -53,7 +52,7 @@ def crawl(
     stealthy:bool=False,       # anti-bot stealth fetcher
     as_json:bool=False,        # output JSON
 ):
-    "Crawl from a URL following links; prints each page as markdown."
+    "Crawl from a URL, following links, and print each page as markdown."
     pages = _crawl(url, sel=sel, follow_sel=follow_sel, max_pages=max_pages,
                    same_domain=same_domain, heavy=heavy, stealthy=stealthy)
     if as_json: print(json.dumps([{'url': p['url'], 'status': p['status'], 'content': to_md(p, sel=sel)} for p in pages], default=str))
@@ -75,7 +74,7 @@ def search(
     rerank:str='lexical', # rerank the fused hits: lexical | flashrank | auto | none
     as_json:bool=False,   # output JSON
 ):
-    "Search the web (backends fused with RRF, or direct Google with --google); prints title, URL, and snippet."
+    "Search the web and print each result's title, URL and snippet."
     results = _google(query, n=n) if google else _search(query, n=n, region=region, backend=backend,
                                                         pages=pages, method=rerank)
     if as_json: print(json.dumps(list(results), default=str)); return
@@ -94,7 +93,7 @@ def read_arxiv(
     force:bool=False,     # re-download even if cached
     as_json:bool=False,   # output JSON
 ):
-    "Fetch arXiv paper metadata, authors, and summary."
+    "Print an arXiv paper's title, authors, date and summary, and optionally its full text."
     p = _read_arxiv(url, source=source, force=force)
     if as_json:
         out = {k: v for k, v in p.items() if k not in ('source','doc')}
@@ -113,7 +112,7 @@ def lookup_doi(
     title:str,            # paper title to look up
     as_json:bool=False,   # output JSON
 ):
-    "Return the doi.org URL for the first Crossref match on a paper title."
+    "Print the doi.org URL of the first Crossref match for a paper title."
     doi = _lookup_doi(title)
     if as_json: print(json.dumps({'title': title, 'doi': doi}))
     else: print(doi or 'not found')
@@ -125,7 +124,7 @@ def read_yt(
     force:bool=False,     # re-fetch even if cached
     as_json:bool=False,   # output JSON
 ):
-    "Fetch YouTube metadata and full transcript."
+    "Print a YouTube video's title, channel, duration and transcript."
     v = _read_yt(url, force=force)
     if as_json: print(json.dumps(v, default=str))
     else:
@@ -140,7 +139,7 @@ def search_yt(
     n:int=10,             # number of results
     as_json:bool=False,   # output JSON
 ):
-    "Search YouTube; prints title, URL, and channel."
+    "Search YouTube and print each video's title, URL, channel and duration."
     results = _search_yt(query, n=n)
     if as_json: print(json.dumps(list(results), default=str))
     else:
@@ -156,7 +155,7 @@ def read_gh_file(
     url:str,              # GitHub blob URL of the file
     as_json:bool=False,   # output JSON
 ):
-    "Read the raw contents of a single GitHub file."
+    "Print the contents of one file on GitHub."
     txt = _read_gh_file(url)
     if as_json: print(json.dumps({'url': url, 'content': txt}))
     else: print(txt)
@@ -170,7 +169,7 @@ def read_gh_repo(
     limit:int=None,       # max files to return
     as_json:bool=False,   # output JSON
 ):
-    "Read files from a GitHub repo filtered by glob patterns."
+    "Print the files of a GitHub repository that match the glob patterns."
     gs = tuple(g.strip() for g in globs.split(',')) if globs else None
     files = _read_gh_repo(url, globs=gs, limit=limit)
     if as_json: print(json.dumps({str(k): v for k, v in files.items()}, default=str))
@@ -188,7 +187,7 @@ def calls(
     tail:int=3,           # seconds to wait after navigation
     as_json:bool=False,   # output JSON
 ):
-    "Capture outgoing network requests fired by a page."
+    "Open a page in the debug Chrome and print the network requests it sends."
     from fossick.cdp import cdp_connect, syncy
     async def _run():
         cdp = await cdp_connect()
@@ -209,7 +208,7 @@ def find_xhr(
     pattern:str='*',      # glob/regex to filter captured XHR URLs
     as_json:bool=False,   # output JSON
 ):
-    "Discover hidden JSON/XHR API calls a page makes."
+    "Load a page in a headless browser and print the JSON and XHR requests it makes."
     xhr = _find_xhr(url, pattern=pattern)
     if as_json: print(json.dumps([dict(x) for x in xhr], default=str))
     else:
@@ -229,7 +228,7 @@ def paginate_api(
     method:str='POST',            # HTTP method
     max_pages:int=10,             # max pages to fetch
 ):
-    "Paginate a JSON API and print all collected items as JSON."
+    "Read every page of a JSON API and print all the items as JSON."
     body = json.loads(payload) if payload else None
     items = _paginate_api(url, payload=body, page_field=page_field,
                           results_field=results_field, method=method, max_pages=max_pages)
@@ -244,7 +243,7 @@ def collect(
     count:int=None,       # stop after this many screenshots
     every_n:int=None,     # auto-capture every N seconds
 ):
-    "Open a URL in Chrome and capture screenshots interactively."
+    "Open a URL in the debug Chrome and save a screenshot each time you press the capture button."
     from fossick.cdp import cdp_connect, syncy
     async def _run():
         cdp = await cdp_connect()
@@ -261,7 +260,7 @@ def annotate(
     save_dir:str='.',     # directory to save annotated screenshot
     as_json:bool=False,   # output JSON list of selected elements
 ):
-    "Open a URL in Chrome, click elements to annotate them, save labeled screenshot."
+    "Open a URL in the debug Chrome, let you click elements to number them, and save a labelled screenshot."
     from fossick.cdp import cdp_connect, syncy
     async def _run():
         cdp = await cdp_connect()
@@ -276,7 +275,7 @@ def annotate(
 # %% ../nbs/03_cli.ipynb #d0e1f2a3
 @call_parse
 def install():
-    "Install fossick SKILL.md to .agents/skills/fossick/ and .claude/skills/fossick/."
+    "Copy fossick's SKILL.md into `.agents/skills/fossick/` and `.claude/skills/fossick/`."
     mv_skill_md(dry_run=False, dir=repo_root())
 
 # %% ../nbs/03_cli.ipynb #a3b4c5d6
@@ -286,7 +285,7 @@ def url2nb(
     path:str=None,        # output notebook path (default: derived from URL)
     as_json:bool=False,   # output JSON with notebook path
 ):
-    "Convert a URL (HTML, PDF, or arXiv) to a Jupyter notebook."
+    "Save a web page, PDF or arXiv paper as a Jupyter notebook and print its path."
     nb_path = _url2nb(url, nb_path=path)
     if as_json: print(json.dumps({'path': str(nb_path)}))
     else: print(nb_path)
@@ -301,7 +300,7 @@ def pdf2nb(
     force:bool=False,     # re-convert even if notebook exists
     as_json:bool=False,   # output JSON with notebook path
 ):
-    "Convert a PDF (URL or local path) to a Jupyter notebook."
+    "Save a PDF, from a URL or a local path, as a Jupyter notebook and print its path."
     nb_path = _pdf2nb(url, nb_path=path, ocr_selection=ocr, force=force)
     if as_json: print(json.dumps({'path': str(nb_path)}))
     else: print(nb_path)
@@ -315,7 +314,7 @@ def download_yt(
     save_dir:str='.',     # directory to save to
     as_json:bool=False,   # output JSON with saved path
 ):
-    "Download YouTube audio or video."
+    "Download a YouTube video's audio or video and print the saved path."
     path = _download_yt(url, format=format, save_dir=save_dir)
     if as_json: print(json.dumps({'path': str(path)}))
     else: print(path)
@@ -324,7 +323,7 @@ def download_yt(
 # %% ../nbs/03_cli.ipynb #478eb458
 @call_parse
 def images(query:str, n:int=20, region:str='us-en', as_json:bool=False):
-    "Image search via ddgs; prints title and image URL."
+    "Search for images and print each title and image URL."
     results = _images(query, max_results=n, region=region)
     if as_json: print(json.dumps(list(results), default=str))
     else:
@@ -332,7 +331,7 @@ def images(query:str, n:int=20, region:str='us-en', as_json:bool=False):
 
 @call_parse
 def news(query:str, n:int=20, region:str='us-en', as_json:bool=False):
-    "News search via ddgs; prints date, title, and URL."
+    "Search news and print each date, title and URL."
     results = _news(query, max_results=n, region=region)
     if as_json: print(json.dumps(list(results), default=str))
     else:
@@ -344,7 +343,7 @@ def news(query:str, n:int=20, region:str='us-en', as_json:bool=False):
 
 @call_parse
 def videos(query:str, n:int=20, region:str='us-en', as_json:bool=False):
-    "Video search via ddgs; prints title and video URL."
+    "Search YouTube and print each title and video URL."
     results = _videos(query, max_results=n, region=region)
     if as_json: print(json.dumps(list(results), default=str))
     else:
@@ -363,7 +362,7 @@ def research(
     pages:int=1,          # result pages to pull from each backend when searching
     as_json:bool=False,   # output JSON
 ):
-    "Search, then read the top results into one cited markdown corpus."
+    "Search, read the top results, and print them as one markdown digest that cites each source."
     res = _research(query, n=n, engine='google' if google else 'search', region=region,
                     timelimit=timelimit, sel=sel, chars=chars, pages=pages)
     if as_json: print(json.dumps(res, default=str)); return
@@ -377,7 +376,7 @@ def ax(
     port:int=9223,        # debug Chrome remote-debugging port
     full:bool=False,      # show the full accessibility tree instead of interactive-only
 ):
-    "Open a URL in the persistent debug Chrome and print a compact, agent-ready accessibility snapshot."
+    "Open a URL in the debug Chrome and print a short snapshot of the controls on the page."
     from fossick.cdp import cdp_connect, syncy
     async def _run():
         cdp = await cdp_connect(port=port)
@@ -398,7 +397,7 @@ def shop(
     port:int=9223,        # debug Chrome remote-debugging port
     as_json:bool=False,   # output JSON
 ):
-    "Drive a shopping cart: list products, add one, read the cart. Page and cart state persist across calls."
+    "Search a store, add a product, or read the cart in the debug Chrome, keeping the page open between calls."
     from fossick.shop import shop as _shop, ShopError
     from fossick.cdp import JSError
     s = _shop(url, port=port, resume=True)   # pick up the page the last invocation left
@@ -458,7 +457,7 @@ CMDS = {
 }
 
 def main():
-    "Entry point for the `fossick` CLI command."
+    "Run the `fossick` command named on the command line."
     if len(sys.argv) < 2 or sys.argv[1] not in CMDS:
         print(f"Usage: fossick [{'  | '.join(CMDS)}]")
         sys.exit(0 if len(sys.argv) < 2 else 1)

@@ -12,8 +12,7 @@ __all__ = ['mcp', 'web_search', 'research', 'lookup_doi', 'fetch_page', 'fetch_p
            'shop_products', 'shop_add', 'shop_cart', 'shop_line', 'shop_dismiss', 'shop_fields', 'shop_fill', 'main']
 
 # %% ../nbs/04_mcp.ipynb #7d97c5fe
-"""MCP server for fossick — search, fetch, read, hidden-API, and browser tools over stdio.
-Run with `fossick-mcp` (the `mcp` package ships with fossick).
+"""fossick's search, fetch, reader, hidden API and browser tools as an MCP server, started with `fossick-mcp`.
 
 Docs: https://vedicreader.github.io/fossick/mcp.html.md"""
 
@@ -300,5 +299,5 @@ def shop_fill(profile:dict, submit:str|None=None, confirm:bool=False) -> dict:
 
 # %% ../nbs/04_mcp.ipynb #2adadd9f
 def main():
-    "Entry point for the `fossick-mcp` console script. stdio by default; pass --http for Streamable HTTP."
+    "Run the MCP server over standard input and output, or over Streamable HTTP with `--http`."
     mcp.run(transport='streamable-http' if '--http' in sys.argv[1:] else 'stdio')

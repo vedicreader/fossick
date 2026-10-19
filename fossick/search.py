@@ -1,4 +1,4 @@
-"""metasearch, fuse, rerank, and research
+"""Web search across several engines, merging and reranking the results, and research digests
 
 Docs: https://vedicreader.github.io/fossick/search.html.md"""
 
@@ -30,13 +30,14 @@ def _warn(key:str, msg:str):
         print(f'fossick: {msg}', file=sys.stderr)
 
 def ddgs_env() -> dict:
-    "Proxy + CA settings for ddgs, read from the environment (`HTTPS_PROXY`, `SSL_CERT_FILE`, …)."
+    "Return proxy and certificate settings for ddgs, read from the environment."
     ev = lambda *ks: first(os.environ.get(k) for k in ks if os.environ.get(k))
     ca = ev('FOSSICK_CA_BUNDLE', 'SSL_CERT_FILE', 'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE')
     return dict(proxy=ev('DDGS_PROXY', 'HTTPS_PROXY', 'https_proxy'), verify=ca or True)
 
 _ddgs = None
 def get_ddgs(timeout:int=10):
+	"Return the shared ddgs client, creating it on first use."
 	global _ddgs
 	if _ddgs is None:
 		try: from ddgs import DDGS
@@ -48,7 +49,7 @@ def get_ddgs(timeout:int=10):
 TEXT_BACKENDS = ('google', 'brave', 'duckduckgo', 'mojeek', 'yahoo', 'startpage')
 
 def backends(category:str='text') -> list:
-    "Every ddgs backend available for `category`."
+    "Return the names of every ddgs engine available for `category`."
     from ddgs.engines import ENGINES
     return sorted(ENGINES.get(category, {}))
 
@@ -88,7 +89,7 @@ def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1, **kw) ->
 def rrf(lists:list,      # ranked result lists, one per backend
         k:int=60,        # RRF damping constant
        ) -> list:
-    "Reciprocal rank fusion: score each url as `sum 1/(k+rank)` across the lists it appears in."
+    "Merge ranked lists with reciprocal rank fusion, scoring each URL by the sum of `1/(k+rank)` over the lists it appears in."
     score, best, engines = {}, {}, {}
     for hits in lists:
         for i, h in enumerate(hits):
@@ -106,7 +107,7 @@ _word = re.compile(r'[a-z0-9]+')
 def _toks(s:str) -> list: return _word.findall((s or '').lower())
 
 def bm25(q:str, docs:list, k1:float=1.5, b:float=0.75) -> list:
-    "BM25 scores for `docs` against `q`, with idf computed from `docs` themselves (no index needed)."
+    "Return the BM25 score of each of `docs` for the query `q`, with word weights computed from `docs` themselves."
     qt = {t for t in _toks(q) if len(t) > 1}
     dts = [_toks(d) for d in docs]
     if not (qt and dts): return [0.0]*len(docs)
@@ -132,7 +133,7 @@ def _hit_text(h:dict) -> str:
 
 _ranker = None
 def flashrank_scores(q:str, texts:list, model:str=None, cache_dir:str=None) -> list|None:
-    "Cross-encoder scores from flashrank, or None when it isn't installed (`pip install flashrank`)."
+    "Return flashrank cross-encoder scores for `texts` against `q`, or None when flashrank is not installed."
     global _ranker
     try: from flashrank import Ranker, RerankRequest
     except ImportError: return None
@@ -156,7 +157,7 @@ def rerank(q:str,               # search query
            method:str='none',   # none | lexical | flashrank | auto
            mix:float=0.4,       # weight on the retrieval score vs the reranker (1 = ignore the reranker)
           ) -> list:
-    "Re-order hits by relevance to `q`, blending the reranker with the retrieval score."
+    "Reorder hits by relevance to `q`, blending the reranker's score with the merged search score."
     if not hits or method == 'none': return hits[:n] if n else hits
     texts, rs = [_hit_text(h) for h in hits], None
     if method in ('auto', 'flashrank'):
@@ -238,13 +239,13 @@ def _alt(name:str, table:dict):
     return _pats[name]
 
 def infer_country(q:str) -> str:
-    "ISO country from `q`, or None when none/ambiguous."
+    "Return the country code of the one country named in `q`, or None when it names none or several."
     rx, keys = _alt('country', COUNTRY_WORDS)
     found = {keys[m.lastindex - 1] for m in rx.finditer(ifnone(q,'').lower())}
     return found.pop() if len(found) == 1 else None
 
 def infer_language(q:str) -> str:
-    "Language code from function words in `q`, or None when unclear/tied."
+    "Return the language code that the function words in `q` point to, or None when it is unclear."
     rx, keys = _alt('lang', LANG_WORDS)
     counts = {}
     for m in rx.finditer(ifnone(q,'').lower()): counts[keys[m.lastindex - 1]] = counts.get(keys[m.lastindex - 1], 0) + 1
@@ -255,7 +256,7 @@ def infer_language(q:str) -> str:
 def infer_region(q:str,             # the query, read for a place and a language
                  dflt:str='us-en',  # used for whichever half the query does not settle
                 ) -> str:
-    "ddgs `country-lang` from `q`, or `dflt` when auto has nothing to say."
+    "Return a ddgs `country-language` region read from `q`, filling the parts it leaves open from `dflt`."
     dc, _, dl = (dflt or 'us-en').partition('-')
     c, lang = infer_country(q), infer_language(q)
     return f'{c or dc}-{lang or (COUNTRY_LANG.get(c, "en") if c else dl or "en")}'
@@ -297,7 +298,7 @@ def search(q:str,                  # search query
            timeout:int=8,
            **kw,                   # extra kwargs passed to ddgs (max_results, safesearch, page)
           ) -> list:
-    "Search the web. Text results are fused across backends with RRF; pass method='lexical' or 'flashrank' to rerank."
+    "Search the web, merging text results from several engines with RRF and optionally reranking them."
     if not (q and q.strip()): return []
     assert category in ('text', 'images', 'news', 'videos', 'books'), f'Invalid category: {category}'
     n = kw.pop('max_results', None) or n
@@ -318,7 +319,9 @@ news = bind(search, category='news')
 videos = bind(search, category='videos')
 books = bind(search, category='books')
 
-def extract(url, **kw): return get_ddgs().extract(url, **kw)
+def extract(url, **kw):
+    "Download `url` with ddgs and return `{url, content}`, the content as markdown by default."
+    return get_ddgs().extract(url, **kw)
 
 # %% ../nbs/02_search.ipynb #61e5cac2
 def _parse_google(html:str, n:int) -> list:
@@ -360,7 +363,7 @@ def google(q:str,                # search query
            region:str='auto',    # ddgs-style region, or 'auto' to read the country off the query
            timelimit:str=None,   # d | w | m | y — Google's own `tbs=qdr:` filter
           ) -> list:
-    "Search Google directly via a stealth browser (real Google ranking). Returns dicts, same shape as search()."
+    "Search Google itself through the stealth browser and return results in the same shape as `search`."
     if not q or not q.strip(): return []
     gl, _, rlang = _region(q, region).partition('-')
     tbs = f'qdr:{timelimit}' if timelimit in TIMELIMITS else None
@@ -404,7 +407,7 @@ def _ld_nodes(html:str):
     return out
 
 def page_date(page) -> str:
-    "Publication date from JSON-LD / meta / URL path, or None."
+    "Return the publication date a page states, as `YYYY-MM-DD`, or None."
     # Duck-typed like `core._blocked`, not via `core._html`: that one returns None for anything
     # that isn't a scrapling Response, and a page here can be any object carrying markup.
     html = page if isinstance(page, str) else (getattr(page, 'html', None) or getattr(page, 'html_content', '') or '')
@@ -430,7 +433,7 @@ def _why(pg) -> str:
     return 'no readable content'
 
 def usable(pg, min_chars:int=_MIN_CHARS) -> bool:
-    "Did this fetch return a readable page, or an error / bot wall / empty JS shell?"
+    "Return True when a fetched page is a 200 response and not a bot wall."
     return pg is not None and getattr(pg, 'status', 0) == 200 \
         and getattr(pg, 'tier', '') != 'blocked' and not _blocked(pg)
 
@@ -456,7 +459,7 @@ def focus(md:str,            # page markdown
           reserve:float=0.3, # fraction of the budget spent on the top of the page before ranking
           lead:float=0.6,    # extra score for blocks near the top (intros define things)
          ) -> str:
-    "Keep the parts of `md` that answer `q`, in document order, within `chars`."
+    "Keep the parts of `md` that best answer `q`, in their original order, within `chars` characters."
     if not md or len(md) <= chars: return md
     bl = _split_blocks(md)
     if len(bl) < 2: return md[:chars]
@@ -503,7 +506,7 @@ def research(q:str,                 # search query
              concurrency:int=8,
              **kw,                  # extra kwargs passed to fetch()
             ) -> dict:
-    "Query -> read the top `n` *readable* results -> a cited markdown corpus. Returns {query, sources, digest, dropped, region, curation}."
+    "Search for `q`, read the top `n` readable results, and return them with a markdown digest that cites each one."
     if not (q and q.strip()):
         return dict(query=q, sources=[], digest='', dropped=[], region=_region(q, region),
                     curation=None, plan=[])

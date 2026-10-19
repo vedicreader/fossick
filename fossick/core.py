@@ -1,4 +1,4 @@
-"""fetch, markdown, crawl, and specialized readers
+"""Downloading pages, turning them into markdown, crawling sites, and reading arXiv, GitHub, YouTube and PDF sources
 
 Docs: https://vedicreader.github.io/fossick/core.html.md"""
 
@@ -28,7 +28,7 @@ from functools import cache
 
 # %% ../nbs/00_core.ipynb #b7683b88563710b3
 def fossick_cache(path=None):
-    "Get cache path for `name` (e.g. 'arxiv' or 'fetch')"
+    "Return the path `path` inside fossick's cache folder (`.fossick` in the user cache directory), creating its parent folders."
     p = xdg_cache_home()/'.fossick'
     if path: p /= path
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -45,12 +45,12 @@ def _bridge():
     return _loop
 
 def syncy(coro, tout=60):
-    "Run `coro` on the shared background loop from sync code, even inside a running loop."
+    "Run the coroutine `coro` from ordinary synchronous code and return its result, even when an event loop is already running."
     return asyncio.run_coroutine_threadsafe(coro, _bridge()).result(timeout=tout)
 
 @patch
 def mk_bytes(self:Path, data, mode=511, uid=-1, gid=-1):
-	"Make all parent dirs of `self`, and write `data`"
+	"Write the bytes `data` to this path, creating any missing parent folders first."
 	self.parent.mkdir(exist_ok=True, parents=True, mode=mode)
 	self.write_bytes(data)
 	if uid!=-1 or gid!=-1: os.chown(self, uid, gid)
@@ -82,7 +82,7 @@ def _clean_html(s:str) -> str:
     return lxml.html.tostring(doc, encoding='unicode')
 
 def html_title(s:str) -> str:
-    "The document's own title: `<title>` if present, else the first `<h1>`"
+    "Return the text of the document's `<title>`, or of its first `<h1>` when it has no title, or an empty string."
     for tag in ('title','h1'):
         m = re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', s, re.S|re.I)
         if m: return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', m.group(1))).strip()
@@ -91,7 +91,7 @@ def html_title(s:str) -> str:
 def html2md(s:str, ignore_links=True, ignore_images=False,
             readability:bool=True,  # Extract the article (right for fetched pages); False converts the whole document
            ):
-    'Convert `s` from HTML to markdown'
+    "Convert the HTML string `s` to markdown, keeping only the main article unless `readability=False`."
     import html2text
     from readability import Document
     if not s.strip(): return ''
@@ -107,7 +107,7 @@ def to_md(res_or_html,  # Page dict (from fetch/crawl) or raw HTML string
           ignore_images:bool=False,
           readability:bool=True,  # False keeps the whole document, for local files and saved pages
           ) -> str:
-    'Convert a Page dict or HTML string to clean markdown'
+    "Convert a response from `fetch` or an HTML string to markdown, optionally keeping only the parts that match a CSS selector."
     html = _html(res_or_html)
     _md = lambda h: html2md(str(h), ignore_links, ignore_images, readability)
     if sel:
@@ -124,7 +124,7 @@ BLOCKED_HOSTS = frozenset({'localhost', 'metadata', 'instance-data',
                            'metadata.google.internal', 'metadata.internal'})
 
 class BlockedURL(ValueError):
-    "A fetch target that points inside the network fossick is running in."
+    "The error raised when a URL points at a private, local or cloud metadata address."
 
 def _env_allows_private() -> bool:
     return (os.environ.get('FOSSICK_ALLOW_PRIVATE') or '').strip().strip('\'"').lower() in (
@@ -137,9 +137,9 @@ def _bad_ip(addr:str) -> bool:
     return (not ip.is_global) or ip.is_multicast
 
 def check_url(url:str,                   # the URL about to be fetched
-              allow_private:bool=None,   # None = honour $FOSSICK_ALLOW_PRIVATE (default: off)
+              allow_private:bool=None,   # True skips the check; None skips it only when FOSSICK_ALLOW_PRIVATE is 1, true, yes or on
              ) -> str:
-    "Raise `BlockedURL` if `url` targets a private/link-local/metadata host."
+    "Return `url` unchanged when it is safe to fetch, or raise `BlockedURL` when it is not http or https or its host is private or reserved."
     if allow_private or (allow_private is None and _env_allows_private()): return url
     u = urlparse(url if '//' in (url or '') else f'//{url or ""}')
     if u.scheme and u.scheme.lower() not in ('http', 'https', ''):
@@ -187,9 +187,10 @@ def _browser_fetchers():
             'try `scrapling install`, or upgrade scrapling/browserforge.') from e
 
 class BrowserUnavailable(RuntimeError):
-    "scrapling's headless/stealth browsers could not be loaded."
+    "The error raised when scrapling's browser fetchers fail to import; the message suggests running `scrapling install`."
 
 def http_page(url, method='GET', payload=None, verify=False, **kw) -> Response:
+	"Send one plain HTTP request with scrapling's `Fetcher` and return the response, without the private address check."
 	F, kw = _fetcher(), dict(verify=verify) | kw
 	if method.upper() == 'POST': return F.post(url, json=payload, **kw)
 	if method.upper() == 'PUT': return F.put(url, json=payload, **kw)
@@ -200,10 +201,7 @@ def http_page(url, method='GET', payload=None, verify=False, **kw) -> Response:
 
 def get_page(url, method='GET', payload=None, heavy=False, stealthy=False, session=False,
              allow_private=None, **kw) -> Response:
-	"""Fetch `url`. `session=True` (or a port int) drives the persistent debug Chrome via CDP, reusing its logged-in cookies.
-
-	Every fetch in fossick arrives here, which is why the private-address check lives here and not in
-	`fetch`: `crawl`, `replay_xhr`, `download_files` and `http_get` would each have to remember."""
+	"Download `url` with plain HTTP, a headless browser, the stealth browser or the logged-in debug Chrome, after checking it with `check_url`."
 	assert method.upper() in ('GET', 'POST'), 'Only GET and POST methods are supported'
 	check_url(url, allow_private)
 	if session:
@@ -295,11 +293,11 @@ def fetch(url:str,                # URL to fetch
           stealthy:bool=False,    # Anti-bot stealth fetcher (Cloudflare etc.)
           capture_xhr:bool=False, # Capture XHR calls made by the page (only works with heavy or stealthy)
           session:bool=False,     # Route through the persistent debug Chrome (reuses its logged-in cookies); True or a port int
-          auto:bool=False,        # Auto-escalate plain->heavy->stealthy->session on bot-block detection
+          auto:bool=False,        # Try plain, heavy, stealthy, then the debug Chrome, stopping at the first response that is not a bot wall
           allow_private:bool=None,# Allow localhost/intranet targets (default: refuse; $FOSSICK_ALLOW_PRIVATE=1)
           **kw,                   # Extra kwargs passed to scrapling (e.g. verify, headers)
          ) -> Response:
-    'Fetch `url`, return a Response with `.html` (raw or `sel`-extracted), `.xhr`, `.status`.'
+    "Download `url` and return the response with `.html` set to the page, or the part matching `sel`, and `.xhr` set to any recorded background requests."
     if auto: return _fetch_auto(url, sel=sel, method=method, payload=payload, capture_xhr=capture_xhr,
                             allow_private=allow_private, **kw)
     heavy = heavy or capture_xhr
@@ -310,7 +308,7 @@ def fetch(url:str,                # URL to fetch
 
 @contextmanager
 def browser_session(stealthy:bool=False, headless:bool=True, **init_kw):
-    "Open ONE browser and yield a `fetch(url, sel=None, **)` func that reuses it across calls (skips per-URL relaunch)."
+    "Keep one browser open for a `with` block and yield a `fetch(url, sel=None)` function that reuses it."
     from scrapling.fetchers import AsyncDynamicSession, AsyncStealthySession
     init_kw.pop('verify', None)
     Sess = AsyncStealthySession if stealthy else AsyncDynamicSession
@@ -334,7 +332,7 @@ def crawl(start_url:str,               # URL to start from
           reuse:bool=True,  # For heavy/stealthy crawls, keep one browser open across pages
           **kw,                        # Extra kwargs passed to scrapling (e.g. verify, timeout)
          ) -> list:
-    'Crawl from `start_url`, following `follow_sel` links, return list of Page dicts'
+    "Visit pages breadth-first from `start_url`, following links that match `follow_sel`, and return the responses that had status 200."
     bd, v, q, res = urlparse(start_url).netloc, set(), deque([start_url]), []
     use_sess = reuse and (heavy or stealthy)
     ctx = browser_session(stealthy=stealthy, **kw) if use_sess else nullcontext(None)
@@ -364,7 +362,7 @@ def crawl(start_url:str,               # URL to start from
 def get_options(page_or_html,  # Page dict (from fetch) or raw HTML string
                 sel:str         # CSS selector for the <select> element
                ) -> list:
-    "Extract options from a <select> element; returns [{'value': ..., 'text': ...}]"
+    "Return the options of the `<select>` element matched by `sel` as a list of `{'value', 'text'}` dictionaries."
     return [{'value': el.attrib.get('value', el.text or ''), 'text': (el.text or '').strip()}
             for el in Selector(_html(page_or_html)).css(f'{sel} option')]
 
@@ -375,7 +373,7 @@ def fetch_all(urls:list,           # URLs to fetch
               stealthy:bool=False, # Anti-bot stealth fetcher (Cloudflare etc.)
               **kw                  # Extra kwargs passed to fetch()
              ) -> list:
-    "Fetch a list of URLs in parallel; returns Page dicts in the same order as urls"
+    "Fetch a list of URLs in parallel threads and return the responses in the same order."
     return parallel(fetch, urls, sel=sel, heavy=heavy, stealthy=stealthy, threadpool=True, n_workers=concurrency, **kw)
 
 # %% ../nbs/00_core.ipynb #a808c2b15c3cec10
@@ -407,12 +405,7 @@ def get_pdf(url_or_path:str, # URL or local path to PDF
             save_path=None, # optional path to save the PDF (directory or full path)
             **scrapling_kw # extra kwargs passed to scrapling fetcher (e.g. verify, headers, timeout)
             ) -> PdfDocument|None:
-    """Fetch PDF from URL or path and return as PdfDocument, or None if it is not a PDF.
-
-    Identity comes from the %PDF- magic bytes, not the URL suffix. arXiv serves its PDFs from
-    extensionless URLs (`arxiv.org/pdf/1706.03762v7`), so a suffix check rejected every paper
-    fossick is most used to read. NCBI PMC's download page is a proof-of-work interstitial;
-    its challenge is solved once here rather than mistaken for a failed PDF."""
+    "Download a PDF from a URL, or read one from disk, and return it as a `PdfDocument`, or None when the bytes are not a PDF."
     pth = Path(url_or_path) if not url_or_path.startswith('http') else None
     if pth: src = pth.read_bytes() if pth.exists() else None
     else: src = r.body if (r:=get_page(url_or_path, **scrapling_kw)).status == 200 else None
@@ -464,11 +457,7 @@ def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
                force:bool=False, # if True, forces re-download even if cached
                **kw # http_get kwargs (e.g. verify=False to skip SSL verification, headers=... etc.)
                )-> dict:
-    """Paper metadata from an arXiv URL or ID: `title, authors, summary, published, link, pdf_url,
-    pdf_path` and, with `source=True`, the full text in `source`. The live `PdfDocument` comes back
-    under `doc` when this call downloaded one.
-
-    Only JSON-able fields are cached — a `PdfDocument` is a live handle, not cache content."""
+    "Return an arXiv paper's metadata and PDF path, and optionally its full text, caching the metadata on disk."
     arxiv_id, ver_sfx = _arxiv_key(url)
     key, idx = f'{arxiv_id}{ver_sfx}', _arxiv_index()
     if force: idx.pop(key, None)
@@ -497,7 +486,7 @@ _crossref = bind(_crossref_search, **{'select': 'DOI,title', 'rows': 1})
 
 def lookup_doi(title:str  # Paper title to search
                ) -> str|None:
-    "Return doi.org URL for first Crossref match on `title`"
+    "Return the doi.org URL of the first Crossref result for `title`, or None."
     items = _crossref(**{'query.title': title}).get('message', {}).get('items', [])
     doi = items[0].get('DOI') if items else None
     return f"https://doi.org/{doi}" if doi else None
@@ -548,7 +537,7 @@ def pdf2md(pdf,                    # a PdfDocument, path, bytes or URL
            image_dir:str='images',
            **kw                    # forwarded to pdflite.pdf_md
 ) -> str:
-    'A PDF as one markdown string, pages joined by `---`.'
+    "Convert a PDF to one markdown string with pages separated by `---`, saving its images beside `out_path`."
     out_path = Path(out_path).resolve()
     return pdf_md(pdf, out_path.parent/out_path.stem, image_dir=image_dir, **kw)
 
@@ -559,7 +548,7 @@ def url2nb(url, # URL to convert (PDF, arxiv, or HTML page)
            force=False, # if True, forces re-download and conversion even if notebook exists
            **kwargs # extra kwargs passed to fetch() (e.g. verify=False to skip SSL verification)
 )-> Path:
-	'Convert any URL (PDF, arxiv, or HTML page) to a Jupyter notebook'
+	"Save a web page, PDF or arXiv paper as a Jupyter notebook and return the notebook's path."
 	if url.endswith('.pdf'): return pdf2nb(url, nb_path=nb_path, **kwargs)
 	nb_path = Path(nb_path or f'{_nb_stem(url)}.ipynb')
 	if nb_path.exists() and not force: return nb_path
@@ -577,7 +566,7 @@ def pdf2nb(u_or_p,  # URL or local path to PDF
            ocr_selection:str='auto',  # choosing ocr (auto, off, on). auto uses pdf-oxide's ocr detection
            **kwargs,  # extra kwargs passed to fetch() (e.g. verify=False to skip SSL verification)
            ) -> Path:
-	'Convert PDF to a Jupyter notebook; one markdown cell per page + empty code cell'
+	"Save a PDF as a Jupyter notebook and return the notebook's path."
 	stem = Path(u_or_p).stem if not u_or_p.startswith('http') else u_or_p.rsplit('/', 1)[-1].split('.')[0]
 	pth = nb_path or f'{stem}.ipynb'
 	nb_path = Path(pth).resolve()
@@ -623,7 +612,7 @@ def _get_git_repo(remotes):
 
 def gh_clone(path_or_url:str  # GitHub URL, SSH address, or a local path (returned as-is)
              ) -> Path:
-    'The local clone for a GitHub repo, cloned or refreshed on demand. A local path passes through.'
+    "Return a local clone of a GitHub repository, cloned or updated in fossick's cache, or return a local path unchanged."
     return _get_git_repo(rs) if (rs := _gh_remotes(path_or_url)) else Path(path_or_url)
 
 @timed_cache(seconds=3600)
@@ -632,7 +621,7 @@ def read_gh_repo(path_or_url:str,  # GitHub URL, SSH address, or local path
                  limit:int=None,    # max files to return
                  as_list:bool=False # return list of Paths instead of {path: content} dict
                 )-> dict:
-    'Read files from a GitHub repo filtered by glob patterns'
+    "Return the files of a GitHub repository or local folder that match `globs`, as a `{path: text}` dictionary."
     repo_dir = gh_clone(path_or_url)
     globs = ifnone(globs, ('README*', 'pyproject.toml', '*.py'))
     files = L(p for g in globs for p in globtastic(repo_dir, file_glob=g, func=Path)).unique()
@@ -642,7 +631,7 @@ def read_gh_repo(path_or_url:str,  # GitHub URL, SSH address, or local path
 
 def read_gh_file(url:str # GitHub blob URL of the file to read
                  ):
-	'Read raw contents of a file from its GitHub URL'
+	"Return the contents of one file from its GitHub page URL."
 	raw_url = re.sub(r'https://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)',
 	                 r'https://raw.githubusercontent.com/\1/\2/refs/heads/\3/\4', url)
 	if (r:=http_get(raw_url)).status != 200: raise Exception(f"Failed to fetch {raw_url}: {r.status}")
@@ -652,7 +641,7 @@ def read_gh_file(url:str # GitHub blob URL of the file to read
 
 # %% ../nbs/00_core.ipynb #38ab5369106489f5
 def compile_pattern(pattern):
-	"Compile pattern as regex; if invalid (e.g. bare glob like *foo*), convert via fnmatch first"
+	"Compile `pattern` as a regular expression, or as a shell-style glob such as `*foo*` when it is not a valid one."
 	try: return re.compile(pattern)
 	except re.error:
 		import fnmatch
@@ -665,7 +654,7 @@ def find_xhr(url:str,             # URL to visit with browser
              tail:int=3,          # seconds to keep listening after navigation (only when session=True)
              **kw,                # Extra kwargs passed to fetch (verify, network_idle, etc.)
             ) -> list:
-    "Visit `url`, return [{url, content_type, data, capture}] for each XHR/fetch call made. `capture` replays via `replay_xhr`."
+    "Load `url` in a browser and return the background requests it makes whose URLs match `pattern`."
     rx = compile_pattern(pattern)
     if session:
         from fossick.cdp import cdp_connect, syncy
@@ -692,7 +681,7 @@ def replay_xhr(capture:dict,        # a request dict from cdp.calls() or find_xh
                use_cookies:bool=True, # attach the browser's cookies for this domain (keeps auth)
                **kw,                # Extra kwargs passed to the underlying Fetcher (headers, params, verify)
               ) -> Response:
-    "Replay a browser-captured request as a fast plain-HTTP call, authenticated via the debug Chrome's cookies."
+    "Send a request captured from the browser again as a plain HTTP call, with the debug Chrome's cookies for that site."
     url = capture['url']
     method = (capture.get('method') or 'GET').upper()
     headers = {k: v for k, v in (capture.get('headers') or {}).items()
@@ -717,11 +706,7 @@ def json_records(data,                # any decoded JSON payload
                  with_key:bool=False, # also return the key the records were found under
                  max_depth:int=6,
                 ):
-    """The longest list of dicts anywhere in `data` — how an API's records are found when no key is named.
-
-    A JSON API puts its rows where it likes: at the top level, under `results`, or under
-    `data.products.items`. Scanning only the top level finds the first two and silently misses the
-    third, which reads as an empty response rather than as a payload nobody looked into."""
+    "Return the longest list of dictionaries found anywhere in a decoded JSON payload."
     best, at = [], None
     def walk(o, d=0, k=None):
         nonlocal best, at
@@ -749,7 +734,7 @@ def paginate_api(url:str,                      # API endpoint URL
                  force:bool=False,             # If True, forces re-fetching even if saved file exists
                  **kw,                         # Extra kwargs passed to fetch() (verify, headers, etc.)
                 ) -> list:
-    "Paginate through a JSON API, collecting all results. Auto-detects the items list in response."
+    "Request successive pages of a JSON API and return the items from every page in one list."
     payload = dict(payload or {})
     page_size = payload.get(size_field, page_size)
     all_items = []
@@ -792,7 +777,7 @@ def download_files(url:str,
                    stealthy:bool=False,
                    **kw,                     # Extra kwargs passed to fetch/http_get (e.g. verify)
                   ) -> list[Path]:
-    "Download all hrefs matching pattern from url; optionally crawl linked pages first"
+    "Download every file linked from `url` whose link matches `pattern`, optionally crawling linked pages first, and return the saved paths."
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
     rx = compile_pattern(pattern)
@@ -851,7 +836,7 @@ def search_yt(q:str,  # search query
               n:int=10, # number of results to return
               **kw,   # extra opts forwarded to YoutubeDL; verify= is translated to nocheckcertificate, proxy= passed as-is
 ) -> list:
-    "Search YouTube; returns L of dicts: id, title, url, duration, view_count, channel, description, thumbnail"
+    "Search YouTube with yt-dlp and return up to `n` results as dictionaries."
     opts = _yt_opts({'quiet': True, 'extract_flat': True, 'no_warnings': True}, **kw)
     try:
         with _ytdl().YoutubeDL(opts) as ydl:return ydl.extract_info(f'ytsearch{n}:{q}',download=False).get('entries',[])
@@ -864,7 +849,7 @@ def read_yt(url:str, # YouTube URL or video ID
             force:bool=False, # if True, forces re-fetching even if cached
             **kw,  # SSL/proxy opts (e.g. **ddgs_env()); verify= translated to nocheckcertificate
 ) -> dict:
-    'Fetch YouTube metadata + English transcript (auto-captions); result disk-cached by video ID'
+    "Return a YouTube video's title, channel, description, duration, upload date and English transcript, cached by video id."
     vid, cache = _yt_id(url), _yt_index()
     if not force and vid in cache: return cache[vid]
 
@@ -895,7 +880,7 @@ def download_yt(url:str, # YouTube URL or video ID
                 quality:str=None, # preferred audio quality (e.g. '192' for 192kbps, only used if format='audio')
                 **kw,  # SSL/proxy opts (e.g. **ddgs_env()); verify= translated to nocheckcertificate
 ) -> Path:
-    'Download YouTube media; format=\'audio\'|\'video\'|yt-dlp format string. Returns Path to saved file.'
+    "Download a YouTube video's audio as mp3, its video as mp4, or any yt-dlp format, and return the saved file's path."
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
     outtmpl = str(save_dir / '%(title)s.%(ext)s')
@@ -920,7 +905,7 @@ _YT_URL   = re.compile(r'youtube\.com|youtu\.be')
 
 def what_is(target:str  # a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a path
             ) -> str:
-    "Return the reader kind for `target`."
+    "Return the name of the reader `read` would use for `target`."
     if (p := Path(target)).is_dir(): return 'dir'
     if p.exists(): return 'file'
     if 'arxiv.org' in target or _ARXIV_ID.fullmatch(target.strip()): return 'arxiv'
@@ -940,7 +925,7 @@ def _read(kind:str, source:str, text='', title:str=None, ok:bool=None, skipped:s
 def md_title(md:str,           # markdown to take a title from
              fallback:str=''   # what to use when it has no heading and no first line
              ) -> str:
-    "Return the first heading, first non-empty line, or `fallback`."
+    "Return the first heading in `md`, else its first non-empty line, else `fallback`."
     for ln in (md or '').splitlines():
         if (t := ln.strip()).startswith('#'): return t.lstrip('# ').strip()[:120]
     return next((l.strip()[:120] for l in (md or '').splitlines() if l.strip()), fallback)
@@ -950,7 +935,7 @@ def pdf_pages(pdf:PdfDocument,      # an open PDF
               out_path:str|Path,    # where extracted images go, as `pdf2md` takes it
               **kw                  # forwarded to `pdf2md`
               ) -> list:
-    "Return a PDF as `(page_number, markdown)` pairs."
+    "Convert a PDF to markdown and return it as `(page_index, markdown)` pairs, numbered from 0."
     md = pdf2md(pdf, out_path, **kw)
     return list(enumerate(md.split('\n---\n')))
 
@@ -958,15 +943,12 @@ def pdf_pages(pdf:PdfDocument,      # an open PDF
 def read(target:str,          # a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a local path
          sel:str=None,        # CSS selector, for the web cases
          auto:bool=True,      # escalate plain -> heavy -> stealthy -> logged-in Chrome past bot walls
-         pages:bool=False,    # PDFs as `[(page_no, text)]` rather than one string
+         pages:bool=False,    # PDFs as `[(page_index, text)]`, numbered from 0, rather than one string
          save_dir:str='.',    # where a downloaded PDF is kept
          force:bool=False,    # ignore whatever the reader has cached
          **kw                 # forwarded to whichever reader the target names
          ) -> AttrDict:       # `(ok, kind, title, source, text, skipped, meta)`
-    """Read a supported target and return a common result.
-
-    Read failures set `ok=False` and give the reason in `skipped`. Directories and GitHub
-    repositories set `meta['path']` and leave `text` empty."""
+    "Read any supported target and return its text and details in one common shape."
     kind = what_is(target)
     if kind == 'dir':  return _read('dir', str(target), ok=True, title=Path(target).name,
                                     skipped='a directory: walk it', path=str(Path(target).resolve()))
@@ -1010,11 +992,11 @@ def read(target:str,          # a URL, an arXiv id, a YouTube link, a GitHub rep
 
 # %% ../nbs/00_core.ipynb #a23a6173
 def repo_root() -> Path:
-    'Find the root of the current git repository, or None if not in a repo.'
+    "Return the nearest folder at or above the working directory that contains `.git`, or None."
     return first((Path.cwd(), *Path.cwd().parents), lambda p: (p/'.git').exists())
 
 def mv_skill_md(dry_run=True, dir=None) -> None:
-    'Copy bundled SKILL.md to skill directories.'
+    "Copy fossick's bundled `SKILL.md` into the agent skill folders, or only print where it would go when `dry_run` is True."
     base = Path(__file__).parent if '__file__' in globals() else Path.cwd()
     if not (src := base.joinpath('SKILL.md')).exists(): return
     root = dir or repo_root() or '.'

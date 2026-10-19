@@ -1,4 +1,4 @@
-"""Chrome DevTools: snapshot, act, sniff, replay
+"""Driving Chrome from Python: page snapshots for agents, forms, step lists, network capture and cookies
 
 Docs: https://vedicreader.github.io/fossick/cdp.html.md"""
 
@@ -42,7 +42,7 @@ def _profile_dir(user_data_dir=None):
     return Path(user_data_dir).expanduser() if user_data_dir else Path.home()/'.cache'/'fastcdp'/'cdp-chrome'
 
 async def cdp_setup(port=9223, user_data_dir=None, headless=False, timeout=None, extra_flags=None):
-    "Start a persistent debug Chrome on `port` with its own profile, ready for `CDP.remote`"
+    "Start the debug Chrome on `port` with its own profile and wait until it accepts connections."
     d = _profile_dir(user_data_dir)
     d.mkdir(parents=True, exist_ok=True)
     args = _chrome_flags(port, d, headless, extra_flags)
@@ -55,20 +55,20 @@ async def cdp_setup(port=9223, user_data_dir=None, headless=False, timeout=None,
     return d
 
 async def cdp_connect(port=9223, user_data_dir=None, headless=False, extra_flags=None):
-    "Connect to a debug Chrome on `port`; if none is running, set one up on a persistent profile and connect."
+    "Connect to the debug Chrome on `port`, starting it first if it is not running."
     if not _debug_running(port): await cdp_setup(port, user_data_dir, headless, extra_flags=extra_flags)
     cdp = await CDP.remote(port)
     cdp.ws.protocol.max_message_size = 2**30
     return cdp
 
 def cdp_ws(port=9223, headless=True, user_data_dir=None, extra_flags=None) -> str:
-    "Websocket debugger URL of the debug Chrome on `port`, starting one (headless by default) if needed. For scrapling's `cdp_url=`."
+    "Return the websocket address of the debug Chrome on `port`, starting a headless one if needed, for scrapling's `cdp_url=`."
     import httpx
     if not _debug_running(port): syncy(cdp_setup(port, user_data_dir, headless, extra_flags=extra_flags))
     return httpx.get(f'http://127.0.0.1:{port}/json/version').json()['webSocketDebuggerUrl']
 
 def cdp_app(url, port=9223, user_data_dir=None, wait=15):
-    'Open `url` as an app window -- no tabs, no address bar -- in the persistent debug Chrome.    '
+    "Open `url` as an app window, with no tabs or address bar, in the debug Chrome."
     import httpx
     reused, d = _debug_ready(port), _profile_dir(user_data_dir)
     if not reused: d = syncy(cdp_setup(port, d, headless=False, timeout=wait))
@@ -86,15 +86,11 @@ def cdp_app(url, port=9223, user_data_dir=None, wait=15):
 
 
 # %% ../nbs/01_cdp.ipynb #50ca53e6338fbf50
-class JSError(RuntimeError): "JavaScript raised while evaluating an expression in the page."
+class JSError(RuntimeError): "JavaScript raised an error while an expression was evaluated in the page."
 
 @patch
 async def eval(self:CDP, expr:str, sid=None):
-    """Evaluate `expr` in the page and return its decoded value.
-
-    Upgrades fastcdp's `eval` in three ways every caller wants: promises are awaited, objects and
-    arrays come back as Python values instead of `None`, and a JS exception is raised as `JSError`
-    rather than silently read as an empty result."""
+    "Evaluate the JavaScript `expr` in the page and return its value as Python data."
     r = await self.runtime.evaluate(sid=sid, expression=expr, awaitPromise=True, returnByValue=True)
     if 'exceptionDetails' in r:
         d = r['exceptionDetails']
@@ -105,6 +101,7 @@ async def eval(self:CDP, expr:str, sid=None):
 # %% ../nbs/01_cdp.ipynb #71588caefe040302
 @patch
 async def open_page(self:CDP, url):
+	"Open a new tab at `url` and return its `Page`."
 	pg = await self.new_page()
 	await pg.goto(url)
 	return pg
@@ -112,7 +109,7 @@ async def open_page(self:CDP, url):
 # %% ../nbs/01_cdp.ipynb #b16e20c6faf9e3d5
 @patch
 async def calls(self:CDP, url=None, pattern='.*', tail=3):
-    'Outgoing requests matching `pattern`. Navigates if url given, else passive.'
+    "Record the requests matching `pattern` that a page sends, opening `url` first when given."
     page = await self.new_page()
     rx, out = compile_pattern(pattern), {}
     await page.network.enable()
@@ -149,7 +146,7 @@ async def _get_cookies(cdp, urls=None):
     return ck if isinstance(ck, list) else ck.get('cookies', ck)
 
 def cdp_cookies(url_or_domain=None, port=9223, as_dict=False):
-    "Export cookies from the running debug Chrome. Returns Playwright-format list (for scrapling `cookies=`), or `{name: value}` if `as_dict`."
+    "Export the debug Chrome's cookies, as a scrapling-ready list or as `{name: value}` when `as_dict` is True."
     urls = None
     if url_or_domain:
         u = url_or_domain if '://' in url_or_domain else f'https://{url_or_domain}'
@@ -171,17 +168,17 @@ def cdp_cookies(url_or_domain=None, port=9223, as_dict=False):
 # %% ../nbs/01_cdp.ipynb #1dd86ba94c1944ac
 @patch
 async def html(self:Page):
-    "Live outerHTML of the page (post-JS), as a string"
+    "Return the page's current HTML, after its JavaScript has run."
     return await self.eval('document.documentElement.outerHTML')
 
 @patch
 async def selector(self:Page):
-    "Live page as a scrapling `Selector` for CSS/xpath querying"
+    "Return the current page as a scrapling `Selector` for CSS and XPath queries."
     return Selector(await self.html(), url=await self.eval('location.href'))
 
 @patch
 async def md(self:Page, sel:str=None, **kw):
-    "Live page as clean markdown via fossick's `to_md` (optionally narrowed to CSS `sel`)"
+    "Return the current page as markdown, optionally only the part matching the CSS selector `sel`."
     return to_md(await self.html(), sel=sel, **kw)
 
 # %% ../nbs/01_cdp.ipynb #f91dc2c213ff4696
@@ -205,7 +202,7 @@ def _ax_lines(node, interactive, keep, out):
 
 @patch
 async def snapshot(page:Page, interactive=True, keep=None):
-    "Compact, LLM-ready view of the page: one line per actionable element as `[#backend_id] role \"name\"`. IDs feed `fill_text`/`click`."
+    'Return a short text view of the page with one `[#id] role "name"` line per control.'
     tree = await page.ax_tree()
     url = await page.eval('location.href'); title = await page.eval('document.title')
     body = '\n'.join(_ax_lines(tree, interactive, keep or (_INTERACTIVE | _STRUCT), [])) if tree else '(empty)'
@@ -213,20 +210,20 @@ async def snapshot(page:Page, interactive=True, keep=None):
 
 @patch
 async def type_text(page:Page, backendNodeId, text):
-    "Clear an input then type `text` (unlike raw `fill_text`, which appends)."
+    "Clear an input and type `text` into it."
     await page.js_node_run('this.value="";this.dispatchEvent(new Event("input",{bubbles:true}))', backendNodeId)
     await page.fill_text(backendNodeId, str(text))
 
 @patch
 async def click_settle(page:Page, backendNodeId, timeout=8):
-    "Click, then best-effort wait for the page to settle — tolerates SPA clicks that don't navigate (unlike `click_and_wait`)."
+    "Click an element and wait for the page to settle, without failing when the click does not navigate."
     await page.click(backendNodeId)
     try: await asyncio.wait_for(page.wait_for_ready(timeout=timeout), timeout+1)
     except Exception: pass
 
 @patch
 async def fill_form(page:Page, fields:dict, submit:str=None):
-    "Fill a form by field label/name: {label: value}. Native <select> uses its option values. Optionally click `submit` (by name) and wait. Returns snapshot()."
+    "Fill form fields by visible label or name, optionally click a submit button, and return a new snapshot."
     tree = await page.ax_tree()
     for label, value in fields.items():
         node = first(n for r in _EDITABLE for n in tree.find_all(role=r) if label.lower() in (n.name or '').lower())
@@ -245,7 +242,7 @@ async def fill_form(page:Page, fields:dict, submit:str=None):
 
 # %% ../nbs/01_cdp.ipynb #ace1b843a9f64580
 def ax_diff(before:str, after:str) -> str:
-    "Line diff between two `snapshot()`s (ignoring backend ids, which churn on navigation) — what an action changed."
+    "Return the lines added or removed between two snapshots, ignoring element ids."
     import difflib
     strip = lambda s: [re.sub(r'^\[#\d+\]\s*', '', l) for l in s.splitlines()]
     d = [l for l in difflib.unified_diff(strip(before), strip(after), lineterm='', n=0)
@@ -254,7 +251,7 @@ def ax_diff(before:str, after:str) -> str:
 
 @patch
 async def node_for(page:Page, sel:str):
-    "backendNodeId of the first element matching CSS `sel` (bridge scrapling/CSS knowledge to CDP actions)."
+    "Return the id of the first element matching the CSS selector `sel`, or None."
     doc = await page.DOM.getDocument(depth=0)
     root = doc['root']['nodeId'] if isinstance(doc, dict) and 'root' in doc else doc['nodeId']
     nid = await page.DOM.querySelector(nodeId=root, selector=sel)
@@ -263,28 +260,28 @@ async def node_for(page:Page, sel:str):
 
 @patch
 async def click_sel(page:Page, sel:str, wait=True):
-    "Click the element matching CSS `sel`."
+    "Click the element matching the CSS selector `sel`."
     bid = await page.node_for(sel)
     if bid is None: raise ValueError(f'No element matching {sel!r}')
     await (page.click_and_wait(bid) if wait else page.click(bid))
 
 @patch
 async def fill_sel(page:Page, sel:str, text:str):
-    "Clear and type `text` into the element matching CSS `sel`."
+    "Clear the element matching the CSS selector `sel` and type `text` into it."
     bid = await page.node_for(sel)
     if bid is None: raise ValueError(f'No element matching {sel!r}')
     await page.type_text(bid, text)
 
 @patch
 async def eval_json(page:Page, fn:str, *args):
-    "Call JavaScript function `fn` with JSON-safe `args`, returning its decoded result."
+    "Call the JavaScript function `fn` with `args` converted to JSON and return its result."
     return await page.eval(f'({fn})({",".join(json.dumps(o, default=str) for o in args)})')
 
 
 # %% ../nbs/01_cdp.ipynb #bfcef09881584a93
 @patch
 async def act(page:Page, steps:list):
-    "Run a declarative flow; returns {read_label_or_index: markdown} for every ('read', sel) step. Re-reads the ax tree after nav.\n\nSteps: ('goto',url) ('fill',label,val) ('click',label) ('select',label,val) ('wait',text) ('wait_sel',css) ('read',css[,label])."
+    "Run a list of steps on the page and return the markdown read by each `read` step."
     reads, tree = {}, None
     async def _tree():
         nonlocal tree; tree = await page.ax_tree(); return tree
@@ -339,6 +336,7 @@ SHOW = "document.querySelectorAll('.__capui').forEach(b=>b.style.visibility='vis
 # %% ../nbs/01_cdp.ipynb #c9bbb2ed6c63c346
 @patch
 async def collect(page:Page, save_dir=None, prefix=None, stop=None, tout=None, count=None, every_n=None):
+	"Take screenshots each time the person presses the injected capture button, or on a timer, and return them."
 	stop, sid = stop or asyncio.Event(), page.sid
 	prefix = prefix or await page.eval('document.title')
 	save_dir = Path(save_dir) if save_dir else None
@@ -465,7 +463,7 @@ _AX_SKIP = {'none','generic','Section','InlineTextBox','StaticText',''}
 # %% ../nbs/01_cdp.ipynb #29df3393fc5ed587
 @patch
 async def annotate(page:Page, save_dir=None, prefix=None, stop=None, tout=None):
-	"Click elements interactively; returns (screenshot, [{n, role, name, selector}]) with badges baked in."
+	"Let a person click elements to number them and return a screenshot with the numbers and a list of the chosen elements."
 	stop, sid = stop or asyncio.Event(), page.sid
 	prefix = prefix or await page.eval('document.title')
 	save_dir = Path(save_dir) if save_dir else None

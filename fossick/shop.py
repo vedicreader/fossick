@@ -1,4 +1,4 @@
-"""cart and checkout automation on a live page
+"""Adding products to a cart and filling checkout forms on a live store
 
 Docs: https://vedicreader.github.io/fossick/shop.html.md"""
 
@@ -452,7 +452,7 @@ SITES = {
 }
 
 def site_hint(url:str) -> dict:
-    "Hints (`search`, `cart`, `note`) for the host of `url`; `{}` when the site is not listed."
+    "Return the search URL, cart URL and notes known for the host of `url`, or `{}` when the store is not listed."
     host = urlparse(url).netloc.lower()
     for k, v in SITES.items():
         if k in host: return {kk: (vv.replace('{host}', host) if isinstance(vv, str) else vv) for kk, vv in v.items()}
@@ -460,7 +460,7 @@ def site_hint(url:str) -> dict:
 
 # %% ../nbs/05_shop.ipynb #e1e1a809aa332a3d
 class ShopError(RuntimeError):
-    "A shop action could not be carried out (bad index, no add control, nothing to match)."
+    "A shop action could not be carried out, such as a product number that is not on the page."
     pass
 
 def _origin(url:str) -> str:
@@ -469,15 +469,14 @@ def _origin(url:str) -> str:
 
 @patch
 async def shop_prep(page:Page, force:bool=False) -> str:
-    """The platform this store runs on — `shopify`, `woocommerce`, `bigcommerce`, `magento`, `next`
-    or `generic` — injecting the in-page helpers first if the page has none (a navigation wipes them)."""
+    "Inject the in-page helpers if the page has none and return the store's platform."
     if not force and (plat := await page.eval('window.__fk ? __fk.platform() : null')): return plat
     await page.eval(SHOP_JS)
     return await page.eval('__fk.platform()')
 
 @patch
 async def shop_products(page:Page, limit:int=40) -> list:
-    "Products on the current page as `[{i, title, price, url, add, qty, oos, vid}]`. `i` feeds `shop_add`."
+    "Return the products on the current page as numbered dictionaries."
     await page.shop_prep()
     return ifnone(await page.eval_json('__fk.products', limit), [])
 
@@ -490,7 +489,7 @@ _CART_FN = ("async () => {const r = await fetch('/cart.js', {headers:{Accept:'ap
 
 @patch
 async def shop_cart(page:Page, lines:bool=False) -> dict:
-    "Current cart: `{count, subtotal, source}` (+ `lines` if asked). Uses Shopify's `/cart.js` when available."
+    "Return the cart's item count and subtotal, and its lines when asked, from Shopify's `/cart.js` where available."
     if await page.shop_prep() == 'shopify' and (c := await page.eval_json(_CART_FN)):
         for l in c['lines']: l['title'] = html.unescape(l['title'] or '')   # cart.js escapes it
         return dict(c, source='shopify/cart.js')
@@ -498,19 +497,19 @@ async def shop_cart(page:Page, lines:bool=False) -> dict:
 
 @patch
 async def shop_lines(page:Page) -> list:
-    "Cart line items read from the page: `[{i, text, price, qty, remove}]`. Run this on the cart page."
+    "Return the lines of the cart as shown on the cart page."
     await page.shop_prep()
     return await page.eval('__fk.lines()') or []
 
 @patch
 async def shop_blockers(page:Page) -> list:
-    "What is standing in the way: `cookie-banner`, `location-required`, `login-required`, `captcha`, `modal-open`."
+    "Return the names of anything blocking the store, such as a cookie banner or a login requirement."
     await page.shop_prep()
     return await page.eval('__fk.blockers()') or []
 
 @patch
 async def shop_dismiss(page:Page) -> list:
-    "Click through cookie/consent banners and closable modals. Returns the labels it clicked."
+    "Click through cookie banners and closable pop-ups and return the labels clicked."
     await page.shop_prep()
     return await page.eval('__fk.dismiss()') or []
 
@@ -596,11 +595,7 @@ async def _shopify_add(page, it:dict, qty:int, variant:str):
 
 @patch
 async def shop_add(page:Page, item, qty:int=1, variant:str=None, open_product:bool=True, tout:int=12) -> dict:
-    """Add `item` (index from `shop_products`, or a title) to the cart and verify it landed.
-
-    Returns `{ok, item, how, before, after}`. `ok=True` only when a cart signal actually moved;
-    `ok=None` means the site exposes no signal to check, and `ok=False` means nothing changed.
-    On a Shopify site this posts to `/cart/add.js`, which needs no clicking and no guessing."""
+    "Add a product, chosen by number or title, to the cart and check that the cart changed."
     plat = await page.shop_prep()
     items = await page.shop_products()
     if not items: return dict(ok=False, error='no products found on this page', url=await page.eval('location.href'))
@@ -657,7 +652,7 @@ async def _goto(page, url, tout:int=25):
 
 @patch
 async def shop_cart_page(page:Page, url:str=None) -> dict:
-    "Open the cart page (hint, on-page cart link, then `/cart`) and return the cart with its lines."
+    "Open the cart page and return the cart with its lines."
     plat, cur = await page.shop_prep(), await page.eval('location.href')
     url = url or site_hint(cur).get('cart') or (f'{_origin(cur)}/cart' if plat == 'shopify' else None) \
               or await page.eval('__fk.cartLink()') or f'{_origin(cur)}/cart'
@@ -673,7 +668,7 @@ def _line(cart:dict, line) -> dict:
 
 @patch
 async def shop_qty(page:Page, line, qty:int, tout:int=12) -> dict:
-    "Set the quantity of cart line `line` (index from `shop_lines`, or a Shopify line key). Verified."
+    "Set the quantity of a cart line and check that the cart changed."
     if await page.shop_prep() == 'shopify':
         before = await page.shop_cart(lines=True)
         key = line if isinstance(line, str) and not line.isdigit() else \
@@ -692,7 +687,7 @@ async def shop_qty(page:Page, line, qty:int, tout:int=12) -> dict:
 
 @patch
 async def shop_remove(page:Page, line, tout:int=12) -> dict:
-    "Remove cart line `line`. Verified the same way as `shop_add`."
+    "Remove a cart line and check that the cart changed."
     if await page.shop_prep() == 'shopify': return await page.shop_qty(line, 0, tout=tout)
     before, toast0, _ = await _baseline(page, lines=True)
     ln = _line(before, line)
@@ -752,7 +747,7 @@ def _score(f:dict, key:str) -> int:
     return 40 if lb and any(s in lb for s in labels) else 0
 
 def match_fields(fields:list, profile:dict) -> dict:
-    "Best field for each profile key: `{key: field}`. One field per key, highest score wins."
+    "Return the best form field for each profile key as `{key: field}`, using each field at most once."
     out, used = {}, set()
     pairs = sorted(((_score(f, k), len(f.get('label') or ''), k, f) for k in profile if k in FIELD_MAP
                     for f in fields), key=lambda t: (-t[0], t[1]))
@@ -766,13 +761,13 @@ def match_fields(fields:list, profile:dict) -> dict:
 # %% ../nbs/05_shop.ipynb #11c29c961de00e22
 @patch
 async def shop_fields(page:Page) -> list:
-    "Every visible form field with its label, `autocomplete` token, value and `<select>` options."
+    "Return every visible form field with its number, label, `autocomplete` token, value and drop-down options."
     await page.shop_prep()
     return await page.eval('__fk.fields()') or []
 
 @patch
 async def shop_set(page:Page, i:int, value) -> dict:
-    "Set form field `i` (index from `shop_fields`) to `value`; returns what the field holds afterwards."
+    "Set form field `i` to `value` and return what the field holds afterwards."
     await page.shop_prep()
     got = await page.eval_json('__fk.fill', int(i), value)
     return dict(i=i, wanted=value, got=got, ok=got is not None)
@@ -783,13 +778,7 @@ _same = lambda a, b: _ALNUM.sub('', str(a).lower()) == _ALNUM.sub('', str(b).low
 
 @patch
 async def shop_fill(page:Page, profile:dict, submit:str=None, confirm:bool=False) -> dict:
-    """Fill a checkout form from a profile dict, then re-read the form to confirm what stuck.
-
-    Keys are canonical (`first_name, last_name, email, phone, address1, address2, city, state,
-    postcode, country, company, notes, card_*`) and are matched to fields by `autocomplete` token
-    first; a numeric key sets that `shop_fields` index directly, for the options a profile has no
-    name for (size, colour, delivery window). Returns `{filled, failed, unmatched, fields}`.
-    `submit=` clicks that button by name; a payment-looking button additionally needs `confirm=True`."""
+    "Fill a checkout form from a profile dictionary, read it back to confirm each field, and optionally click a button."
     if submit and PAY_RX.search(submit) and not confirm:
         raise ShopError(f'{submit!r} looks like it completes a payment — pass confirm=True to click it')
     fields = await page.shop_fields()
@@ -818,7 +807,7 @@ async def shop_fill(page:Page, profile:dict, submit:str=None, confirm:bool=False
 # %% ../nbs/05_shop.ipynb #1be0c9dcf69b06bb
 @patch
 async def shop_typed_search(page:Page, q:str):
-    "Type `q` into whatever search box the page has and submit it (no search URL needed)."
+    "Type `q` into the page's search box and submit it."
     await page.shop_prep()
     if not await page.eval_json('__fk.searchBox', q):
         raise ShopError('no search box found on this page — pass a search URL to goto() instead')
@@ -850,10 +839,7 @@ def _sync(name:str):
     return _g
 
 class Shop:
-    """A shopping session on the persistent debug Chrome: search, add, verify, check out.
-
-    Every `page.shop_*` coroutine is here as a plain synchronous method — one call in, one small
-    JSON result out, no event loop and no node ids."""
+    "A synchronous shopping session on the debug Chrome for searching, adding to the cart and checking out."
     def __init__(self, page, port:int=9223, tout:int=180): store_attr()
 
     @property
@@ -865,23 +851,23 @@ class Shop:
         return f"<Shop {self.url} | cart: {c.get('count')} items, subtotal {c.get('subtotal')}>"
 
     def goto(self, url:str) -> str:
-        "Navigate to `url`."
+        "Go to `url`."
         return syncy(_goto(self.page, url), tout=self.tout)
 
     def search(self, q:str, limit:int=40) -> list:
-        "Search the store for `q` (its known search URL, else its own search box) and list products."
+        "Search the store for `q` and return the products found."
         if (u := site_hint(self.url).get('search')): self.goto(u.format(q=quote_plus(q)))
         elif self.platform() == 'shopify': self.goto(f'{_origin(self.url)}/search?q={quote_plus(q)}')
         else: syncy(self.page.shop_typed_search(q), tout=self.tout)
         return self.products(limit)
 
     def open(self, url:str) -> str:
-        "Point the session at `url`, unless it is already there."
+        "Go to `url` unless the session is already there."
         if self.url != url: self.goto(url)
         return self.url
 
     def find(self, q:str, limit:int=40) -> list:
-        "Products on the current page whose title contains `q`."
+        "Return the products on the current page whose title contains `q`."
         return [p for p in self.products(limit) if q.lower() in (p['title'] or '').lower()]
 
 for _name, _meth in _SHOP_METHS.items(): setattr(Shop, _name, _sync(_meth))
@@ -897,12 +883,7 @@ async def _prepared_tab(cdp, url:str):
 
 def shop(url:str=None, port:int=9223, headless:bool=None, extra_flags=None,
          resume:bool=False, tout:int=180) -> Shop:
-    """Open a `Shop` on the persistent debug Chrome (starting one if needed), optionally at `url`.
-
-    A tab an earlier `shop()` left open on that site is picked up again rather than piling up
-    another one, and by default it is navigated to `url`. `resume=True` leaves it exactly where it
-    is instead — which is how the CLI carries a page across invocations, so `--add 0` acts on the
-    results `--search` left on screen."""
+    "Open a `Shop` session on the debug Chrome, reusing a tab already open on the store."
     async def _open():
         cdp = await cdp_connect(port=port, headless=bool(headless), extra_flags=extra_flags)
         pg, at = await _prepared_tab(cdp, url) if url else (None, None)
