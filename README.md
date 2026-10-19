@@ -5,7 +5,7 @@
 
 fossick gets text off the web and into a program. You give it a search query, a URL, an arXiv id, a YouTube link, a GitHub repository or a local file, and it gives back markdown that a person or a language model can read. It was written for AI agents that need to look things up, so its functions return plain data (strings, lists and dictionaries) that can be printed or passed to a model as they are.
 
-The library works in layers. [`search`](https://vedicreader.github.io/fossick/cli.html#search) sends a query to several search engines at once and merges their answers into one ranked list. [`read`](https://vedicreader.github.io/fossick/core.html#read) takes a single target and returns its text. Under [`read`](https://vedicreader.github.io/fossick/core.html#read), [`fetch`](https://vedicreader.github.io/fossick/cli.html#fetch) downloads a page and [`to_md`](https://vedicreader.github.io/fossick/core.html#to_md) turns its HTML into markdown. Many sites refuse plain downloads from scripts, so [`fetch`](https://vedicreader.github.io/fossick/cli.html#fetch) can also load a page in a headless browser, in a stealth browser built to pass bot checks, or in a copy of Chrome you have logged in to. For pages that need clicking and typing, [`cdp_connect`](https://vedicreader.github.io/fossick/cdp.html#cdp_connect) drives that Chrome directly. Everything here is also available from the shell as the `fossick` command and to agents as an MCP server.
+The library works in layers. [<code>search</code>](https://vedicreader.github.io/fossick/search.html#search) sends a query to several search engines at once and merges their answers into one ranked list. [`read`](https://vedicreader.github.io/fossick/core.html#read) takes a single target and returns its text. Under [`read`](https://vedicreader.github.io/fossick/core.html#read), [<code>fetch</code>](https://vedicreader.github.io/fossick/core.html#fetch) downloads a page and [`to_md`](https://vedicreader.github.io/fossick/core.html#to_md) turns its HTML into markdown. Many sites refuse plain downloads from scripts, so [<code>fetch</code>](https://vedicreader.github.io/fossick/core.html#fetch) can also load a page in a headless browser, in a stealth browser built to pass bot checks, or in a copy of Chrome you have logged in to. For pages that need clicking and typing, [`cdp_connect`](https://vedicreader.github.io/fossick/cdp.html#cdp_connect) drives that Chrome directly. Everything here is also available from the shell as the `fossick` command and to agents as an MCP server.
 
 ## Install
 
@@ -17,7 +17,7 @@ Searching and plain downloads need nothing else. Rendering JavaScript, the steal
 
 ## Quick start
 
-Three calls cover most uses. [`search`](https://vedicreader.github.io/fossick/cli.html#search) returns a list of results, each a dictionary with the page’s `title`, its URL in `href` and a snippet in `body`. `score` is the merged ranking score, and `engines` names the search engines that returned that page. `method='flashrank'` reorders the results with a small relevance model, which needs `pip install flashrank`; without a `method` the merged order is kept.
+Three calls cover most uses. [<code>search</code>](https://vedicreader.github.io/fossick/search.html#search) returns a list of results, each a dictionary with the page’s `title`, its URL in `href` and a snippet in `body`. `score` is the merged ranking score, and `engines` names the search engines that returned that page. `method='flashrank'` reorders the results with a small relevance model, which needs `pip install flashrank`; without a `method` the merged order is kept.
 
 ``` python
 results = search('koshas github fts semantic code graph', method='flashrank', n=5)
@@ -98,9 +98,9 @@ Sometimes a target is recognised but yields nothing: a site serves a bot check i
 
 | notebook | what it covers |
 |----|----|
-| `00_core` | downloading pages ([`fetch`](https://vedicreader.github.io/fossick/cli.html#fetch), [`crawl`](https://vedicreader.github.io/fossick/cli.html#crawl)), HTML to markdown ([`to_md`](https://vedicreader.github.io/fossick/core.html#to_md)), the readers for arXiv, GitHub, YouTube and PDFs, finding the JSON API behind a page, and [`read`](https://vedicreader.github.io/fossick/core.html#read) |
+| `00_core` | downloading pages ([<code>fetch</code>](https://vedicreader.github.io/fossick/core.html#fetch), [<code>crawl</code>](https://vedicreader.github.io/fossick/core.html#crawl)), HTML to markdown ([`to_md`](https://vedicreader.github.io/fossick/core.html#to_md)), the readers for arXiv, GitHub, YouTube and PDFs, finding the JSON API behind a page, and [`read`](https://vedicreader.github.io/fossick/core.html#read) |
 | `01_cdp` | driving Chrome through the DevTools protocol: page snapshots for agents, filling forms, running a list of steps, capturing network requests |
-| `02_search` | web search across several engines, merging and reranking results, [`google`](https://vedicreader.github.io/fossick/search.html#google), and [`research`](https://vedicreader.github.io/fossick/cli.html#research) |
+| `02_search` | web search across several engines, merging and reranking results, [`google`](https://vedicreader.github.io/fossick/search.html#google), and [<code>research</code>](https://vedicreader.github.io/fossick/search.html#research) |
 | `03_cli` | the `fossick` shell command |
 | `04_mcp` | the MCP server that offers fossick’s functions to coding agents |
 | `05_shop` | adding products to a shopping cart and filling checkout forms on a live store |

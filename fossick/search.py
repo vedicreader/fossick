@@ -17,7 +17,7 @@ from urllib.parse import quote_plus, urlsplit, urlunsplit, parse_qsl, urlencode
 from fastcore.all import first, bind, ifnone
 from fastcore.parallel import parallel
 from scrapling import Selector
-from .core import to_md, fetch, fossick_cache, _blocked, search_yt
+from .core import to_md, html2md, fetch, fossick_cache, _blocked, search_yt
 from .quality import norm_url, curate as _curate, host, plan as _plan, interleave
 
 
@@ -433,9 +433,11 @@ def _why(pg) -> str:
     return 'no readable content'
 
 def usable(pg, min_chars:int=_MIN_CHARS) -> bool:
-    "Return True when a fetched page is a 200 response and not a bot wall."
-    return pg is not None and getattr(pg, 'status', 0) == 200 \
-        and getattr(pg, 'tier', '') != 'blocked' and not _blocked(pg)
+    "Return True when a fetched page is a 200 response, not a bot wall, and has at least `min_chars` of readable markdown."
+    if pg is None or getattr(pg, 'status', 0) != 200 or getattr(pg, 'tier', '') == 'blocked' or _blocked(pg): return False
+    if min_chars <= 0: return True
+    try: return len(html2md(getattr(pg, 'html', None) or getattr(pg, 'html_content', '') or '').strip()) >= min_chars
+    except Exception: return False
 
 def _split_blocks(md:str, max_len:int=1200) -> list:
     # The length cap matters: an un-paragraphed wall of text is a single block, and a block bigger
@@ -535,7 +537,7 @@ def research(q:str,                 # search query
         for (h, u), pg in zip(batch, _fetch_batch([u for _, u in batch], concurrency, sel=sel, auto=auto, **kw)):
             title = h.get('title') or u
             md = ''
-            if usable(pg):
+            if usable(pg, 0):
                 try: md = to_md(pg, sel=sel)
                 except Exception: md = ''
             if len(md.strip()) < _MIN_CHARS:

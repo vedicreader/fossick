@@ -525,6 +525,45 @@ def _repl_to_code(code):
 			i += 1
 	return '\n'.join(out).strip()
 
+def _text_segs(t): return [c.strip() for c in re.split(r'\n(?=#{1,3} )', t) if c.strip()]
+
+def _needs_reindent(code):
+	try: ast.parse(code); return False
+	except IndentationError: return True
+	except SyntaxError: return False
+
+def _restore_py_indent(code):
+	"Re-indent Python that had all indentation stripped (best-effort)"
+	TERM, END_COLON = re.compile(r'^(return|break|continue|pass|raise)\b'), re.compile(r':\s*$')
+	ELSE_KW = re.compile(r'^(else|elif\b|except\b|finally)\b')
+	stack, indent, result, pd = [], 0, [], 0
+	for raw in code.split('\n'):
+		s = raw.strip()
+		if not s: result.append(''); continue
+		if pd == 0 and ELSE_KW.match(s):
+			while stack and stack[-1][0] == 'else': stack.pop()
+			if stack: _, indent = stack.pop()
+		result.append('    ' * indent + s)
+		pd += s.count('(') - s.count(')')
+		if pd <= 0:
+			pd = 0
+			if END_COLON.search(s): stack.append(('else' if ELSE_KW.match(s) else 'block', indent)); indent += 1
+			elif TERM.match(s) and stack: indent = stack[-1][1]
+	return '\n'.join(result)
+
+def _md2cells(md):
+	"Split markdown into cells: `[code]` blocks become code cells, REPL sessions code with `# =>` output, bare output a fenced block."
+	segs, last = [], 0
+	for m in re.finditer(r'\[code\]\n\n(.*?)\n\[/code\]', md, re.DOTALL):
+		segs += [('markdown', s) for s in _text_segs(md[last:m.start()].strip())]
+		if code := re.sub(r'^    ', '', m.group(1), flags=re.MULTILINE).strip():
+			if _is_repl(code): segs.append(('code', _repl_to_code(code)))
+			elif _OUTPUT_ONLY.match(code) and not _PY_LIKE.search(code): segs.append(('markdown', f'```\n{code}\n```'))
+			else: segs.append(('code', _restore_py_indent(code) if _needs_reindent(code) else code))
+		last = m.end()
+	segs += [('markdown', s) for s in _text_segs(md[last:].strip())]
+	return [mk_cell(c, k) for k, c in segs]
+
 
 from pdflite import clean_md, fix_layout, needs_ocr, ocr_parse, orphan_vals, pdf_doc, pdf_md
 
@@ -573,7 +612,7 @@ def pdf2nb(u_or_p,  # URL or local path to PDF
 	if nb_path.exists() and not force: return nb_path
 	pdf = get_pdf(u_or_p, **kwargs)
 	if not pdf: raise Exception("Failed to fetch or parse PDF")
-	text = pdf2md(pdf, out_path=nb_path, ocr_selection=ocr_selection)
+	text = pdf2md(pdf, out_path=nb_path, ocr=ocr_selection)
 	Notebook(new_nb(cells=_md2cells(text)), path=nb_path).save()
 	return nb_path
 

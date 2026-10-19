@@ -2,8 +2,15 @@
 
 <!-- do not remove -->
 
-pdflite upgrades## 0.1.17
+## 0.1.18
+- `url2nb` and `pdf2nb` work again: `_md2cells` and its helpers, lost in the move to pdflite, are back.
+- `pdf2nb` hands its OCR choice to pdflite as `ocr=`.
+- `usable(min_chars=...)` checks the page has that much readable markdown; `research` passes 0 and measures the markdown it keeps.
+- README links `search`, `fetch`, `crawl` and `research` to the library functions, not the CLI.
+- CI: the cells that need a live debug Chrome are `eval: false`; `dev` is an extra, as nbdev's CI installs it, with the uv group pointing at it.
 
+## 0.1.17
+pdflite upgrades
 
 ## 0.1.16
 lean pass
