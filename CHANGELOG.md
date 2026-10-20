@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.20
+- Chrome, started by `cdp_setup` and `cdp_app`, and the git commands behind `gh_clone` get `/dev/null` as stdin, so neither reads nor reconfigures the caller's terminal. `gh_clone` runs git through `subprocess` itself, since fastcore's `run` passes the terminal on.
+
 ## 0.1.19
 - `debug_ready` is public in `fossick.cdp`: it tells you whether the debug Chrome on a port answers at `/json/version`, without starting one. `_debug_ready` stays as an alias.
 

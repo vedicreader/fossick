@@ -15,9 +15,9 @@ __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', '
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
-from fastcore.all import Path,L,timed_cache,globtastic,parallel,run,first,AttrDict,ifnone,fdelegates,bind,patch
+from fastcore.all import Path,L,timed_cache,globtastic,parallel,first,AttrDict,ifnone,fdelegates,bind,patch
 from fastcore.xdg import xdg_cache_home
-import ast, re, shutil, time, os, sys, base64, hashlib, ipaddress, socket
+import ast, re, shutil, subprocess, time, os, sys, base64, hashlib, ipaddress, socket
 from contextlib import contextmanager, nullcontext
 from collections import deque
 import lxml.etree as etree, lxml.html
@@ -630,21 +630,27 @@ def _clone_dir(remote:str) -> Path:
     nm = f'{m[1]}-{m[2]}' if m else remote.rsplit('/', 1)[-1].removesuffix('.git')
     return fossick_cache('git_clones')/nm
 
+def _git(*a):
+    "Run git with `/dev/null` as stdin; its stripped stdout, or `IOError` with its output on failure."
+    p = subprocess.run(['git', *a], stdin=subprocess.DEVNULL, capture_output=True, text=True)
+    if p.returncode: raise IOError(f'{p.stdout} ;; {p.stderr}'.strip())
+    return p.stdout.strip()
+
 def _get_git_repo(remotes):
     'Clone or update a GitHub repo to local cache; return Path'
     remotes = L(remotes)
     repo_dir = _clone_dir(remotes[0])
     if repo_dir.exists():
         try:
-            run(['git', '-C', str(repo_dir), 'fetch'])
-            branch = run(['git', '-C', str(repo_dir), 'symbolic-ref', 'refs/remotes/origin/HEAD']).split('/')[-1]
-            run(['git', '-C', str(repo_dir), 'reset', '--hard', f'origin/{branch}'])
+            _git('-C', str(repo_dir), 'fetch')
+            branch = _git('-C', str(repo_dir), 'symbolic-ref', 'refs/remotes/origin/HEAD').split('/')[-1]
+            _git('-C', str(repo_dir), 'reset', '--hard', f'origin/{branch}')
             return repo_dir
         except IOError: shutil.rmtree(repo_dir)
     repo_dir.parent.mkdir(parents=True, exist_ok=True)
     for r in remotes:                       # HTTPS, then SSH: a private repo still works with a key
         try:
-            run(['git', 'clone', r, str(repo_dir)])
+            _git('clone', r, str(repo_dir))
             return repo_dir
         except IOError as e: err = e
     raise err

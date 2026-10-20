@@ -47,7 +47,7 @@ async def cdp_setup(port=9223, user_data_dir=None, headless=False, timeout=None,
     d = _profile_dir(user_data_dir)
     d.mkdir(parents=True, exist_ok=True)
     args = _chrome_flags(port, d, headless, extra_flags)
-    subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     timeout = timeout or int(os.getenv('FOSSICK_CDP_TIMEOUT', 30))
     deadline = time.time() + timeout
     while not debug_ready(port):  # wait for the HTTP endpoint, not just the open TCP port (races on slow starts)
@@ -74,7 +74,7 @@ def cdp_app(url, port=9223, user_data_dir=None, wait=15):
     reused, d = debug_ready(port), _profile_dir(user_data_dir)
     if not reused: d = syncy(cdp_setup(port, d, headless=False, timeout=wait))
     subprocess.Popen(_chrome_flags(port, d, False, [f'--app={url}']),
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     res = dict(ok=True, url=url, port=int(port), profile=str(d), reused=reused, target=None)
     deadline = time.time() + min(float(wait), 5.)
     while time.time() < deadline:
