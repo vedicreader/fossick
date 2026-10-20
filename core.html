@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Downloading pages, turning them into markdown, crawling sites, and reading arXiv, GitHub, YouTube and PDF sources">
+
+<title>core – fossick</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-f2788e636de456f6409e966386820849.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="core – fossick">
+<meta property="og:description" content="Downloading pages, turning them into markdown, crawling sites, and reading arXiv, GitHub, YouTube and PDF sources">
+<meta property="og:site_name" content="fossick">
+<meta name="twitter:title" content="core – fossick">
+<meta name="twitter:description" content="Downloading pages, turning them into markdown, crawling sites, and reading arXiv, GitHub, YouTube and PDF sources">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fossick</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./core.html">core</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fossick</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cdp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">cdp</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./search.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">search</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">cli</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./mcp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">mcp</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./shop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">shop</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./quality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">quality</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#turning-html-into-markdown" id="toc-turning-html-into-markdown" class="nav-link active" data-scroll-target="#turning-html-into-markdown">Turning HTML into markdown</a></li>
+  <li><a href="#downloading-pages" id="toc-downloading-pages" class="nav-link" data-scroll-target="#downloading-pages">Downloading pages</a>
+  <ul class="collapse">
+  <li><a href="#refusing-private-addresses" id="toc-refusing-private-addresses" class="nav-link" data-scroll-target="#refusing-private-addresses">Refusing private addresses</a></li>
+  <li><a href="#downloading-one-page" id="toc-downloading-one-page" class="nav-link" data-scroll-target="#downloading-one-page">Downloading one page</a></li>
+  <li><a href="#fetch" id="toc-fetch" class="nav-link" data-scroll-target="#fetch"><code>fetch</code></a></li>
+  <li><a href="#bot-walls" id="toc-bot-walls" class="nav-link" data-scroll-target="#bot-walls">Bot walls</a></li>
+  </ul></li>
+  <li><a href="#crawling-and-batches" id="toc-crawling-and-batches" class="nav-link" data-scroll-target="#crawling-and-batches">Crawling and batches</a></li>
+  <li><a href="#pdfs-and-arxiv-papers" id="toc-pdfs-and-arxiv-papers" class="nav-link" data-scroll-target="#pdfs-and-arxiv-papers">PDFs and arXiv papers</a></li>
+  <li><a href="#github" id="toc-github" class="nav-link" data-scroll-target="#github">GitHub</a></li>
+  <li><a href="#finding-the-api-behind-a-page" id="toc-finding-the-api-behind-a-page" class="nav-link" data-scroll-target="#finding-the-api-behind-a-page">Finding the API behind a page</a></li>
+  <li><a href="#youtube" id="toc-youtube" class="nav-link" data-scroll-target="#youtube">YouTube</a></li>
+  <li><a href="#one-function-for-every-source" id="toc-one-function-for-every-source" class="nav-link" data-scroll-target="#one-function-for-every-source">One function for every source</a></li>
+  <li><a href="#installing-the-agent-skill" id="toc-installing-the-agent-skill" class="nav-link" data-scroll-target="#installing-the-agent-skill">Installing the agent skill</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="core.html.md"><i class="bi bi-file-code"></i>Markdown</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">core</h1>
+</div>
+
+<div>
+  <div class="description">
+    Downloading pages, turning them into markdown, crawling sites, and reading arXiv, GitHub, YouTube and PDF sources
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>This module holds everything fossick does with a single URL or file. <a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch</code></a> downloads a page and <a href="https://vedicreader.github.io/fossick/core.html#to_md"><code>to_md</code></a> turns its HTML into markdown. <a href="https://vedicreader.github.io/fossick/cli.html#crawl"><code>crawl</code></a> follows links from one page to the next. <a href="https://vedicreader.github.io/fossick/cli.html#find_xhr"><code>find_xhr</code></a> and <a href="https://vedicreader.github.io/fossick/cli.html#paginate_api"><code>paginate_api</code></a> find the JSON API a page loads its data from and read it directly. Separate readers handle arXiv papers, GitHub repositories, YouTube videos and PDFs, and <a href="https://vedicreader.github.io/fossick/core.html#read"><code>read</code></a>, at the end of the notebook, picks the right one for any target.</p>
+<div id="d84c42d7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.100909+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.371396+00:00&quot;,&quot;total&quot;:0.270491633000006}}" data-execution_count="4">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L30" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="fossick_cache" class="level3">
+<h3 class="anchored" data-anchor-id="fossick_cache">fossick_cache</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fossick_cache(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    path:NoneType<span class="op">=</span><span class="va">None</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the path <code>path</code> inside fossick’s cache folder (<code>.fossick</code> in the user cache directory), creating its parent folders.</em></p>
+</section>
+</div>
+<div id="c9742658" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.374245+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.379500+00:00&quot;,&quot;total&quot;:0.0052587720000190075}}" data-execution_count="6">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L52" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="path.mk_bytes" class="level3">
+<h3 class="anchored" data-anchor-id="path.mk_bytes">Path.mk_bytes</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mk_bytes(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    data, mode:<span class="bu">int</span><span class="op">=</span><span class="dv">511</span>, uid:<span class="bu">int</span><span class="op">=-</span><span class="dv">1</span>, gid:<span class="bu">int</span><span class="op">=-</span><span class="dv">1</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Write the bytes <code>data</code> to this path, creating any missing parent folders first.</em></p>
+</section>
+</div>
+<div id="c41763c7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.379626+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.383798+00:00&quot;,&quot;total&quot;:0.0041745340000147735}}" data-execution_count="7">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L47" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="syncy" class="level3">
+<h3 class="anchored" data-anchor-id="syncy">syncy</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> syncy(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    coro, tout:<span class="bu">int</span><span class="op">=</span><span class="dv">60</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Run the coroutine <code>coro</code> from ordinary synchronous code and return its result, even when an event loop is already running.</em></p>
+</section>
+</div>
+<section id="turning-html-into-markdown" class="level2">
+<h2 class="anchored" data-anchor-id="turning-html-into-markdown">Turning HTML into markdown</h2>
+<p>A downloaded page is mostly markup that a reader does not need: navigation bars, scripts, styles and advertisements. <a href="https://vedicreader.github.io/fossick/core.html#to_md"><code>to_md</code></a> strips that away and returns the text as markdown. It accepts either a raw HTML string or a response returned by <a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch</code></a>, and with <code>sel</code> it converts only the part of the page that matches a CSS selector, such as <code>sel='article'</code>. <a href="https://vedicreader.github.io/fossick/core.html#html2md"><code>html2md</code></a> does the same for a string alone, and <a href="https://vedicreader.github.io/fossick/core.html#html_title"><code>html_title</code></a> returns a document’s title.</p>
+<div id="88b0ae0b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.390828+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.396407+00:00&quot;,&quot;total&quot;:0.005582156000002669}}" data-execution_count="9">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L102" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="to_md" class="level3">
+<h3 class="anchored" data-anchor-id="to_md">to_md</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> to_md(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    res_or_html, <span class="co"># Page dict (from fetch/crawl) or raw HTML string</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># CSS selector to extract before conversion; returns '' if no match</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    multi:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Return all selector matches joined</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    wrap_tag:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># Wrap each multi-result in &lt;wrap_tag&gt;...&lt;/wrap_tag&gt;; only used when multi=True</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    ignore_links:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, ignore_images:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    readability:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># False keeps the whole document, for local files and saved pages</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Convert a response from <a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch</code></a> or an HTML string to markdown, optionally keeping only the parts that match a CSS selector.</em></p>
+</section>
+</div>
+<div id="2aefa971" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.396540+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.401286+00:00&quot;,&quot;total&quot;:0.004750141000016583}}" data-execution_count="10">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L91" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="html2md" class="level3">
+<h3 class="anchored" data-anchor-id="html2md">html2md</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> html2md(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    s:<span class="bu">str</span>, ignore_links:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, ignore_images:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    readability:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># Extract the article (right for fetched pages); False converts the whole document</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Convert the HTML string <code>s</code> to markdown, keeping only the main article unless <code>readability=False</code>.</em></p>
+</section>
+</div>
+<div id="bee7ca97" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.401418+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.406016+00:00&quot;,&quot;total&quot;:0.004602073999990353}}" data-execution_count="11">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L84" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="html_title" class="level3">
+<h3 class="anchored" data-anchor-id="html_title">html_title</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> html_title(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    s:<span class="bu">str</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the text of the document’s <code>&lt;title&gt;</code>, or of its first <code>&lt;h1&gt;</code> when it has no title, or an empty string.</em></p>
+</section>
+</div>
+<p>By default <a href="https://vedicreader.github.io/fossick/core.html#to_md"><code>to_md</code></a> and <a href="https://vedicreader.github.io/fossick/core.html#html2md"><code>html2md</code></a> run <a href="https://github.com/buriy/python-readability">readability</a>, the article extractor behind browser reading modes. It finds the main article and drops everything around it, which is what you want for a page fetched from the web. It can also drop parts of a document you meant to keep, such as section headings. For a page someone saved on purpose, or a local HTML file, pass <code>readability=False</code>. The whole document is then converted, and only scripts, styles, <code>noscript</code> and <code>template</code> blocks and HTML comments are removed. The test below shows readability losing two <code>&lt;h3&gt;</code> headings that <code>readability=False</code> keeps.</p>
+</section>
+<section id="downloading-pages" class="level2">
+<h2 class="anchored" data-anchor-id="downloading-pages">Downloading pages</h2>
+<section id="refusing-private-addresses" class="level3">
+<h3 class="anchored" data-anchor-id="refusing-private-addresses">Refusing private addresses</h3>
+<p>A program that fetches URLs chosen by an AI agent can be tricked into fetching addresses inside your own network, such as a router’s admin page or a cloud server’s metadata service, which hands out credentials. This is called server-side request forgery. <a href="https://vedicreader.github.io/fossick/core.html#check_url"><code>check_url</code></a> refuses any URL that is not http or https, any host name such as <code>localhost</code> or <code>metadata.google.internal</code>, and any host that resolves to a private, loopback, link-local or other non-public address. It raises <a href="https://vedicreader.github.io/fossick/core.html#blockedurl"><code>BlockedURL</code></a>, whose message names the two ways round it: pass <code>allow_private=True</code> to one call, or set the environment variable <code>FOSSICK_ALLOW_PRIVATE=1</code> for the whole process. Every download in fossick goes through <a href="https://vedicreader.github.io/fossick/core.html#get_page"><code>get_page</code></a>, which runs this check first.</p>
+<div id="ff6e458d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.411540+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.418098+00:00&quot;,&quot;total&quot;:0.0065620079999746395}}" data-execution_count="13">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L139" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="check_url" class="level3">
+<h3 class="anchored" data-anchor-id="check_url">check_url</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check_url(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># the URL about to be fetched</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    allow_private:<span class="bu">bool</span><span class="op">=</span><span class="va">None</span>, <span class="co"># True skips the check; None skips it only when FOSSICK_ALLOW_PRIVATE is 1, true, yes or on</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return <code>url</code> unchanged when it is safe to fetch, or raise <a href="https://vedicreader.github.io/fossick/core.html#blockedurl"><code>BlockedURL</code></a> when it is not http or https or its host is private or reserved.</em></p>
+</section>
+</div>
+<div id="1e28b750" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.418232+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.422108+00:00&quot;,&quot;total&quot;:0.003880174000016723}}" data-execution_count="14">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L126" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="blockedurl" class="level3">
+<h3 class="anchored" data-anchor-id="blockedurl">BlockedURL</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> BlockedURL(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>args, <span class="op">**</span>kwargs</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>The error raised when a URL points at a private, local or cloud metadata address.</em></p>
+</section>
+</div>
+</section>
+<section id="downloading-one-page" class="level3">
+<h3 class="anchored" data-anchor-id="downloading-one-page">Downloading one page</h3>
+<p><a href="https://vedicreader.github.io/fossick/core.html#get_page"><code>get_page</code></a> is the single function every download passes through. It runs <a href="https://vedicreader.github.io/fossick/core.html#check_url"><code>check_url</code></a>, then downloads the page in one of four ways. By default it sends a plain HTTP request. <code>heavy=True</code> loads the page in a headless browser so that its JavaScript runs. <code>stealthy=True</code> uses scrapling’s stealth browser, which is built to pass bot checks such as Cloudflare’s. <code>session=True</code> uses the logged-in Chrome described in <code>fossick.cdp</code>, with its cookies. The browsers are imported only when first needed, and if they cannot be loaded <a href="https://vedicreader.github.io/fossick/core.html#get_page"><code>get_page</code></a> raises <a href="https://vedicreader.github.io/fossick/core.html#browserunavailable"><code>BrowserUnavailable</code></a> instead of quietly returning nothing.</p>
+<p><code>http_get</code> and <code>http_post</code> are <a href="https://vedicreader.github.io/fossick/core.html#get_page"><code>get_page</code></a> with the method set and a 30 second timeout. <a href="https://vedicreader.github.io/fossick/core.html#http_page"><code>http_page</code></a> sends a plain request with any of GET, POST, PUT or DELETE and skips the address check, so use it only for URLs your own code chose. Most callers want <a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch</code></a>, below, rather than any of these.</p>
+<div id="ecf9bd22" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.427691+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.433417+00:00&quot;,&quot;total&quot;:0.005729651999985208}}" data-execution_count="16">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L202" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="get_page" class="level3">
+<h3 class="anchored" data-anchor-id="get_page">get_page</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_page(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    url, method:<span class="bu">str</span><span class="op">=</span><span class="st">'GET'</span>, payload:NoneType<span class="op">=</span><span class="va">None</span>, heavy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, session:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    allow_private:NoneType<span class="op">=</span><span class="va">None</span>, <span class="op">**</span>kw</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>scrapling.engines.toolbelt.custom.Response:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Download <code>url</code> with plain HTTP, a headless browser, the stealth browser or the logged-in debug Chrome, after checking it with <a href="https://vedicreader.github.io/fossick/core.html#check_url"><code>check_url</code></a>.</em></p>
+</section>
+</div>
+<div id="5dca1260" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.433541+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.438713+00:00&quot;,&quot;total&quot;:0.0051745949999997265}}" data-execution_count="17">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L192" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="http_page" class="level3">
+<h3 class="anchored" data-anchor-id="http_page">http_page</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> http_page(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    url, method:<span class="bu">str</span><span class="op">=</span><span class="st">'GET'</span>, payload:NoneType<span class="op">=</span><span class="va">None</span>, verify:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="op">**</span>kw</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>scrapling.engines.toolbelt.custom.Response:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Send one plain HTTP request with scrapling’s <code>Fetcher</code> and return the response, without the private address check.</em></p>
+</section>
+</div>
+<div id="d07e3123" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.438837+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.442666+00:00&quot;,&quot;total&quot;:0.0038321039999971163}}" data-execution_count="18">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L189" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="browserunavailable" class="level3">
+<h3 class="anchored" data-anchor-id="browserunavailable">BrowserUnavailable</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> BrowserUnavailable(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>args, <span class="op">**</span>kwargs</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>The error raised when scrapling’s browser fetchers fail to import; the message suggests running <code>scrapling install</code>.</em></p>
+</section>
+</div>
+<div id="264b7f4a92a8ff3a" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>r1<span class="op">=</span>get_page(<span class="st">'https://httpbin.org/get'</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>r1.__dict__.keys()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="28f3e10f5562812b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.442925+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.443668+00:00&quot;,&quot;total&quot;:0.0007459549999850879}}" data-execution_count="19">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastcore.test <span class="im">import</span> test_fail</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="29670b4100c5f350" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>: get_page(<span class="st">'https://httpbin.org/put'</span>, method<span class="op">=</span><span class="st">'PUT'</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">AssertionError</span> <span class="im">as</span> e: test_fail(<span class="bu">str</span>(e) <span class="op">==</span> <span class="st">'Only GET and POST methods are supported'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="56924a031e38264" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>http_page(<span class="st">'https://httpbin.org/put'</span>, method<span class="op">=</span><span class="st">'PUT'</span>, verify<span class="op">=</span><span class="va">False</span>).status</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="fetch" class="level3">
+<h3 class="anchored" data-anchor-id="fetch"><a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch</code></a></h3>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch</code></a> is the function most code should call to download a page. It wraps <a href="https://vedicreader.github.io/fossick/core.html#get_page"><code>get_page</code></a> and returns scrapling’s response object with two attributes added: <code>html</code>, holding the page or only the part matching <code>sel</code>, and <code>xhr</code>, holding the background requests recorded when <code>capture_xhr=True</code>. The response also has <code>status</code>, <code>url</code>, and a <code>json()</code> method for JSON replies.</p>
+<p>Choosing the right download method by hand is guesswork, so <code>auto=True</code> tries them in turn: plain HTTP, then the headless browser, then the stealth browser, then the stealth browser through the logged-in Chrome. It stops at the first response that is not a bot wall and records the method that worked in <code>tier</code>, or <code>'blocked'</code> if none did. Each failed attempt and its reason is kept in <code>errs</code>.</p>
+<p><a href="https://vedicreader.github.io/fossick/core.html#browser_session"><code>browser_session</code></a> is for downloading many pages with a browser. Starting a browser takes seconds, so instead of one per URL it opens one for the length of a <code>with</code> block and gives you a <a href="https://vedicreader.github.io/fossick/cli.html#fetch"><code>fetch</code></a>-like function that reuses it.</p>
+<div id="dc97192e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.454499+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.459459+00:00&quot;,&quot;total&quot;:0.004962528999982396}}" data-execution_count="21">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L310" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="browser_session" class="level3">
+<h3 class="anchored" data-anchor-id="browser_session">browser_session</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> browser_session(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, headless:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="op">**</span>init_kw</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Keep one browser open for a <code>with</code> block and yield a <code>fetch(url, sel=None)</code> function that reuses it.</em></p>
+</section>
+</div>
+<div id="3c3782e9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.459581+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.473744+00:00&quot;,&quot;total&quot;:0.014166646999996146}}" data-execution_count="22">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L29" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="fetch-1" class="level3">
+<h3 class="anchored" data-anchor-id="fetch-1">fetch</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># URL to fetch</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># CSS selector to extract (None = full page)</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    method:<span class="bu">str</span><span class="op">=</span><span class="st">'GET'</span>, <span class="co"># HTTP method; 'POST' sends payload as JSON body</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    payload:<span class="bu">dict</span><span class="op">=</span><span class="va">None</span>, <span class="co"># POST body (JSON) or GET query params</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    heavy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Full JS rendering via headless browser</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Anti-bot stealth fetcher (Cloudflare etc.)</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    capture_xhr:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Capture XHR calls made by the page (only works with heavy or stealthy)</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    session:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Route through the persistent debug Chrome (reuses its logged-in cookies); True or a port int</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    auto:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Try plain, heavy, stealthy, then the debug Chrome, stopping at the first response that is not a bot wall</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    allow_private:<span class="bu">bool</span><span class="op">=</span><span class="va">None</span>, <span class="co"># Allow localhost/intranet targets (default: refuse; $FOSSICK_ALLOW_PRIVATE=1)</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>scrapling.engines.toolbelt.custom.Response: <span class="co"># Extra kwargs passed to scrapling (e.g. verify, headers)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Download <code>url</code> and return the response with <code>.html</code> set to the page, or the part matching <code>sel</code>, and <code>.xhr</code> set to any recorded background requests.</em></p>
+</section>
+</div>
+</section>
+<section id="bot-walls" class="level3">
+<h3 class="anchored" data-anchor-id="bot-walls">Bot walls</h3>
+<p>Many sites put a challenge page in front of their content for visitors they think are scripts. Cloudflare’s “Just a moment” page and the Anubis proof-of-work page are common examples. The challenge often arrives with status 200, so it looks like a successful download. fossick treats a response as blocked when its status is 401, 403, 429, 503 or 530, when its HTML contains the marker of a known challenge or captcha widget, or when it is a 200 response with less than 200 characters of HTML. The tests below check these rules, including that a page which only mentions the word captcha is not counted as blocked.</p>
+<p>The cells after that run against real sites and are not run by the tests. They show a Cloudflare and an Anubis wall being detected, <code>auto=True</code> stopping at the plain tier for a page that needs nothing more, <a href="https://vedicreader.github.io/fossick/core.html#browser_session"><code>browser_session</code></a> reusing one browser for two pages, and <code>session=True</code> going through the logged-in Chrome.</p>
+<div id="68ff5abca8b4a7f1" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A site behind Cloudflare: a plain fetch hits the bot wall, and _blocked() flags it for escalation</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>cf <span class="op">=</span> fetch(<span class="st">'https://www.scrapingcourse.com/cloudflare-challenge'</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> cf.status <span class="op">==</span> <span class="dv">403</span>, <span class="ss">f'expected a Cloudflare 403 challenge, got </span><span class="sc">{</span>cf<span class="sc">.</span>status<span class="sc">}</span><span class="ss">'</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _blocked(cf) <span class="kw">is</span> <span class="va">True</span>            <span class="co"># fetch(auto=True) escalates from here (heavy -&gt; stealthy -&gt; session)</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'cloudflare:'</span>, cf.status, <span class="st">'| blocked?'</span>, _blocked(cf))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="be4563895f5781fe" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A site behind Anubis (proof-of-work bot wall): _blocked() now recognizes it, so fetch(auto=True) escalates</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>an <span class="op">=</span> fetch(<span class="st">'https://anubis.techaro.lol/'</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="st">'making sure'</span> <span class="kw">in</span> an.html.lower(), <span class="st">'expected the Anubis challenge page'</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _blocked(an) <span class="kw">is</span> <span class="va">True</span>            <span class="co"># Anubis markers are in _BLOCK_MARKERS -&gt; auto escalates past this wall</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'anubis wall detected by _blocked?'</span>, _blocked(an))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="9fa2a96ae1f8507a" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># regression: a normal page that merely *mentions* captcha must NOT read as a bot wall.</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Wikipedia embeds hCaptcha config keys in its page JS -- the word is there, but there's no challenge widget.</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>wiki <span class="op">=</span> fetch(<span class="st">'https://en.wikipedia.org/wiki/Anubis'</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> wiki.status <span class="op">==</span> <span class="dv">200</span> <span class="kw">and</span> <span class="st">'captcha'</span> <span class="kw">in</span> wiki.html.lower()   <span class="co"># the word IS present on the page...</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _blocked(wiki) <span class="kw">is</span> <span class="va">False</span>   <span class="co"># ...but _BLOCK_MARKERS matches captcha *widgets* (g-recaptcha/h-captcha/...), not the word</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="f1334a442cb87f7b" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># fetch(auto=True): walks plain-&gt;heavy-&gt;stealthy-&gt;session, stops at the first unblocked tier, tags .tier</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>plain <span class="op">=</span> fetch(<span class="st">'https://example.com'</span>, auto<span class="op">=</span><span class="va">True</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> plain.status <span class="op">==</span> <span class="dv">200</span> <span class="kw">and</span> plain.tier <span class="op">==</span> <span class="st">'plain'</span>   <span class="co"># a static page needs no escalation</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'example.com -&gt;'</span>, plain.tier)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="5bdee8d2f3c42dc8" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># browser_session(): open ONE browser, reuse it across fetches (skips per-URL relaunch)</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> browser_session() <span class="im">as</span> bf:</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> bf(<span class="st">'https://example.com'</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> bf(<span class="st">'https://httpbin.org/html'</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> a.status <span class="op">==</span> <span class="dv">200</span> <span class="kw">and</span> b.status <span class="op">==</span> <span class="dv">200</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(a.html) <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> <span class="bu">len</span>(b.html) <span class="op">&gt;</span> <span class="dv">0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="ea4b27fb49e36aa0" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># fetch(session=True): route through the persistent debug Chrome, reusing its logged-in cookies</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>pg <span class="op">=</span> fetch(<span class="st">'https://httpbin.org/headers'</span>, session<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> pg.status <span class="op">==</span> <span class="dv">200</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pg.html[:<span class="dv">200</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="crawling-and-batches" class="level2">
+<h2 class="anchored" data-anchor-id="crawling-and-batches">Crawling and batches</h2>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#crawl"><code>crawl</code></a> visits pages breadth-first, starting from one URL and following the links that match <code>follow_sel</code>, until it has visited <code>max_pages</code> pages. By default it stays on the starting site. It returns the responses that came back with status 200, and a page that fails to download is reported and skipped. <code>delay</code> waits between requests so as not to load a small site heavily. For crawls with <code>heavy</code> or <code>stealthy</code>, one browser is kept open for the whole crawl unless <code>reuse=False</code>.</p>
+<div id="e1c8911d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.481713+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.489194+00:00&quot;,&quot;total&quot;:0.007482831000004353}}" data-execution_count="25">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L45" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="crawl" class="level3">
+<h3 class="anchored" data-anchor-id="crawl">crawl</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> crawl(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    start_url:<span class="bu">str</span>, <span class="co"># URL to start from</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># CSS selector to extract per page</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    follow_sel:<span class="bu">str</span><span class="op">=</span><span class="st">'a[href]'</span>, <span class="co"># CSS selector for links to follow</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    same_domain:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># Only follow links on same domain</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    max_pages:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, <span class="co"># Max pages to visit</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    delay:<span class="bu">float</span><span class="op">=</span><span class="dv">0</span>, <span class="co"># Seconds to wait between requests (polite crawling)</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    heavy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Full JS rendering via headless browser</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Anti-bot stealth fetcher (Cloudflare etc.)</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    reuse:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># For heavy/stealthy crawls, keep one browser open across pages</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>: <span class="co"># Extra kwargs passed to scrapling (e.g. verify, timeout)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Visit pages breadth-first from <code>start_url</code>, following links that match <code>follow_sel</code>, and return the responses that had status 200.</em></p>
+</section>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/core.html#fetch_all"><code>fetch_all</code></a> downloads a list of URLs you already have, in parallel threads, and returns the responses in the same order. <a href="https://vedicreader.github.io/fossick/core.html#get_options"><code>get_options</code></a> reads the choices out of a <code>&lt;select&gt;</code> drop-down, which is how many sites list chapters, categories or years; the example uses a small page with three options.</p>
+<div id="330a8be9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.490670+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.495330+00:00&quot;,&quot;total&quot;:0.004663859000004322}}" data-execution_count="27">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L369" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="fetch_all" class="level3">
+<h3 class="anchored" data-anchor-id="fetch_all">fetch_all</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_all(</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    urls:<span class="bu">list</span>, <span class="co"># URLs to fetch</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># CSS selector to extract per page (None = full page)</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    concurrency:<span class="bu">int</span><span class="op">=</span><span class="dv">8</span>, <span class="co"># Max parallel fetches</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    heavy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Full JS rendering via headless browser</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Anti-bot stealth fetcher (Cloudflare etc.)</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>: <span class="co"># Extra kwargs passed to fetch()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Fetch a list of URLs in parallel threads and return the responses in the same order.</em></p>
+</section>
+</div>
+<div id="b814a57f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.495462+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.499892+00:00&quot;,&quot;total&quot;:0.004433758999994097}}" data-execution_count="28">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L362" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="get_options" class="level3">
+<h3 class="anchored" data-anchor-id="get_options">get_options</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_options(</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    page_or_html, <span class="co"># Page dict (from fetch) or raw HTML string</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span>, <span class="co"># CSS selector for the &lt;select&gt; element</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the options of the <code>&lt;select&gt;</code> element matched by <code>sel</code> as a list of <code>{'value', 'text'}</code> dictionaries.</em></p>
+</section>
+</div>
+<div id="b8b32f82847541ce" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>_sel_html <span class="op">=</span> <span class="st">'''&lt;html&gt;&lt;body&gt;</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="st">&lt;select id="kanda"&gt;</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;option value="1"&gt;Balakanda&lt;/option&gt;</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;option value="2"&gt;Ayodhyakanda&lt;/option&gt;</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;option value="3"&gt;Aranyakanda&lt;/option&gt;</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="st">&lt;/select&gt;</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="st">&lt;/body&gt;&lt;/html&gt;'''</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>opts <span class="op">=</span> get_options(_sel_html, <span class="st">'#kanda'</span>)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> opts <span class="op">==</span> [{<span class="st">'value'</span>: <span class="st">'1'</span>, <span class="st">'text'</span>: <span class="st">'Balakanda'</span>},</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>                {<span class="st">'value'</span>: <span class="st">'2'</span>, <span class="st">'text'</span>: <span class="st">'Ayodhyakanda'</span>},</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>                {<span class="st">'value'</span>: <span class="st">'3'</span>, <span class="st">'text'</span>: <span class="st">'Aranyakanda'</span>}]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="pdfs-and-arxiv-papers" class="level2">
+<h2 class="anchored" data-anchor-id="pdfs-and-arxiv-papers">PDFs and arXiv papers</h2>
+<p><a href="https://vedicreader.github.io/fossick/core.html#get_pdf"><code>get_pdf</code></a> downloads a PDF, or reads one from disk, and returns it as a <code>PdfDocument</code> from <a href="https://github.com/yfedoseev/pdf_oxide">pdf_oxide</a>, or None when the bytes are not a PDF. It decides by looking for the <code>%PDF-</code> signature at the start of the file, not at the URL, because arXiv serves papers from URLs with no <code>.pdf</code> ending. It also passes the small proof-of-work check that the NCBI PubMed Central archive puts in front of its PDFs. With <code>save_path</code> set to a folder or a file name, it keeps a copy of the file. The examples download two papers from the Self-Determination Theory site and print the start of their text.</p>
+<div id="c46f946b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.506198+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.511854+00:00&quot;,&quot;total&quot;:0.005659201000014491}}" data-execution_count="31">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L404" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="get_pdf" class="level3">
+<h3 class="anchored" data-anchor-id="get_pdf">get_pdf</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_pdf(</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    url_or_path:<span class="bu">str</span>, <span class="co"># URL or local path to PDF</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    save_path:NoneType<span class="op">=</span><span class="va">None</span>, <span class="co"># optional path to save the PDF (directory or full path)</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>scrapling_kw</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>pdf_oxide.pdf_oxide.PdfDocument <span class="op">|</span> <span class="va">None</span>: <span class="co"># extra kwargs passed to scrapling fetcher (e.g. verify, headers, timeout)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Download a PDF from a URL, or read one from disk, and return it as a <code>PdfDocument</code>, or None when the bytes are not a PDF.</em></p>
+</section>
+</div>
+<div id="92b2a93edaf24dd5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.511992+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.512652+00:00&quot;,&quot;total&quot;:0.0006631499999798507}}" data-execution_count="32">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="d46f29659dafa632" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>sp <span class="op">=</span> Path(tempfile.mkdtemp())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="7892e4a70c394c68" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>sdt <span class="op">=</span> <span class="st">'https://selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf'</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>sdt_p <span class="op">=</span> get_pdf(sdt, save_path<span class="op">=</span>sp, verify<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="683948e7731d5e73" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>sdt_p.to_markdown_all()[:<span class="dv">200</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="f82ad3358666e2da" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>gdr <span class="op">=</span> <span class="st">'https://selfdeterminationtheory.org/wp-content/uploads/2020/10/1997_GrolnickDeciRyan.pdf'</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>gcr <span class="op">=</span> get_pdf(gdr, save_path<span class="op">=</span>sp, verify<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="ac46b939461715c2" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>gcr.to_markdown_all()[:<span class="dv">200</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#read_arxiv"><code>read_arxiv</code></a> takes an arXiv URL, of either the abstract page or the PDF, or a bare id such as <code>2306.14881</code>. It returns the paper’s <code>title</code>, <code>authors</code>, <code>summary</code>, <code>published</code> date, <code>link</code>, <code>pdf_url</code> and <code>pdf_path</code>. By default it also saves the PDF in <code>save_dir</code>. With <code>source=True</code> it adds the full text of the paper as markdown under <code>source</code>. The metadata is cached on disk, so asking for the same paper again makes no request; <code>force=True</code> fetches it afresh.</p>
+<div id="0773f4ef" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.521329+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.528049+00:00&quot;,&quot;total&quot;:0.006722709000001714}}" data-execution_count="36">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L89" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="read_arxiv" class="level3">
+<h3 class="anchored" data-anchor-id="read_arxiv">read_arxiv</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_arxiv(</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># arxiv PDF URL, or arxiv abstract URL, or arxiv ID</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    save_pdf:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># if True, saves the downloaded PDF to disk</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    save_dir:<span class="bu">str</span><span class="op">=</span><span class="st">'.'</span>, <span class="co"># directory in which to save the PDF</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    source:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># if True, also extract the paper's full text into `source`</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># if True, forces re-download even if cached</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">dict</span>: <span class="co"># http_get kwargs (e.g. verify=False to skip SSL verification, headers=... etc.)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return an arXiv paper’s metadata and PDF path, and optionally its full text, caching the metadata on disk.</em></p>
+</section>
+</div>
+<div id="62b8a5bed0a7a54a" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>read_arxiv(<span class="st">'https://arxiv.org/abs/2306.14881'</span>)[<span class="st">'summary'</span>][:<span class="dv">200</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#lookup_doi"><code>lookup_doi</code></a> finds the DOI of a paper from its title by asking <a href="https://www.crossref.org/">Crossref</a>, and returns it as a <code>https://doi.org/</code> link, or None when Crossref has no match.</p>
+<div id="ecb10ba3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.530223+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.534587+00:00&quot;,&quot;total&quot;:0.00436743599999545}}" data-execution_count="38">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L111" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="lookup_doi" class="level3">
+<h3 class="anchored" data-anchor-id="lookup_doi">lookup_doi</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lookup_doi(</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    title:<span class="bu">str</span>, <span class="co"># Paper title to search</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span> <span class="op">|</span> <span class="va">None</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the doi.org URL of the first Crossref result for <code>title</code>, or None.</em></p>
+</section>
+</div>
+<div id="8ea4410cf9730090" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>lookup_doi(<span class="st">'Self-Determination Theory and the Facilitation of Intrinsic Motivation, Social Development, and Well-Being'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>These functions turn documents into markdown or notebooks. <a href="https://vedicreader.github.io/fossick/core.html#pdf2md"><code>pdf2md</code></a> converts a PDF to one markdown string, with pages separated by <code>---</code>, using <a href="https://github.com/vedicreader/pdflite">pdflite</a>; images from the PDF are saved in an <a href="https://vedicreader.github.io/fossick/cli.html#images"><code>images</code></a> folder inside a folder named after <code>out_path</code>. pdflite’s own functions, such as <code>pdf_md</code> and <code>clean_md</code>, are re-exported here so one import covers both. <a href="https://vedicreader.github.io/fossick/cli.html#url2nb"><code>url2nb</code></a> saves a web page, PDF or arXiv paper as a Jupyter notebook and <a href="https://vedicreader.github.io/fossick/cli.html#pdf2nb"><code>pdf2nb</code></a> does the same for a PDF; both return the notebook’s path and skip the work when the notebook already exists, unless <code>force=True</code>.</p>
+<div id="3fc9a426" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.549131+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.554818+00:00&quot;,&quot;total&quot;:0.005690909999998439}}" data-execution_count="41">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L296" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="pdf2nb" class="level3">
+<h3 class="anchored" data-anchor-id="pdf2nb">pdf2nb</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pdf2nb(</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>    u_or_p, <span class="co"># URL or local path to PDF</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    nb_path:NoneType<span class="op">=</span><span class="va">None</span>, <span class="co"># optional path to save the notebook; defaults to &lt;pdf-stem&gt;.ipynb</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># if True, forces re-download and conversion even if notebook exists</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>    ocr_selection:<span class="bu">str</span><span class="op">=</span><span class="st">'auto'</span>, <span class="co"># choosing ocr (auto, off, on). auto uses pdf-oxide's ocr detection</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>, sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, method:<span class="bu">str</span><span class="op">=</span><span class="st">'GET'</span>, payload:<span class="bu">dict</span><span class="op">=</span><span class="va">None</span>, heavy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>    capture_xhr:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, session:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, auto:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, allow_private:<span class="bu">bool</span><span class="op">=</span><span class="va">None</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>pathlib.Path: <span class="co"># extra kwargs passed to fetch() (e.g. verify=False to skip SSL verification)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Save a PDF as a Jupyter notebook and return the notebook’s path.</em></p>
+</section>
+</div>
+<div id="333c2765" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.554947+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.560471+00:00&quot;,&quot;total&quot;:0.005527143999984219}}" data-execution_count="42">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L283" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="url2nb" class="level3">
+<h3 class="anchored" data-anchor-id="url2nb">url2nb</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> url2nb(</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>    url, <span class="co"># URL to convert (PDF, arxiv, or HTML page)</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>    nb_path:NoneType<span class="op">=</span><span class="va">None</span>, <span class="co"># optional path to save the notebook; defaults to &lt;url-stem&gt;.ipynb</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># if True, forces re-download and conversion even if notebook exists</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>, sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, method:<span class="bu">str</span><span class="op">=</span><span class="st">'GET'</span>, payload:<span class="bu">dict</span><span class="op">=</span><span class="va">None</span>, heavy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    capture_xhr:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, session:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, auto:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, allow_private:<span class="bu">bool</span><span class="op">=</span><span class="va">None</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>pathlib.Path: <span class="co"># extra kwargs passed to fetch() (e.g. verify=False to skip SSL verification)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Save a web page, PDF or arXiv paper as a Jupyter notebook and return the notebook’s path.</em></p>
+</section>
+</div>
+<div id="0c43dd87" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.560595+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.565142+00:00&quot;,&quot;total&quot;:0.004550918000006732}}" data-execution_count="43">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L574" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="pdf2md" class="level3">
+<h3 class="anchored" data-anchor-id="pdf2md">pdf2md</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pdf2md(</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    pdf, <span class="co"># a PdfDocument, path, bytes or URL</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    out_path:<span class="bu">str</span> <span class="op">|</span> pathlib.Path, <span class="co"># notebook path; images go under its stem</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    image_dir:<span class="bu">str</span><span class="op">=</span><span class="st">'images'</span>, <span class="op">*</span>, pages:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, ocr:<span class="bu">str</span><span class="op">=</span><span class="st">'auto'</span>, preserve_layout:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="op">**</span>kw</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>: <span class="co"># forwarded to pdflite.pdf_md</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Convert a PDF to one markdown string with pages separated by <code>---</code>, saving its images beside <code>out_path</code>.</em></p>
+</section>
+</div>
+<div id="4ad0b09f7d37303" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>get_pdf(<span class="st">'https://papers.neurips.cc/paper/7181-attention-is-all-you-need.pdf'</span>, save_path<span class="op">=</span>sp, verify<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="899fb1d58a621400" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>url2nb(<span class="st">'https://squiddev.medium.com/continuing-continuations-cps-in-python-47bba90c8d1e'</span>, nb_path<span class="op">=</span>sp, verify<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="68b7908d217db098" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>pdf2nb(sdt, nb_path<span class="op">=</span>Path(sp)<span class="op">/</span><span class="st">'test.ipynb'</span>, verify<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="4621e45e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.565512+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.566207+00:00&quot;,&quot;total&quot;:0.0006989270000019587}}" data-execution_count="44">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pdf_oxide <span class="im">import</span> Pdf</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="317e04f5" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># url2nb and pdf2nb build their cells with `_md2cells`, and pdf2nb hands its OCR choice to pdflite as `ocr=`.</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>_c <span class="op">=</span> _md2cells(<span class="st">'# Intro</span><span class="ch">\n\n</span><span class="st">Some prose.</span><span class="ch">\n\n</span><span class="st">[code]</span><span class="ch">\n\n</span><span class="st">&gt; 1+1</span><span class="ch">\n</span><span class="st">2</span><span class="ch">\n</span><span class="st">[/code]</span><span class="ch">\n\n</span><span class="st">## Next</span><span class="ch">\n\n</span><span class="st">More.'</span>)</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> [(c.cell_type, c.source) <span class="cf">for</span> c <span class="kw">in</span> _c] <span class="op">==</span> [(<span class="st">'markdown'</span>,<span class="st">'# Intro</span><span class="ch">\n\n</span><span class="st">Some prose.'</span>), (<span class="st">'code'</span>,<span class="st">'1+1</span><span class="ch">\n</span><span class="st"># =&gt; 2'</span>), (<span class="st">'markdown'</span>,<span class="st">'## Next</span><span class="ch">\n\n</span><span class="st">More.'</span>)], _c</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _md2cells(<span class="st">'[code]</span><span class="ch">\n\n</span><span class="st">def f(x):</span><span class="ch">\n</span><span class="st">return x</span><span class="ch">\n</span><span class="st">[/code]'</span>)[<span class="dv">0</span>].source <span class="op">==</span> <span class="st">'def f(x):</span><span class="ch">\n</span><span class="st">    return x'</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>_t <span class="op">=</span> Path(tempfile.mkdtemp())<span class="op">;</span> Pdf.from_markdown(<span class="st">'# Attention</span><span class="ch">\n\n</span><span class="st">Some prose about attention.'</span>).save(<span class="bu">str</span>(_t<span class="op">/</span><span class="st">'a.pdf'</span>))</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>_rf, fetch <span class="op">=</span> fetch, <span class="kw">lambda</span> url, <span class="op">**</span>kw: <span class="st">'&lt;html&gt;&lt;body&gt;&lt;h1&gt;Title&lt;/h1&gt;&lt;p&gt;'</span> <span class="op">+</span> <span class="st">'Some prose about notebooks. '</span><span class="op">*</span><span class="dv">20</span> <span class="op">+</span> <span class="st">'&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;'</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>: _hp <span class="op">=</span> url2nb(<span class="st">'https://example.com/page'</span>, nb_path<span class="op">=</span>_t<span class="op">/</span><span class="st">'page.ipynb'</span>)</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a><span class="cf">finally</span>: fetch <span class="op">=</span> _rf</span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="st">'Some prose about notebooks'</span> <span class="kw">in</span> _hp.read_text()</span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>_seen, _rp <span class="op">=</span> [], pdf_md</span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pdf_md(<span class="op">*</span>a, <span class="op">**</span>kw): _seen.append(kw.get(<span class="st">'ocr'</span>))<span class="op">;</span> <span class="cf">return</span> _rp(<span class="op">*</span>a, <span class="op">**</span>kw)</span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>: _pp <span class="op">=</span> pdf2nb(<span class="bu">str</span>(_t<span class="op">/</span><span class="st">'a.pdf'</span>), nb_path<span class="op">=</span>_t<span class="op">/</span><span class="st">'attn.ipynb'</span>, ocr_selection<span class="op">=</span><span class="st">'off'</span>)</span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a><span class="cf">finally</span>: pdf_md <span class="op">=</span> _rp</span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _seen <span class="op">==</span> [<span class="st">'off'</span>] <span class="kw">and</span> <span class="st">'Attention'</span> <span class="kw">in</span> _pp.read_text()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="github" class="level2">
+<h2 class="anchored" data-anchor-id="github">GitHub</h2>
+<p><a href="https://vedicreader.github.io/fossick/core.html#gh_clone"><code>gh_clone</code></a> returns a local copy of a repository. The first call clones it into fossick’s cache folder, over HTTPS first and then SSH, so a private repository works if you have an SSH key. Later calls fetch and reset the clone to the latest commit. Git runs with <code>/dev/null</code> as stdin, so it never reads the caller’s terminal. A local path is returned as it is, so code that accepts a repository can accept a folder on disk too. <a href="https://vedicreader.github.io/fossick/cli.html#read_gh_repo"><code>read_gh_repo</code></a> reads files out of that clone, by default the README, <code>pyproject.toml</code> and every Python file, and returns <code>{path: text}</code>; its results are cached for an hour. <a href="https://vedicreader.github.io/fossick/cli.html#read_gh_file"><code>read_gh_file</code></a> reads one file from its GitHub page URL by downloading the raw file. It returns source code exactly as written and converts the file to markdown only when GitHub serves HTML.</p>
+<div id="06314bed" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.574553+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.578870+00:00&quot;,&quot;total&quot;:0.004320487999990519}}" data-execution_count="46">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L154" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="read_gh_file" class="level3">
+<h3 class="anchored" data-anchor-id="read_gh_file">read_gh_file</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_gh_file(</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># GitHub blob URL of the file to read</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the contents of one file from its GitHub page URL.</em></p>
+</section>
+</div>
+<div id="50cd9ff6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.579026+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.583995+00:00&quot;,&quot;total&quot;:0.004972826999988911}}" data-execution_count="47">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L166" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="read_gh_repo" class="level3">
+<h3 class="anchored" data-anchor-id="read_gh_repo">read_gh_repo</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_gh_repo(</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>    path_or_url:<span class="bu">str</span>, <span class="co"># GitHub URL, SSH address, or local path</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>    globs:<span class="bu">tuple</span><span class="op">=</span><span class="va">None</span>, <span class="co"># file glob patterns (default: README*, pyproject.toml, *.py)</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>    limit:<span class="bu">int</span><span class="op">=</span><span class="va">None</span>, <span class="co"># max files to return</span></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>    as_list:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># return list of Paths instead of {path: content} dict</span></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">dict</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the files of a GitHub repository or local folder that match <code>globs</code>, as a <code>{path: text}</code> dictionary.</em></p>
+</section>
+</div>
+<div id="3afa4b99" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:31.584123+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:31.588159+00:00&quot;,&quot;total&quot;:0.004038850999990018}}" data-execution_count="48">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L658" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="gh_clone" class="level3">
+<h3 class="anchored" data-anchor-id="gh_clone">gh_clone</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gh_clone(</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    path_or_url:<span class="bu">str</span>, <span class="co"># GitHub URL, SSH address, or a local path (returned as-is)</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>pathlib.Path:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return a local clone of a GitHub repository, cloned or updated in fossick’s cache, or return a local path unchanged.</em></p>
+</section>
+</div>
+<div id="dcfe69ab86afb506" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>read_gh_file(<span class="st">'https://github.com/Karthik777/litesearch/blob/main/README.md'</span>)[:<span class="dv">200</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="cc865a6493884252" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(read_gh_repo(<span class="st">'https://github.com/vedicreader/gheasy'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="finding-the-api-behind-a-page" class="level2">
+<h2 class="anchored" data-anchor-id="finding-the-api-behind-a-page">Finding the API behind a page</h2>
+<p>Many modern pages arrive nearly empty and then load their data with background requests from JavaScript, called XHR or fetch calls, which usually return JSON. Reading that JSON directly is faster and more reliable than scraping the rendered page. <a href="https://vedicreader.github.io/fossick/cli.html#find_xhr"><code>find_xhr</code></a> loads a page in a headless browser, records the background requests it makes, and returns each one whose URL matches <code>pattern</code> as a dictionary with <code>url</code>, <code>content_type</code> and the decoded <code>data</code>. With <code>session=True</code> it records the requests through the logged-in Chrome instead, and each result also carries a <code>capture</code>. <a href="https://vedicreader.github.io/fossick/core.html#replay_xhr"><code>replay_xhr</code></a> sends a captured request again as a plain HTTP call with the browser’s cookies, which is how you call an API that needs you to be logged in without keeping a browser open.</p>
+<p><code>pattern</code> can be a regular expression, such as <code>.*products.*</code>, or a shell-style glob, such as <code>*products*</code>. <a href="https://vedicreader.github.io/fossick/core.html#compile_pattern"><code>compile_pattern</code></a> accepts both: it tries the text as a regular expression and, when that is invalid, reads it as a glob.</p>
+<div id="ce095e5c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.114619+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.118556+00:00&quot;,&quot;total&quot;:0.0039392960000270705}}" data-execution_count="52">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L723" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="replay_xhr" class="level3">
+<h3 class="anchored" data-anchor-id="replay_xhr">replay_xhr</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> replay_xhr(</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>    capture:<span class="bu">dict</span>, <span class="co"># a request dict from cdp.calls() or find_xhr(session=True)[i].capture</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>    data:NoneType<span class="op">=</span><span class="va">None</span>, <span class="co"># override request body (str/dict); defaults to the captured body</span></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>    port:<span class="bu">int</span><span class="op">=</span><span class="dv">9223</span>, <span class="co"># debug Chrome port to pull cookies from</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>    use_cookies:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># attach the browser's cookies for this domain (keeps auth)</span></span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>scrapling.engines.toolbelt.custom.Response: <span class="co"># Extra kwargs passed to the underlying Fetcher (headers, params, verify)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Send a request captured from the browser again as a plain HTTP call, with the debug Chrome’s cookies for that site.</em></p>
+</section>
+</div>
+<div id="1bcc9f56" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.118646+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.122745+00:00&quot;,&quot;total&quot;:0.0041014480000001186}}" data-execution_count="53">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L206" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="find_xhr" class="level3">
+<h3 class="anchored" data-anchor-id="find_xhr">find_xhr</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_xhr(</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># URL to visit with browser</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>    pattern:<span class="bu">str</span><span class="op">=</span><span class="st">'*'</span>, <span class="co"># Glob or regex pattern to filter captured XHR URLs</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>    session:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Use the persistent debug Chrome (authenticated) instead of a throwaway browser</span></span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>    port:<span class="bu">int</span><span class="op">=</span><span class="dv">9223</span>, <span class="co"># debug Chrome port (only when session=True)</span></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>    tail:<span class="bu">int</span><span class="op">=</span><span class="dv">3</span>, <span class="co"># seconds to keep listening after navigation (only when session=True)</span></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>: <span class="co"># Extra kwargs passed to fetch (verify, network_idle, etc.)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Load <code>url</code> in a browser and return the background requests it makes whose URLs match <code>pattern</code>.</em></p>
+</section>
+</div>
+<div id="c8bc67c7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.122836+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.125417+00:00&quot;,&quot;total&quot;:0.002583270000002358}}" data-execution_count="54">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L688" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="compile_pattern" class="level3">
+<h3 class="anchored" data-anchor-id="compile_pattern">compile_pattern</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compile_pattern(</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>    pattern</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Compile <code>pattern</code> as a regular expression, or as a shell-style glob such as <code>*foo*</code> when it is not a valid one.</em></p>
+</section>
+</div>
+<div id="981973e09a693368" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> compile_pattern(<span class="st">'.*products.*'</span>).search(<span class="st">'https://api.example.com/products?q=1'</span>)</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> compile_pattern(<span class="st">'*products*'</span>).search(<span class="st">'https://api.example.com/products?q=1'</span>)</span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="kw">not</span> compile_pattern(<span class="st">'*products*'</span>).search(<span class="st">'https://api.example.com/search'</span>)</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> compile_pattern(<span class="st">'.*[Ss]earch.*'</span>).search(<span class="st">'https://api.example.com/Search'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>An API rarely returns its records at the top level of the JSON. They might be under <code>results</code>, or several levels down at <code>data.products.items</code>. <a href="https://vedicreader.github.io/fossick/core.html#json_records"><code>json_records</code></a> finds them by searching the whole payload for the longest list of dictionaries, and <code>with_key=True</code> also tells you which key held it.</p>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#paginate_api"><code>paginate_api</code></a> reads every page of a paged JSON API. It sends the request repeatedly, raising the page number in <code>page_field</code> each time, and stops when a page comes back empty or shorter than the page size, or after <code>max_pages</code> pages. It finds each page’s records with <code>results_field</code> if you name one and <a href="https://vedicreader.github.io/fossick/core.html#json_records"><code>json_records</code></a> if you do not. With <code>save=True</code> each page is written to a file, and a later run reads the saved pages instead of fetching them again.</p>
+<div id="825b179c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.129706+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.134339+00:00&quot;,&quot;total&quot;:0.00463564699998642}}" data-execution_count="56">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L223" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="paginate_api" class="level3">
+<h3 class="anchored" data-anchor-id="paginate_api">paginate_api</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> paginate_api(</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># API endpoint URL</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>    payload:<span class="bu">dict</span><span class="op">=</span><span class="va">None</span>, <span class="co"># Request body (POST) or params (GET)</span></span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>    page_field:<span class="bu">str</span><span class="op">=</span><span class="st">'pageNumber'</span>, <span class="co"># Payload key to increment for each page</span></span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>    size_field:<span class="bu">str</span><span class="op">=</span><span class="st">'pageSize'</span>, <span class="co"># Payload key for page size (detects last page)</span></span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>    results_field:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># Response key with items list (auto-detect if None)</span></span>
+<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a>    method:<span class="bu">str</span><span class="op">=</span><span class="st">'POST'</span>, <span class="co"># HTTP method</span></span>
+<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a>    max_pages:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, page_size:<span class="bu">int</span><span class="op">=</span><span class="dv">24</span>, <span class="co"># Page size to request (only used if not in payload)</span></span>
+<span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a>    page_start:<span class="bu">int</span><span class="op">=</span><span class="dv">1</span>, <span class="co"># Starting page number (default 1)</span></span>
+<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a>    save:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># If True, saves each page's items to disk</span></span>
+<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a>    save_file:<span class="bu">str</span><span class="op">=</span><span class="st">'</span><span class="sc">{url}</span><span class="st">_page_</span><span class="sc">{page}</span><span class="st">.json'</span>, <span class="co"># Filepath pattern for saving (only used if save=True)</span></span>
+<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># If True, forces re-fetching even if saved file exists</span></span>
+<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>: <span class="co"># Extra kwargs passed to fetch() (verify, headers, etc.)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Request successive pages of a JSON API and return the items from every page in one list.</em></p>
+</section>
+</div>
+<div id="6935a61f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.134432+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.137890+00:00&quot;,&quot;total&quot;:0.0034593980000181546}}" data-execution_count="57">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L748" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="json_records" class="level3">
+<h3 class="anchored" data-anchor-id="json_records">json_records</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> json_records(</span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>    data, <span class="co"># any decoded JSON payload</span></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>    min_len:<span class="bu">int</span><span class="op">=</span><span class="dv">2</span>, <span class="co"># shortest list of dicts worth calling records</span></span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>    key:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># only accept a list held under this key, at any depth</span></span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>    with_key:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># also return the key the records were found under</span></span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>    max_depth:<span class="bu">int</span><span class="op">=</span><span class="dv">6</span></span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>):</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the longest list of dictionaries found anywhere in a decoded JSON payload.</em></p>
+</section>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/core.html#download_files"><code>download_files</code></a> saves every file linked from a page whose link matches <code>pattern</code>, for example <code>*.pdf</code> or <code>.*\.ipynb$</code>. With <code>follow=True</code> it first crawls from the page, so it can collect files spread over a series of pages. Files already on disk are not downloaded again unless <code>force=True</code>. The example walks the JAX tutorial pages by their “next” links and saves each notebook.</p>
+<div id="a3f2f080" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.143550+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.148207+00:00&quot;,&quot;total&quot;:0.004659613000001173}}" data-execution_count="60">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L811" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="download_files" class="level3">
+<h3 class="anchored" data-anchor-id="download_files">download_files</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> download_files(</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, pattern:<span class="bu">str</span><span class="op">=</span><span class="st">'*'</span>, <span class="co"># Glob or regex to match download hrefs</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>    save_dir:<span class="bu">str</span><span class="op">=</span><span class="st">'.'</span>, <span class="co"># Directory to save files</span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>    follow:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Crawl linked pages looking for more files</span></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>    follow_sel:<span class="bu">str</span><span class="op">=</span><span class="st">'a[href]'</span>, <span class="co"># Selector for page links to follow when crawling</span></span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>    file_sel:<span class="bu">str</span><span class="op">=</span><span class="st">'a[href]'</span>, <span class="co"># Selector to scan for download links on each page</span></span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>    same_domain:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, max_pages:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, delay:<span class="bu">float</span><span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># Re-download even if file already exists</span></span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a>    heavy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, stealthy:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="op">**</span>kw</span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>[pathlib.Path]: <span class="co"># Extra kwargs passed to fetch/http_get (e.g. verify)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Download every file linked from <code>url</code> whose link matches <code>pattern</code>, optionally crawling linked pages first, and return the saved paths.</em></p>
+</section>
+</div>
+<div id="1925d33ac523f547" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>jax, fs <span class="op">=</span> <span class="st">'https://docs.jax.dev/en/latest/notebooks/thinking_in_jax.html'</span>, <span class="st">'a[class="right-next"]'</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>download_files(jax, follow<span class="op">=</span><span class="va">True</span>, follow_sel<span class="op">=</span>fs, file_sel<span class="op">=</span><span class="st">'a[href$=".ipynb"]'</span>, save_dir<span class="op">=</span>sp, verify<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="e964eaea04f4a922" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.148372+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.148933+00:00&quot;,&quot;total&quot;:0.0005628829999864138}}" data-execution_count="61">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastcore.test <span class="im">import</span> test_eq</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="84defa676b3df2a0" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb61"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>_pages <span class="op">=</span> crawl(<span class="st">'https://lego.sankalpa.sh/'</span>, max_pages<span class="op">=</span><span class="dv">2</span>, verify<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">isinstance</span>(_pages, <span class="bu">list</span>), <span class="ss">f"Expected list, got </span><span class="sc">{</span><span class="bu">type</span>(_pages)<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(_pages) <span class="op">&gt;</span> <span class="dv">0</span>, <span class="st">"Expected at least one page"</span></span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">all</span>(p.status <span class="op">==</span> <span class="dv">200</span> <span class="cf">for</span> p <span class="kw">in</span> _pages), <span class="st">"Non-200 pages should be skipped"</span></span>
+<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">all</span>(<span class="bu">len</span>(p.html) <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">for</span> p <span class="kw">in</span> _pages), <span class="st">"html should be non-empty"</span></span>
+<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>({p.url <span class="cf">for</span> p <span class="kw">in</span> _pages}) <span class="op">==</span> <span class="bu">len</span>(_pages), <span class="st">"url values should be unique"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="96b152980b7227fc" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co"># crawl(reuse=True): a JS-rendered crawl keeps ONE browser open across pages (no per-page relaunch)</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>_jsp <span class="op">=</span> crawl(<span class="st">'https://quotes.toscrape.com/js/'</span>, max_pages<span class="op">=</span><span class="dv">2</span>, heavy<span class="op">=</span><span class="va">True</span>, reuse<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _jsp <span class="kw">and</span> <span class="bu">all</span>(p.status <span class="op">==</span> <span class="dv">200</span> <span class="cf">for</span> p <span class="kw">in</span> _jsp)</span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">all</span>(<span class="bu">len</span>(p.html) <span class="op">&gt;</span> <span class="dv">500</span> <span class="cf">for</span> p <span class="kw">in</span> _jsp)      <span class="co"># JS actually rendered content into the DOM</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="a8ffee59a8cc69be" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: visit the listing page with a headless browser, capture all XHR/fetch calls</span></span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>apis <span class="op">=</span> find_xhr(<span class="st">'https://www.danmurphys.com.au/list/wine-all'</span>, verify<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="57ff0797fd07b85a" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="co"># paginate_api: test with JSONPlaceholder (free public REST API, GET-based)</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>posts <span class="op">=</span> paginate_api(</span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'https://jsonplaceholder.typicode.com/posts'</span>,</span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>    payload<span class="op">=</span>{<span class="st">'_page'</span>: <span class="dv">1</span>, <span class="st">'_limit'</span>: <span class="dv">5</span>},</span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>    page_field<span class="op">=</span><span class="st">'_page'</span>,</span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>    size_field<span class="op">=</span><span class="st">'_limit'</span>,</span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>    method<span class="op">=</span><span class="st">'GET'</span>,</span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a>    verify<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb64-9"><a href="#cb64-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb64-10"><a href="#cb64-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(posts) <span class="op">&gt;=</span> <span class="dv">5</span></span>
+<span id="cb64-11"><a href="#cb64-11" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="st">'title'</span> <span class="kw">in</span> posts[<span class="dv">0</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><code>find_xhr(session=True)</code> records requests through the logged-in Chrome, so a request that needs your cookies can be captured and then replayed with <a href="https://vedicreader.github.io/fossick/core.html#replay_xhr"><code>replay_xhr</code></a>:</p>
+<div id="c02d472b98d4ea80" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb65"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="co"># find_xhr(session=True) -&gt; replay_xhr: capture a request via the authenticated debug Chrome,</span></span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a><span class="co"># then replay it as a fast plain-HTTP call using the browser's cookies</span></span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>hits <span class="op">=</span> find_xhr(<span class="st">'https://httpbin.org/json'</span>, pattern<span class="op">=</span><span class="st">'.*json'</span>, session<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> hits, <span class="st">'no matching request captured'</span></span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> hits[<span class="dv">0</span>].capture, <span class="st">'each hit should carry a replayable capture'</span></span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a>r <span class="op">=</span> replay_xhr(hits[<span class="dv">0</span>].capture)</span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> r.status <span class="op">==</span> <span class="dv">200</span></span>
+<span id="cb65-8"><a href="#cb65-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(hits[<span class="dv">0</span>].url, <span class="st">'-&gt;'</span>, r.status)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="youtube" class="level2">
+<h2 class="anchored" data-anchor-id="youtube">YouTube</h2>
+<p>These three functions use <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>. <a href="https://vedicreader.github.io/fossick/cli.html#search_yt"><code>search_yt</code></a> searches YouTube and returns a list of result dictionaries. <a href="https://vedicreader.github.io/fossick/cli.html#read_yt"><code>read_yt</code></a> returns one video’s details and its transcript, built from YouTube’s English automatic captions, under the key <code>source</code>; a video without them gets an empty transcript. Results are cached on disk by video id. <a href="https://vedicreader.github.io/fossick/cli.html#download_yt"><code>download_yt</code></a> saves a video’s audio as mp3, which needs ffmpeg installed, or its video as mp4. All three accept <code>verify=False</code> to skip certificate checks, which helps behind a proxy that rewrites HTTPS.</p>
+<div id="8b6ba435" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.153194+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.156279+00:00&quot;,&quot;total&quot;:0.003086770999999544}}" data-execution_count="65">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L137" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="search_yt" class="level3">
+<h3 class="anchored" data-anchor-id="search_yt">search_yt</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb66"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> search_yt(</span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, <span class="co"># search query</span></span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>    n:<span class="bu">int</span><span class="op">=</span><span class="dv">10</span>, <span class="co"># number of results to return</span></span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>: <span class="co"># extra opts forwarded to YoutubeDL; verify= is translated to nocheckcertificate, proxy= passed as-is</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Search YouTube with yt-dlp and return up to <code>n</code> results as dictionaries.</em></p>
+</section>
+</div>
+<div id="735523809af7594f" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> search_yt(<span class="st">'3blue1brown neural networks'</span>, n<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(results) <span class="op">&gt;=</span> <span class="dv">1</span>, <span class="ss">f"expected results, got </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">any</span>(kw <span class="kw">in</span> results[<span class="dv">0</span>][<span class="st">'title'</span>].lower() <span class="cf">for</span> kw <span class="kw">in</span> (<span class="st">'3blue1brown'</span>, <span class="st">'neural'</span>, <span class="st">'network'</span>)), <span class="op">\</span></span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"unexpected title: </span><span class="sc">{</span>results[<span class="dv">0</span>][<span class="st">'title'</span>]<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> results[<span class="dv">0</span>][<span class="st">'url'</span>].startswith(<span class="st">'https://www.youtube.com'</span>), <span class="ss">f"bad url: </span><span class="sc">{</span>results[<span class="dv">0</span>][<span class="st">'url'</span>]<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results[<span class="dv">0</span>][<span class="st">'title'</span>], <span class="st">'|'</span>, results[<span class="dv">0</span>][<span class="st">'url'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="269c0f4f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.158502+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.162318+00:00&quot;,&quot;total&quot;:0.0038183489999994435}}" data-execution_count="67">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L122" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="read_yt" class="level3">
+<h3 class="anchored" data-anchor-id="read_yt">read_yt</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb68"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_yt(</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># YouTube URL or video ID</span></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># if True, forces re-fetching even if cached</span></span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">dict</span>: <span class="co"># SSL/proxy opts (e.g. **ddgs_env()); verify= translated to nocheckcertificate</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return a YouTube video’s title, channel, description, duration, upload date and English transcript, cached by video id.</em></p>
+</section>
+</div>
+<div id="17970a1772597d4e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>meta <span class="op">=</span> read_yt(<span class="st">'https://www.youtube.com/watch?v=aircAruvnKk'</span>)</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> meta[<span class="st">'title'</span>], <span class="st">"title should be non-empty"</span></span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">isinstance</span>(meta[<span class="st">'source'</span>], <span class="bu">str</span>), <span class="st">"source should be a string"</span></span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(meta[<span class="st">'source'</span>]) <span class="op">&gt;</span> <span class="dv">100</span>, <span class="st">"transcript should be substantial"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="8cdc4756" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.164337+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.168503+00:00&quot;,&quot;total&quot;:0.004168715000020029}}" data-execution_count="69">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/cli.py#L311" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="download_yt" class="level3">
+<h3 class="anchored" data-anchor-id="download_yt">download_yt</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb70"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> download_yt(</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span>, <span class="co"># YouTube URL or video ID</span></span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">format</span>:<span class="bu">str</span><span class="op">=</span><span class="st">'audio'</span>, <span class="co"># 'audio'|'video'|yt-dlp format string</span></span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>    save_dir:<span class="bu">str</span><span class="op">=</span><span class="st">'.'</span>, <span class="co"># directory to save file</span></span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>    quality:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># preferred audio quality (e.g. '192' for 192kbps, only used if format='audio')</span></span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>pathlib.Path: <span class="co"># SSL/proxy opts (e.g. **ddgs_env()); verify= translated to nocheckcertificate</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Download a YouTube video’s audio as mp3, its video as mp4, or any yt-dlp format, and return the saved file’s path.</em></p>
+</section>
+</div>
+<div id="80bb7d09" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb71"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> download_yt(<span class="st">'https://www.youtube.com/watch?v=aircAruvnKk'</span>, <span class="bu">format</span><span class="op">=</span><span class="st">'audio'</span>, save_dir<span class="op">=</span><span class="st">'/tmp/fossick_test'</span>)</span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> p.exists(), <span class="ss">f"file not found: </span><span class="sc">{</span>p<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb71-3"><a href="#cb71-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> p.suffix <span class="op">==</span> <span class="st">'.mp3'</span>, <span class="ss">f"expected .mp3, got </span><span class="sc">{</span>p<span class="sc">.</span>suffix<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb71-4"><a href="#cb71-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"saved to: </span><span class="sc">{</span>p<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>p<span class="sc">.</span>stat()<span class="sc">.</span>st_size <span class="op">//</span> <span class="dv">1024</span><span class="sc">}</span><span class="ss"> KB)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="one-function-for-every-source" class="level2">
+<h2 class="anchored" data-anchor-id="one-function-for-every-source">One function for every source</h2>
+<p><a href="https://vedicreader.github.io/fossick/core.html#read"><code>read</code></a> accepts every kind of target the readers above handle and returns the same seven fields for all of them: <code>ok</code>, <code>kind</code>, <code>title</code>, <code>source</code>, <code>text</code>, <code>skipped</code> and <code>meta</code>. This lets a program that collects or indexes sources treat web pages, PDFs, arXiv papers, YouTube videos, GitHub content and local files alike.</p>
+<p><a href="https://vedicreader.github.io/fossick/core.html#what_is"><code>what_is</code></a> decides which reader a target needs. A path that exists on disk wins over every URL rule, so a local file named <code>pdf</code> is read from disk rather than fetched. A GitHub URL containing <code>/blob/</code> is one file (<code>ghfile</code>) rather than a whole repository (<code>github</code>). Any other http or https URL is a web page. A failed read returns <code>ok=False</code> with the reason in <code>skipped</code>; only a target that is none of these kinds raises <code>ValueError</code>.</p>
+<div id="67a58f2f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.170441+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.173914+00:00&quot;,&quot;total&quot;:0.0034756189999995968}}" data-execution_count="71">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L951" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="what_is" class="level3">
+<h3 class="anchored" data-anchor-id="what_is">what_is</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb72"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> what_is(</span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>    target:<span class="bu">str</span>, <span class="co"># a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a path</span></span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the name of the reader <a href="https://vedicreader.github.io/fossick/core.html#read"><code>read</code></a> would use for <code>target</code>.</em></p>
+</section>
+</div>
+<div id="31376b8c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.175784+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.179097+00:00&quot;,&quot;total&quot;:0.00331572900000765}}" data-execution_count="73">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L970" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="md_title" class="level3">
+<h3 class="anchored" data-anchor-id="md_title">md_title</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb73"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> md_title(</span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>    md:<span class="bu">str</span>, <span class="co"># markdown to take a title from</span></span>
+<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a>    fallback:<span class="bu">str</span><span class="op">=</span><span class="st">''</span>, <span class="co"># what to use when it has no heading and no first line</span></span>
+<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the first heading in <code>md</code>, else its first non-empty line, else <code>fallback</code>.</em></p>
+</section>
+</div>
+<p><a href="https://vedicreader.github.io/fossick/core.html#pdf_pages"><code>pdf_pages</code></a> converts a PDF and splits the result at the page separators into <code>(page_index, markdown)</code> pairs, numbered from 0. <a href="https://vedicreader.github.io/fossick/core.html#read"><code>read</code></a> uses it when called with <code>pages=True</code>.</p>
+<div id="c9e571a2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.180142+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.182835+00:00&quot;,&quot;total&quot;:0.002694738000002417}}" data-execution_count="75">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L979" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="pdf_pages" class="level3">
+<h3 class="anchored" data-anchor-id="pdf_pages">pdf_pages</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb74"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pdf_pages(</span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>    pdf:pdf_oxide.pdf_oxide.PdfDocument, <span class="co"># an open PDF</span></span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a>    out_path:<span class="bu">str</span> <span class="op">|</span> pathlib.Path, <span class="co"># where extracted images go, as `pdf2md` takes it</span></span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>: <span class="co"># forwarded to `pdf2md`</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Convert a PDF to markdown and return it as <code>(page_index, markdown)</code> pairs, numbered from 0.</em></p>
+</section>
+</div>
+<div id="a2e3190b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.188982+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.195531+00:00&quot;,&quot;total&quot;:0.006551479000023619}}" data-execution_count="77">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L988" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="read" class="level3">
+<h3 class="anchored" data-anchor-id="read">read</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb75"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read(</span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>    target:<span class="bu">str</span>, <span class="co"># a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a local path</span></span>
+<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>    sel:<span class="bu">str</span><span class="op">=</span><span class="va">None</span>, <span class="co"># CSS selector, for the web cases</span></span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>    auto:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># escalate plain -&gt; heavy -&gt; stealthy -&gt; logged-in Chrome past bot walls</span></span>
+<span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>    pages:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># PDFs as `[(page_index, text)]`, numbered from 0, rather than one string</span></span>
+<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a>    save_dir:<span class="bu">str</span><span class="op">=</span><span class="st">'.'</span>, <span class="co"># where a downloaded PDF is kept</span></span>
+<span id="cb75-7"><a href="#cb75-7" aria-hidden="true" tabindex="-1"></a>    force:<span class="bu">bool</span><span class="op">=</span><span class="va">False</span>, <span class="co"># ignore whatever the reader has cached</span></span>
+<span id="cb75-8"><a href="#cb75-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kw</span>
+<span id="cb75-9"><a href="#cb75-9" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span>fastcore.basics.AttrDict: <span class="co"># `(ok, kind, title, source, text, skipped, meta)`</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Read any supported target and return its text and details in one common shape.</em></p>
+</section>
+</div>
+<div id="7040ef3cdca8" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb76"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the network cases, which the CI run does not reach</span></span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>r <span class="op">=</span> read(<span class="st">'https://arxiv.org/abs/1706.03762'</span>)</span>
+<span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>r.ok, r.kind, r.title, r.meta[<span class="st">'authors'</span>][:<span class="dv">2</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="077036c1c4fd" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb77"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> read(<span class="st">'https://papers.neurips.cc/paper/7181-attention-is-all-you-need.pdf'</span>, pages<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>p.ok, p.kind, <span class="bu">len</span>(p.text), p.text[<span class="dv">0</span>][<span class="dv">0</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="installing-the-agent-skill" class="level2">
+<h2 class="anchored" data-anchor-id="installing-the-agent-skill">Installing the agent skill</h2>
+<p>fossick ships a <code>SKILL.md</code> that tells coding agents how to use it. <a href="https://vedicreader.github.io/fossick/core.html#mv_skill_md"><code>mv_skill_md</code></a> copies it into <code>.agents/skills/fossick/</code> at the root of the current git repository, which <a href="https://vedicreader.github.io/fossick/core.html#repo_root"><code>repo_root</code></a> finds, and into <code>.claude/skills/fossick/</code> under the working directory. With <code>dry_run=True</code>, the default, it only prints where the file would go. The <code>fossick install</code> command runs it for real.</p>
+<div id="cc068058" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.206371+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.209491+00:00&quot;,&quot;total&quot;:0.003122429000001148}}" data-execution_count="81">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L1043" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="mv_skill_md" class="level3">
+<h3 class="anchored" data-anchor-id="mv_skill_md">mv_skill_md</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb78"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mv_skill_md(</span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>    dry_run:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="bu">dir</span>:NoneType<span class="op">=</span><span class="va">None</span></span>
+<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="va">None</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Copy fossick’s bundled <code>SKILL.md</code> into the agent skill folders, or only print where it would go when <code>dry_run</code> is True.</em></p>
+</section>
+</div>
+<div id="12f841cf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-10-20T08:38:32.209579+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-10-20T08:38:32.212282+00:00&quot;,&quot;total&quot;:0.0027049170000168488}}" data-execution_count="82">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/core.py#L1039" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="repo_root" class="level3">
+<h3 class="anchored" data-anchor-id="repo_root">repo_root</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb79"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> repo_root()<span class="op">-&gt;</span>pathlib.Path:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the nearest folder at or above the working directory that contains <code>.git</code>, or None.</em></p>
+</section>
+</div>
+<div id="8581819c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb80"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>root <span class="op">=</span> repo_root()</span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> root <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span> <span class="kw">and</span> (root<span class="op">/</span><span class="st">'.git'</span>).exists(), <span class="ss">f"Expected git root, got </span><span class="sc">{</span>root<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>mv_skill_md(dry_run<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="47341351" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb81"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a fetch may not be aimed inside the network fossick is running in</span></span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _bad <span class="kw">in</span> (<span class="st">'http://169.254.169.254/latest/meta-data/'</span>,   <span class="co"># cloud metadata</span></span>
+<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>             <span class="st">'http://127.0.0.1:8000/admin'</span>, <span class="st">'http://localhost/x'</span>, <span class="st">'http://10.0.0.5/x'</span>,</span>
+<span id="cb81-4"><a href="#cb81-4" aria-hidden="true" tabindex="-1"></a>             <span class="st">'http://192.168.1.1/'</span>, <span class="st">'http://[::1]/'</span>, <span class="st">'http://metadata.google.internal/'</span>,</span>
+<span id="cb81-5"><a href="#cb81-5" aria-hidden="true" tabindex="-1"></a>             <span class="st">'http://0.0.0.0/'</span>, <span class="st">'file:///etc/passwd'</span>):</span>
+<span id="cb81-6"><a href="#cb81-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>: check_url(_bad)<span class="op">;</span> <span class="cf">raise</span> <span class="pp">SystemExit</span>(<span class="ss">f'not blocked: </span><span class="sc">{</span>_bad<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb81-7"><a href="#cb81-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> BlockedURL: <span class="cf">pass</span></span>
+<span id="cb81-8"><a href="#cb81-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-9"><a href="#cb81-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> check_url(<span class="st">'https://example.com/a'</span>) <span class="op">==</span> <span class="st">'https://example.com/a'</span></span>
+<span id="cb81-10"><a href="#cb81-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> check_url(<span class="st">'http://127.0.0.1:8000/x'</span>, allow_private<span class="op">=</span><span class="va">True</span>)     <span class="co"># the escape hatch is per-call</span></span>
+<span id="cb81-11"><a href="#cb81-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-12"><a href="#cb81-12" aria-hidden="true" tabindex="-1"></a><span class="co"># the message has to name the way out, or the guard just gets deleted</span></span>
+<span id="cb81-13"><a href="#cb81-13" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>: check_url(<span class="st">'http://localhost/x'</span>)</span>
+<span id="cb81-14"><a href="#cb81-14" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> BlockedURL <span class="im">as</span> e: <span class="cf">assert</span> <span class="st">'allow_private'</span> <span class="kw">in</span> <span class="bu">str</span>(e) <span class="kw">and</span> <span class="st">'FOSSICK_ALLOW_PRIVATE'</span> <span class="kw">in</span> <span class="bu">str</span>(e)</span>
+<span id="cb81-15"><a href="#cb81-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-16"><a href="#cb81-16" aria-hidden="true" tabindex="-1"></a><span class="co"># and the env var turns it off process-wide</span></span>
+<span id="cb81-17"><a href="#cb81-17" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">'FOSSICK_ALLOW_PRIVATE'</span>] <span class="op">=</span> <span class="st">'1'</span></span>
+<span id="cb81-18"><a href="#cb81-18" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>: <span class="cf">assert</span> check_url(<span class="st">'http://127.0.0.1/x'</span>)</span>
+<span id="cb81-19"><a href="#cb81-19" aria-hidden="true" tabindex="-1"></a><span class="cf">finally</span>: <span class="kw">del</span> os.environ[<span class="st">'FOSSICK_ALLOW_PRIVATE'</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/vedicreader\.github\.io\/fossick");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
