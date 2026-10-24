@@ -45,8 +45,13 @@ def _bridge():
     return _loop
 
 def syncy(coro, tout=60):
-    "Run the coroutine `coro` from ordinary synchronous code and return its result, even when an event loop is already running."
-    return asyncio.run_coroutine_threadsafe(coro, _bridge()).result(timeout=tout)
+    "Run the coroutine `coro` from ordinary synchronous code and return its result; on timeout, cancel it and raise `TimeoutError`."
+    fut = asyncio.run_coroutine_threadsafe(coro, _bridge())
+    try: return fut.result(timeout=tout)
+    except TimeoutError:
+        if fut.done(): raise
+        fut.cancel()
+        raise TimeoutError(f'timed out after {tout}s and was cancelled; it may already have partly or fully happened, so check before retrying') from None
 
 @patch
 def mk_bytes(self:Path, data, mode=511, uid=-1, gid=-1):
@@ -705,7 +710,8 @@ def find_xhr(url:str,             # URL to visit with browser
         from fossick.cdp import cdp_connect, syncy
         async def _run():
             cdp = await cdp_connect(port=port)
-            return await cdp.calls(url=url, pattern=pattern, tail=tail)
+            try: return await cdp.calls(url=url, pattern=pattern, tail=tail)
+            finally: await cdp.close()
         out = []
         for r in syncy(_run()).values():
             rb = r.get('response_body')

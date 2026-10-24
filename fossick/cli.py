@@ -191,7 +191,8 @@ def calls(
     from fossick.cdp import cdp_connect, syncy
     async def _run():
         cdp = await cdp_connect()
-        return await cdp.calls(url=url, pattern=pattern, tail=tail)
+        try: return await cdp.calls(url=url, pattern=pattern, tail=tail)
+        finally: await cdp.close()
     caps = syncy(_run())
     if as_json: print(json.dumps(list(caps.values()), default=str))
     else:
@@ -354,9 +355,9 @@ def videos(query:str, n:int=20, region:str='us-en', as_json:bool=False):
 def research(
     query:str,            # search query
     n:int=5,              # number of top results to read
-    google:bool=False,    # use direct Google ranking (stealth browser) instead of ddgs metasearch
+    google:bool=False,    # use Google's own ranking through the stealth browser instead of ddgs metasearch
     region:str='auto',    # ddgs 'country-lang' region, or 'auto' to read the country off the query
-    timelimit:str=None,   # d | w | m | y — only sources from the last day/week/month/year
+    timelimit:str=None,   # d | w | m | y, only sources from the last day, week, month or year
     sel:str=None,         # CSS selector to narrow each page before markdown
     chars:int=4000,       # max markdown chars per source
     pages:int=1,          # result pages to pull from each backend when searching
@@ -387,20 +388,20 @@ def ax(
 # %% ../nbs/03_cli.ipynb #ac8ae705f0b91156
 @call_parse
 def shop(
-    url:str,              # store URL; the tab the last call left open on that site is picked up again
-    search:str=None,      # search the store for this term and list the products it found
+    url:str,              # store URL; the command reuses the tab the last call left open on that site
+    search:str=None,      # search the store for this term and list the products found
     add:str=None,         # add a product by index (from a previous --search) or by title
     qty:int=1,            # quantity to add
     variant:str=None,     # variant/size to pick, for products that need one
-    cart:bool=False,      # print the cart (with its lines) instead
-    fields:bool=False,    # print the form fields on this page (checkout ground truth)
+    cart:bool=False,      # print the cart and its lines
+    fields:bool=False,    # print the form fields on this page
     port:int=9223,        # debug Chrome remote-debugging port
     as_json:bool=False,   # output JSON
 ):
     "Search a store, add a product, or read the cart in the debug Chrome, keeping the page open between calls."
     from fossick.shop import shop as _shop, ShopError
     from fossick.cdp import JSError
-    s = _shop(url, port=port, resume=True)   # pick up the page the last invocation left
+    s = _shop(url, port=port, resume=True)
     try:
         if search is not None: out = s.search(search)
         elif add is not None:  out = s.add(add, qty=qty, variant=variant)
@@ -463,8 +464,8 @@ def main():
         sys.exit(0 if len(sys.argv) < 2 else 1)
     cmd = sys.argv.pop(1)
     func = CMDS[cmd]
-    raw  = getattr(func, '__wrapped__', func)      # unwrap @call_parse
-    args = anno_parser(raw).parse_args().__dict__  # parse remaining argv
-    args.pop('xtra', None); args.pop('pdb', None)  # fastcore-injected extras
+    raw  = getattr(func, '__wrapped__', func)
+    args = anno_parser(raw).parse_args().__dict__
+    args.pop('xtra', None); args.pop('pdb', None)  # added by fastcore, not parameters of the command
     raw(**args)
 

@@ -18,7 +18,7 @@ triggers:
 
 # fossick
 
-Drop-in for `WebSearch`/`WebFetch` — always prefer it.
+Use fossick instead of `WebSearch` and `WebFetch`. Always prefer it.
 
 ```python
 from fossick import *                              # fetch, crawl, research, find_xhr, replay_xhr, read_*, ...
@@ -80,9 +80,9 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `images(q)` / `news(q)` / `videos(q)` / `books(q)` | `max_results`, `region` | list[dict] (ddgs-native fields) |
 | `google(q)` | `n`, `lang`, `region`, `timelimit` | list[dict] (`title, href, content`; stealth browser) |
 | `infer_region(q)` | `dflt` | str (`country-lang`, e.g. `'au-en'`; resolves the halves separately) |
-| `infer_country(q)` / `infer_language(q)` | — | str\|None — both abstain rather than guess |
+| `infer_country(q)` / `infer_language(q)` | — | str\|None. Both return None when the query is unclear. |
 | `page_date(page)` | — | str\|None (`YYYY-MM-DD` the page says it was published) |
-| `extract(url)` | — | list[dict] (page content via ddgs) |
+| `extract(url)` | — | dict (`url`, `content`; page content through ddgs) |
 | `lookup_doi(title)` | — | str\|None |
 | `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `allow_private`, `method`, `payload` | Page dict (`.tier` when `auto`) |
 | `plan(q)` | `max_queries`, `min_words`, `rewrite` | list[str] — the searches a question is really asking; `[q]` when it is one |
@@ -168,13 +168,13 @@ print(syncy(pg.fill_form({'Email': 'me@x.com', 'Password': 'pw'}, submit='Sign i
 
 ## CLI
 
-All commands take `--as_json`.
+Commands that print results take `--as-json`. Option names use hyphens, as in `--max-pages`.
 
 ```sh
 fossick fetch <url> [--sel css] [--heavy] [--stealthy] [--session] [--auto]
 fossick research "<q>" [--n 5] [--google] [--sel css] [--chars 4000]   # search + read -> cited markdown
 fossick ax <url> [--port 9223] [--full]                     # compact accessibility snapshot of a live page
-fossick crawl <url> [--follow_sel css] [--max_pages N] [--sel css]
+fossick crawl <url> [--follow-sel css] [--max-pages N] [--sel css]
 fossick search "<q>" [--n 10] [--region us-en] [--google]   # --google: real Google via stealth browser
 fossick images "<q>" [--n 20] [--region us-en]
 fossick news "<q>" [--n 20] [--region us-en]
@@ -183,46 +183,46 @@ fossick lookup-doi "<title>"
 fossick read-arxiv <url-or-id> [--source] [--chars 4000] [--force]
 fossick read-yt <url> [--force]
 fossick search-yt "<q>" [--n 10]
-fossick download-yt <url> [--format audio|video] [--save_dir .]
+fossick download-yt <url> [--format audio|video] [--save-dir .]
 fossick read-gh-file <blob-url>
 fossick read-gh-repo <url> [--globs 'README*,*.py'] [--limit N]
 fossick url2nb <url> [--path out.ipynb]
 fossick pdf2nb <url-or-path> [--path out.ipynb] [--ocr auto|on|off]
 fossick find-xhr <url> [--pattern '*api*'] [--session]
-fossick paginate-api <url> [--payload '{...}'] [--results_field items] [--max_pages 10]
+fossick paginate-api <url> [--payload '{...}'] [--results-field items] [--max-pages 10]
 fossick calls <url> [--pattern '.*'] [--tail 3]
-fossick collect <url> [--save_dir .] [--count N] [--every_n N]
-fossick annotate <url> [--save_dir .]
+fossick collect <url> [--save-dir .] [--count N] [--every-n N]
+fossick annotate <url> [--save-dir .]
 fossick shop <url> [--search q] [--add i_or_title] [--qty n] [--variant v] [--cart] [--fields]
                                                 # reuses the tab it left open: --search then --add i
-fossick install                                 # register SKILL.md + safecmd allowlist
+fossick install                                 # copy SKILL.md into .agents/skills/fossick/ and .claude/skills/fossick/
 ```
 
 ## MCP server
 
-`fossick-mcp` exposes the whole toolkit over the Model Context Protocol — every Python/CLI function is an MCP tool, so any MCP client (Claude Code, Claude Desktop, Codex) can drive fossick. The `mcp` package ships with fossick, so a plain install is all you need.
+`fossick-mcp` exposes the main functions of the toolkit as tools over the Model Context Protocol. Any MCP client (Claude Code, Claude Desktop, Codex) can use them. Installing fossick also installs the `mcp` package.
 
 ```sh
 claude mcp add fossick -- uvx --from fossick fossick-mcp   # Claude Code; uv run fossick-mcp if already a project dep
 ```
 
-Tools mirror the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl_site`, `read_arxiv`/`read_youtube`/`search_youtube`/`download_youtube`/`read_github_file`/`read_github_repo`, `url_to_notebook`/`pdf_to_notebook`, `find_hidden_apis`/`replay_capture`/`paginate_api`, `browse`/`page_snapshot`/`page_fill_form`/`page_act`/`page_markdown`/`capture_network` for the persistent logged-in debug Chrome, and `shop_open`/`shop_search`/`shop_products`/`shop_add`/`shop_cart`/`shop_line`/`shop_fields`/`shop_fill`/`shop_dismiss` for shopping carts. stdio by default; `fossick-mcp --http` for Streamable HTTP.
+The tools follow the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl_site`, `read_arxiv`/`read_youtube`/`search_youtube`/`download_youtube`/`read_github_file`/`read_github_repo`, `url_to_notebook`/`pdf_to_notebook`, `find_hidden_apis`/`replay_capture`/`paginate_api`, `browse`/`page_snapshot`/`page_fill_form`/`page_act`/`page_markdown`/`capture_network` for the persistent logged-in debug Chrome, and `shop_open`/`shop_search`/`shop_products`/`shop_add`/`shop_cart`/`shop_line`/`shop_fields`/`shop_fill`/`shop_dismiss` for shopping carts. The server uses standard input and output by default. `fossick-mcp --http` serves Streamable HTTP.
 
 ## Gotchas
 
-- `search()`/`images()`/`news()` use ddgs — no Docker, no setup. Direct Google is IP-blocked for plain HTTP, so `google()` uses the stealth browser (slow) for real Google ranking.
-- `heavy`/`stealthy`/CDP need Chrome (~10s cold start); `stealthy` is slowest — only when a site actively blocks.
-- `session=True` / `find_xhr(session=True)` / `ax` drive a persistent debug Chrome (port 9223), launched **headless** on first use; cookies persist across runs. To log in by hand you need it **headed**, but `headless=` only takes effect at launch — so if a headless one is already running, quit it first, then relaunch: `syncy(cdp.quit()); syncy(cdp_setup(9223, headless=False))` (see *Managing the debug Chrome* in the cdp docs). Root/containers auto-add `--no-sandbox`.
-- `snapshot()` beats dumping `ax_tree()` for agents — interactive-only and re-read each call; `fill_form`/`act` take labels, not node IDs.
-- Always pass `sel=` to `to_md`/`fetch`/`crawl` — otherwise you get nav/ads.
-- `read_arxiv()['source']` is 30-100k chars — slice: `paper['source'][:8000]`.
-- `annotate` is interactive — needs a visible browser, not headless pipelines.
+- `search()`/`images()`/`news()` use ddgs. They need no Docker and no setup. Google blocks plain HTTP from many IP addresses. `google()` loads Google in the stealth browser (slow) and returns Google's own ranking.
+- `heavy`, `stealthy` and CDP need Chrome (about 10 s cold start). `stealthy` is the slowest. Use it only when a site actively blocks.
+- `session=True`, `find_xhr(session=True)` and `ax` drive a persistent debug Chrome (port 9223). It starts **headless** on first use. Cookies persist across runs. To log in by hand you need it **headed**. `headless=` takes effect only at launch. If a headless one is already running, quit it first, then relaunch: `syncy(cdp.quit()); syncy(cdp_setup(9223, headless=False))` (see *Managing the debug Chrome* in the cdp docs). Root/containers auto-add `--no-sandbox`.
+- Use `snapshot()` instead of `ax_tree()` for agents. `snapshot()` shows interactive elements only and re-reads the page on each call. `fill_form` and `act` take labels, not node IDs.
+- Always pass `sel=` to `to_md`, `fetch` and `crawl`. Without it you get navigation and ads.
+- `read_arxiv()['source']` is 30-100k chars. Slice it: `paper['source'][:8000]`.
+- `annotate` is interactive. It needs a visible browser and does not work in headless pipelines.
 - `s.add()` returns `ok=True` only when a cart signal actually moved. `ok=None` means the page exposes
-  none to check — report that, never "added". Read `how`, `page_error` and `blockers` before retrying.
+  no signal to check. Report that, never "added". Read `how`, `page_error` and `blockers` before retrying.
 - Cart line indexes come from the **cart page**: `s.cart_page()` then `s.set_qty()`/`s.remove()`
-  (`shop_line(line, qty)` over MCP — `qty=0` removes).
+  (`shop_line(line, qty)` over MCP; `qty=0` removes the line).
 - Call `s.fields()` before `s.fill()`; label wording is site- and country-specific ("Suburb" vs "City").
 - `s.fill(submit=...)` refuses payment-looking buttons unless you also pass `confirm=True`. Don't pass it
   unless the user asked you to place the order.
-- Supermarkets (Coles/Woolworths) need a store/suburb and often a login, and block datacentre IPs —
-  run them through a debug Chrome on a real machine and set that up by hand once.
+- Supermarkets (Coles/Woolworths) need a store or suburb and often a login. They block datacentre IPs.
+  Run them through a debug Chrome on a real machine and set that Chrome up by hand once.

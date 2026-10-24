@@ -228,7 +228,8 @@ def capture_network(url:str, pattern:str='.*', tail:int=3, port:int=9223, previe
     from fossick.cdp import cdp_connect, syncy
     async def _run():
         cdp = await cdp_connect(port=port)
-        return await cdp.calls(url=url, pattern=pattern, tail=tail)
+        try: return await cdp.calls(url=url, pattern=pattern, tail=tail)
+        finally: await cdp.close()
     vals = list(syncy(_run()).values())
     _stash(vals)
     return [{'capture_id': i, 'url': r['url'], 'method': r.get('method'),
@@ -239,7 +240,7 @@ def capture_network(url:str, pattern:str='.*', tail:int=3, port:int=9223, previe
 _shop_session = {}   # the one shopping session every shop_* tool acts on
 
 def _sh(url=None, port=9223):
-    "The one shopping session, opened at `url` — or moved there — as needed."
+    "Return the one shopping session. Open it at `url`, or move it there, when `url` is given."
     from fossick.shop import shop as _open
     if (s := _shop_session.get('s')) is None:
         if url is None: raise ValueError('no shop open — call shop_open(url) first')

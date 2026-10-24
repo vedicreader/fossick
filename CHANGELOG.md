@@ -2,16 +2,27 @@
 
 <!-- do not remove -->
 
+## 0.1.21
+
+- `shop_add` with an explicit `variant` picks an exact name match first, then a unique substring match. An ambiguous or unmatched variant, or one that cannot be applied on the page, is refused with `need='variant'` and nothing is added. Before, `variant='L'` could add Small, and a variant on a page without a variant list was ignored.
+- A shop operation that passes `Shop.tout` is cancelled, and the `TimeoutError` says the action may already have happened. A `TimeoutError` raised by the operation itself passes through unchanged.
+- Short-lived CDP connections and capture tabs are closed when the call ends, also on error.
+- `click_settle` starts waiting for the page to settle before it clicks, and ignores only a timeout. The `fastcdp` floor is now 0.0.9, the first release whose page proxy returns `wait_ready` as a context manager.
+- `search(page=N)` starts at page N. DuckDuckGo clients are cached per timeout and proxy setting, and image, news and video searches pass `timeout`.
+- `focus` stays within its character budget, counting separators and gap markers.
+- `snippet_similarity` uses `shingles` and `jaccard`.
+- Notebook prose is rewritten in plain technical English.
+
 ## 0.1.20
-- Chrome, started by `cdp_setup` and `cdp_app`, and the git commands behind `gh_clone` get `/dev/null` as stdin, so neither reads nor reconfigures the caller's terminal. `gh_clone` runs git through `subprocess` itself, since fastcore's `run` passes the terminal on.
+- Chrome, started by `cdp_setup` and `cdp_app`, and the git commands behind `gh_clone` get `/dev/null` as stdin. Neither reads or reconfigures the caller's terminal. `gh_clone` runs git through `subprocess` itself, because fastcore's `run` passes the terminal on.
 
 ## 0.1.19
-- `debug_ready` is public in `fossick.cdp`: it tells you whether the debug Chrome on a port answers at `/json/version`, without starting one. `_debug_ready` stays as an alias.
+- `debug_ready` is public in `fossick.cdp`: it returns whether the debug Chrome on a port answers at `/json/version`. It starts no Chrome. `_debug_ready` stays as an alias.
 
 ## 0.1.18
-- `url2nb` and `pdf2nb` work again: `_md2cells` and its helpers, lost in the move to pdflite, are back.
+- `url2nb` and `pdf2nb` work again. `_md2cells` and its helpers, lost in the move to pdflite, are restored.
 - `pdf2nb` hands its OCR choice to pdflite as `ocr=`.
-- `usable(min_chars=...)` checks the page has that much readable markdown; `research` passes 0 and measures the markdown it keeps.
+- `usable(min_chars=...)` checks that the page has that much readable markdown. `research` passes 0 and measures the markdown it keeps.
 - README links `search`, `fetch`, `crawl` and `research` to the library functions, not the CLI.
 - CI: the cells that need a live debug Chrome are `eval: false`; the HTTP tests use httpbin.org, as httpbun.com no longer answers; `dev` is an extra, as nbdev's CI installs it, with the uv group pointing at it.
 
@@ -65,16 +76,23 @@ Search & research quality:
     `method='flashrank'` (0.85, but 40x slower and a 53MB dependency: `pip install fossick[rerank]`).
   - `research()` counts a source only once it is *readable*. A Cloudflare interstitial is an HTTP 200 that
     converts to "Enable JavaScript and cookies to continue" and used to land in the corpus looking like content;
-    those, non-200s and empty JS shells are now dropped — with the reason, in `res['dropped']` — and the next hit
-    is fetched in their place, so `n=5` means five readable sources.
+    those, non-200s and empty JS shells are now dropped, with the reason in `res['dropped']`. The next hit
+    is fetched in their place. `n=5` means five readable sources.
   - `research()` keeps the passages that answer the query instead of each page's first `chars` characters
     (answer-phrase recall 73% → 85% at the default 4000-char budget). `focus()` exposes it; `focused=False`
     restores head truncation.
   - `norm_url()` deduplicates hits that differ only by scheme, `www.`, a trailing slash or tracking params.
   - `search(pages=N)` pulls N result pages from every backend instead of just the first, so a large `n` has
-    candidates to return — the pool ceiling roughly went 74 → 100 → 110 hits at pages 1 → 2 → 3 in a simulation.
+    candidates to return. A simulation produced these approximate pool ceilings:
+
+    | result pages | approximate hits |
+    |---|---|
+    | 1 | 74 |
+    | 2 | 100 |
+    | 3 | 110 |
+
     Ranks run on across pages and a page-2 repeat of a page-1 hit isn't counted twice. `research(pages=N)` and
-    `fossick search --pages` expose it. Fan-out no longer depends on `n`, so raising `n` costs no extra requests.
+    `fossick search --pages` expose it. Fan-out no longer depends on `n`. Raising `n` costs no extra requests.
   - Tokenizing for `bm25()` stays a plain `[a-z0-9]+` split. Against sqlite FTS5's `porter` tokenizer — same
     engine, same BM25 params, only the tokenizer differing — stemming *lost* on both jobs: passage recall
     83.5% → 81.9% at a 4000-char budget, hit reranking P@3 0.89 → 0.85. Recorded so it isn't retried blind.
@@ -82,11 +100,11 @@ Search & research quality:
 Fixes:
 
   - Failures loading scrapling's browser fetchers now raise `BrowserUnavailable` naming the cause instead of a
-    bare `ValueError` from an import line. `google()` and `fetch(auto=True)` silently swallowed it, which turned
-    "the browser stack is broken" into "Google returned nothing" and let bot walls through as page content.
+    bare `ValueError` from an import line. `google()` and `fetch(auto=True)` silently swallowed that error.
+    "The browser stack is broken" then looked like "Google returned nothing", and bot walls passed as page content.
   - `fetch(auto=True)` records every tier's failure on `page.errs` and warns once when the browser tiers can't load.
   - The ddgs client no longer passes `verify=False`. ddgs maps a bool `verify` to "use the system trust store", so
-    behind a TLS-terminating proxy there was no CA to validate against and *every* backend failed to connect.
+    behind a TLS-terminating proxy there was no CA to validate against. *Every* backend failed to connect.
     `ddgs_env()` now reads `HTTPS_PROXY`/`SSL_CERT_FILE` and friends, and backends get a timeout and one retry.
   - One dead host in a `research()` batch no longer aborts the whole batch.
 

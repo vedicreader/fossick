@@ -18,7 +18,8 @@ from fastcore.all import ifnone
 
 
 # %% ../nbs/06_quality.ipynb #0170b1df
-#: Three-label registry suffixes (`bbc.co.uk`, not `co.uk`). Approximate PSL for countries we care about.
+#: Two-label registry endings such as `co.uk`. A site under one has a three-label registrable domain (`bbc.co.uk`).
+#: The list covers some countries only and is not the full public suffix list.
 MULTI_LABEL_SUFFIXES = frozenset({
     'ac.at', 'co.at', 'gv.at', 'or.at', 'priv.at',
     'com.au', 'net.au', 'org.au', 'edu.au', 'gov.au', 'asn.au', 'id.au',
@@ -51,7 +52,7 @@ def registrable_domain(url:str) -> str:
 
 
 # %% ../nbs/06_quality.ipynb #3243a53b
-#: Click/tracking params — drop so the same article from six shares is one key.
+#: Click and tracking parameters. `norm_url` drops them. One article shared six times has one key.
 _TRACKING = re.compile(r'^(utm_|fbclid|gclid|dclid|msclkid|yclid|mkt_tok|mc_[ce]id|igshid|'
                        r'vero_id|oly_(anon|enc)_id|_ga$|ref$|source$)')
 
@@ -72,7 +73,7 @@ def norm_url(u:str) -> str:
 
 
 # %% ../nbs/06_quality.ipynb #04f248d1
-#: Boost/demote domains per intent — authority is not global.
+#: Domains to boost and to demote for each kind of question.
 DOMAIN_RULES = {
     'docs': dict(
         boost=('docs.', 'developer.', 'devdocs.', 'api.', 'github.com', 'readthedocs.io',
@@ -110,7 +111,7 @@ DOMAIN_RULES = {
 }
 
 def domain_matches(domain:str, rule:str) -> bool:
-    "Return True when `domain` matches `rule`, read as a leading label, a domain ending, or a domain and its subdomains."
+    "Return True when `domain` matches `rule`: a leading label, a domain ending, a host before a `/`, or a domain and its subdomains."
     if not domain or not rule: return False
     if rule.endswith('.'): return domain.startswith(rule)
     # `.gov.uk` has to match the registry itself as well as everything under it, or the rule
@@ -162,9 +163,8 @@ def classify(q:str) -> str:
 
 
 # %% ../nbs/06_quality.ipynb #c3423b47
-#: Sites that republish other people's answers. Removed rather than demoted: they add nothing over the
-#: original, and fused metasearch actively promotes them — being optimised for every engine at once is
-#: what they are for, and RRF reads that as consensus.
+#: Sites that republish other people's answers. `drop_spam` removes them and does not demote them.
+#: They rank on every engine at once, and reciprocal rank fusion (RRF) of several engines reads that as consensus.
 SPAM_MIRRORS = (
     # Stack Overflow / Q&A scrapers
     'newbedev.com', 'stackoom.com', 'stackovergo.com', 'syntaxfix.com', 'copyprogramming.com',
@@ -212,8 +212,7 @@ FILLER = (r"what (?:is|are|was|were) (?:the |a |an )?", r"things to consider(?: 
           r"tell me", r"please", r"kindly", r"etc\.?", r"and so on", r"as well", r"also",
           r"in general", r"or not")
 
-#: Words that carry no topic. Kept small on purpose: a stopword list that eats domain terms is worse
-#: than none at all.
+#: Words that carry no topic. The list is short so that it does not remove domain terms.
 _STOP = frozenset("""a an the and or but of in on at to for from by with without into over under
     my your our their its his her this that these those it they i we you is are was were be been
     am do does did have has had can could should would will shall may might must not no if then
@@ -288,7 +287,7 @@ def authority_rerank(hits:list, cls:str) -> tuple:
     boosted, demoted, scored = [], [], []
     for i, h in enumerate(hits):
         d = host(_url(h))
-        s = (len(hits) - i) * 0.01                       # keep the incoming order as the tiebreak
+        s = (len(hits) - i) * 0.01                       # the incoming order breaks ties
         if any(domain_matches(d, r) for r in rules['boost']):  s += 10.0; boosted.append(d)
         if any(domain_matches(d, r) for r in rules['demote']): s -= 6.0;  demoted.append(d)
         scored.append((s, i, h))
@@ -319,7 +318,7 @@ def jaccard(a:set, b:set) -> float:
     return len(a & b) / len(a | b) if a and b else 0.0
 
 def _union_find(n:int):
-    "Iterative find with path compression: a result page is small, but recursion here buys nothing."
+    "Return `find` and `union` functions over `n` items. `find` is iterative and compresses paths. The smaller index becomes the root."
     parent = list(range(n))
     def find(i):
         root = i
@@ -332,13 +331,13 @@ def _union_find(n:int):
     return find, union
 
 def cluster_sources(hits:list,             # search hits or research sources
-                    threshold:float=0.6,   # trigram Jaccard above which two texts are one story
+                    threshold:float=0.6,   # trigram Jaccard at or above which two texts are one story
                    ) -> list:
     "Group results that are the same page or share most of their text, and return the groups."
     return _analyse(hits, threshold)[0]
 
 def _analyse(hits:list, threshold:float) -> tuple:
-    "Union-find by canonical URL + Jaccard≥threshold; first member is representative."
+    "Return the clusters and the count of similar pairs. Results join a cluster by equal `norm_url` key or by Jaccard similarity at or above `threshold`. The first member represents the cluster."
     hits = [h for h in hits if isinstance(h, dict)]
     n = len(hits)
     if not n: return [], 0
@@ -383,14 +382,9 @@ def independence(hits:list, threshold:float=0.6) -> dict:
 # %% ../nbs/06_quality.ipynb #cd5f778f
 _WORD = re.compile(r'[^\W_]+', re.UNICODE)
 
-def _trigrams(text:str) -> set:
-    w = _WORD.findall((text or '').casefold())
-    return {tuple(w[i:i+3]) for i in range(len(w) - 2)} if len(w) >= 3 else set()
-
 def snippet_similarity(a:str, b:str) -> float:
     "Return the Jaccard similarity of two texts' three-word sequences, or 0.0 when either has fewer than three words."
-    x, y = _trigrams(a), _trigrams(b)
-    return len(x & y) / len(x | y) if x and y else 0.0
+    return jaccard(shingles(a), shingles(b))
 
 def _text(h) -> str:
     if not isinstance(h, dict): return ''

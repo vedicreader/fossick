@@ -823,7 +823,7 @@ requires-dist = [
     { name = "curl-cffi", specifier = ">=0.15.0" },
     { name = "ddgs", specifier = ">=9.14.4" },
     { name = "diskcache", specifier = ">=5.6.3" },
-    { name = "fastcdp", specifier = ">=0.0.5" },
+    { name = "fastcdp", specifier = ">=0.0.9" },
     { name = "fastcore", specifier = ">=1.12.31" },
     { name = "flashrank", marker = "extra == 'dev'", specifier = ">=0.2.10" },
     { name = "html2text", specifier = ">=2025.4.15" },

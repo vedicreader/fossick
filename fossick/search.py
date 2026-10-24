@@ -35,15 +35,15 @@ def ddgs_env() -> dict:
     ca = ev('FOSSICK_CA_BUNDLE', 'SSL_CERT_FILE', 'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE')
     return dict(proxy=ev('DDGS_PROXY', 'HTTPS_PROXY', 'https_proxy'), verify=ca or True)
 
-_ddgs = None
+_ddgs = {}
 def get_ddgs(timeout:int=10):
-	"Return the shared ddgs client, creating it on first use."
-	global _ddgs
-	if _ddgs is None:
+	"Return the shared ddgs client for this `timeout` and proxy and certificate settings, creating it on first use."
+	env = ddgs_env()
+	if (key := (timeout, *sorted(env.items()))) not in _ddgs:
 		try: from ddgs import DDGS
 		except ImportError as e: raise ImportError('web search needs ddgs: pip install ddgs') from e
-		_ddgs = DDGS(timeout=timeout, **ddgs_env())
-	return _ddgs
+		_ddgs[key] = DDGS(timeout=timeout, **env)
+	return _ddgs[key]
 
 # %% ../nbs/02_search.ipynb #921db403a2b19be1
 TEXT_BACKENDS = ('google', 'brave', 'duckduckgo', 'mojeek', 'yahoo', 'startpage')
@@ -65,9 +65,9 @@ def _engine_hits(be:str, q:str, region='us-en', page=1, timeout=8, tries=2, **kw
         except Exception: pass
     return []
 
-def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1, **kw) -> list:
-    "One rank-ordered list per backend, pulling `pages` result pages from each. Every (backend, page) runs in parallel."
-    jobs = [(be, pg) for be in backends for pg in range(1, pages+1)]
+def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1, page=1, **kw) -> list:
+    "One rank-ordered list per backend, pulling `pages` result pages from each, starting at `page`. Every (backend, page) runs in parallel."
+    jobs = [(be, pg) for be in backends for pg in range(page, page+pages)]
     if not jobs: return []
     got = parallel(lambda j: (j, _engine_hits(j[0], q, region=region, page=j[1], timeout=timeout, **kw)),
                    jobs, n_workers=len(jobs), threadpool=True)
@@ -280,8 +280,8 @@ def _search_fused(q, n, backends, region, timeout, k, method, pages, kw=()):
         _warn('search', f'search({q!r}) got nothing: {e}')
         return []
 
-def _search_ddgs(q, category, kw):
-    try: return getattr(get_ddgs(), category)(q, **dict(kw))
+def _search_ddgs(q, category, kw, timeout=8):
+    try: return getattr(get_ddgs(timeout), category)(q, **dict(kw))
     except Exception as e:
         _warn(f'search/{category}', f'search({q!r}, {category!r}) failed: {type(e).__name__}: {e}')
         return []
@@ -311,7 +311,7 @@ def search(q:str,                  # search query
                              tuple(sorted(kw.items())))
     kw = dict(kw, max_results=n, region=region)
     if backend: kw['backend'] = backend
-    return _search_ddgs(q, category, tuple(sorted(kw.items())))
+    return _search_ddgs(q, category, tuple(sorted(kw.items())), timeout)
 
 text = bind(search, category='text')
 images = bind(search, category='images')
@@ -465,23 +465,25 @@ def focus(md:str,            # page markdown
     if not md or len(md) <= chars: return md
     bl = _split_blocks(md)
     if len(bl) < 2: return md[:chars]
-    keep, used = set(), 0
-    for i, b in enumerate(bl):                     # a reference page often answers in its opening
-        if used + len(b) > chars*reserve: break
-        keep.add(i); used += len(b)
+    def render(ids):
+        out, prev = [], -1
+        for i in sorted(ids):
+            if prev >= 0 and i > prev + 1: out.append('…')
+            out.append(bl[i]); prev = i
+        return '\n\n'.join(out)
+    keep = set()
+    for i in range(len(bl)):                       # a reference page often answers in its opening
+        if len(render(keep | {i})) > chars*reserve: break
+        keep.add(i)
     sc = bm25(q, bl)
     top = max(sc) or 1.0
     sc = [s + lead*top*(1 - i/len(bl)) for i, s in enumerate(sc)]
     for i in sorted(range(len(bl)), key=lambda i: -sc[i]):
-        if i in keep or used + len(bl[i]) > chars: continue
-        keep.add(i); used += len(bl[i])
-        if used >= chars*0.95: break
+        if i in keep or len(render(keep | {i})) > chars: continue
+        keep.add(i)
+        if len(render(keep)) >= chars*0.95: break
     if not keep: return max(zip(sc, bl), key=lambda t: t[0])[1][:chars]   # nothing fit: best block, clipped
-    out, prev = [], -1
-    for i in sorted(keep):
-        if prev >= 0 and i > prev + 1: out.append('…')
-        out.append(bl[i]); prev = i
-    return '\n\n'.join(out)
+    return render(keep)
 
 def _fetch_batch(urls:list, concurrency:int=8, **kw) -> list:
     "fetch() each url in parallel, returning None where it raised — one dead host mustn't kill the batch."

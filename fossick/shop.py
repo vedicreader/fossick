@@ -480,7 +480,7 @@ async def shop_products(page:Page, limit:int=40) -> list:
     await page.shop_prep()
     return ifnone(await page.eval_json('__fk.products', limit), [])
 
-#: Shopify's own cart, read through the API it ships rather than off the page
+#: Shopify's cart, read from its `/cart.js` API instead of from the page
 _CART_FN = ("async () => {const r = await fetch('/cart.js', {headers:{Accept:'application/json'}});"
             "if (!r.ok) return null; const c = await r.json();"
             "return {count:c.item_count, subtotal:c.total_price/100, currency:c.currency, url:location.href,"
@@ -526,12 +526,12 @@ def _changed(before:dict, after:dict) -> str:
     return 'lines' if _sig(before) != _sig(after) else ''
 
 async def _baseline(page, scope=None, lines=False) -> tuple:
-    "Cart, toast and page error as they stand before an action — `__fk.watch` reads all three in one call."
+    "Cart, toast and page error before an action, read in one `__fk.watch` call."
     st = await page.eval_json('__fk.watch', scope, lines)
     return dict(st['cart'], source='dom'), st['toast'], st['err']
 
 async def _watch(page, before, tout=12, scope=None, toast0=None, lines=False) -> tuple:
-    "Poll until a cart signal moves; a confirmation toast that was not there before also counts."
+    "Poll until a cart signal changes or a new confirmation toast appears. Returns `(ok, after, how)`, with `ok` None when the page has no count or subtotal."
     end, after = time.time() + tout, before
     while time.time() < end:
         await asyncio.sleep(0.4)
@@ -546,7 +546,7 @@ async def _watch(page, before, tout=12, scope=None, toast0=None, lines=False) ->
     return (None if blind else False), after, ''
 
 def _match(items:list, want) -> dict:
-    "Resolve `want` (index or name) against `items`, raising with the real options rather than guessing."
+    "Return the item that `want` (index or name) selects, or raise `ShopError` listing the real options."
     if isinstance(want, int) or str(want).isdigit():
         if (hit := first(p for p in items if p['i'] == int(want))) is None:
             raise ShopError(f'no product #{want}; page has {len(items)}')
@@ -561,21 +561,24 @@ def _match(items:list, want) -> dict:
     return sorted(pool, key=lambda p: (bool(p.get('related')), len(p['title'] or '')))[0]
 
 # %% ../nbs/05_shop.ipynb #371625ec2d63e166
-#: Shopify adds and quantity changes go through its cart API — no clicking, no guessing
+#: Shopify adds go through its cart API, with no clicking
 _ADD_FN = ("async (id, q) => {const r = await fetch('/cart/add.js', {method:'POST',"
            "headers:{'Content-Type':'application/json', Accept:'application/json'},"
            "body:JSON.stringify({items:[{id:id, quantity:q}]})});"
            "return {status:r.status, body:(await r.text()).slice(0,300)};}")
 
 async def _variant_id(page, it:dict, variant:str) -> tuple:
-    "The variant to add — the one on the card, the only one in stock, or the one `variant` names — and the list."
-    if it.get('vid'): return it['vid'], None
+    "Return the variant id to add and the variant list. An explicit `variant` must match one in-stock variant, exactly (any case) or else by substring; without one, the card's id or the only one in stock. Else None."
+    if not variant and it.get('vid'): return it['vid'], None
     if it['url'] != await page.eval('location.href'): await _goto(page, it['url'])
     vs = await page.eval('__fk.variants()') or []
     ok = [v for v in vs if v.get('available') is not False]
-    if len(ok) == 1: return ok[0]['id'], vs
-    hit = first(v for v in (ok or vs) if variant and str(variant).lower() in (v['name'] or '').lower())
-    return (hit['id'] if hit else None), vs
+    if variant:
+        want = str(variant).strip().lower()
+        named = [(v, (v['name'] or '').strip().lower()) for v in ok]
+        hits = [v for v, n in named if n == want] or [v for v, n in named if want in n]
+        return (hits[0]['id'] if len(hits) == 1 else None), vs
+    return (ok[0]['id'] if len(ok) == 1 else None), vs
 
 async def _shopify_add(page, it:dict, qty:int, variant:str):
     "Add via `/cart/add.js`. Returns the result, or None when this product cannot be added that way."
@@ -601,6 +604,7 @@ async def shop_add(page:Page, item, qty:int=1, variant:str=None, open_product:bo
     if not items: return dict(ok=False, error='no products found on this page', url=await page.eval('location.href'))
     it = _match(items, item)
     if plat == 'shopify' and (res := await _shopify_add(page, it, qty, variant)) is not None: return res
+    if variant: return dict(ok=False, need='variant', item=it, error=f'cannot apply variant {variant!r}: this page has no variant list to check it against, so nothing was added')
 
     if not it['add'] and open_product and it['url'] != await page.eval('location.href'):
         await _goto(page, it['url'])
@@ -616,7 +620,7 @@ async def shop_add(page:Page, item, qty:int=1, variant:str=None, open_product:bo
     if qty > 1:
         if it['qty'] in ('select', 'input'):
             set_to = await page.eval_json('__fk.setQty', 'data-fk-qty', it['i'], int(qty))
-        if set_to is None: clicks = qty              # no usable qty control: click add qty times
+        if set_to is None: clicks = qty
     bid = await page.node_for(f'[data-fk-add="{it["i"]}"]')
     if bid is None: return dict(ok=False, error='add control vanished before the click', item=it)
     for n in range(clicks):
@@ -772,8 +776,8 @@ async def shop_set(page:Page, i:int, value) -> dict:
     got = await page.eval_json('__fk.fill', int(i), value)
     return dict(i=i, wanted=value, got=got, ok=got is not None)
 
-# A <select> holds the option's value ('VIC') where the profile said 'Victoria', and inputs with a
-# mask reformat what they were given — so compare against what the fill returned, loosely.
+# A <select> holds the option's value ('VIC') where the profile said 'Victoria'. Inputs with a
+# mask reformat what they were given. Compare against what the fill returned, loosely.
 _same = lambda a, b: _ALNUM.sub('', str(a).lower()) == _ALNUM.sub('', str(b).lower())
 
 @patch
@@ -824,8 +828,8 @@ async def shop_typed_search(page:Page, q:str):
     await page.shop_prep(force=True)
     return await page.eval('location.href')
 
-#: agent-facing name -> the `Page` coroutine behind it. `shop_*` methods and the two page readers
-#: from `fossick.cdp` all become plain synchronous `Shop` methods, docstrings and all.
+#: `Shop` method name -> the `Page` coroutine behind it. The `shop_*` methods and the two page readers
+#: from `fossick.cdp` (`snapshot`, `md`) become synchronous `Shop` methods with the same docstrings.
 _SHOP_METHS = dict(platform='shop_prep', products='shop_products', cart='shop_cart',
                    cart_page='shop_cart_page', lines='shop_lines', add='shop_add', set_qty='shop_qty',
                    remove='shop_remove', fields='shop_fields', set='shop_set', fill='shop_fill',
@@ -873,7 +877,7 @@ class Shop:
 for _name, _meth in _SHOP_METHS.items(): setattr(Shop, _name, _sync(_meth))
 
 async def _prepared_tab(cdp, url:str):
-    "A tab fossick itself left open on this site, if there is one — never a human's unrelated tab."
+    "Return a tab that fossick left open on this site, with its URL, else `(None, None)`. A tab that fossick did not prepare is never used."
     for t in await cdp.pages:
         if not (t.get('url') or '').startswith(_origin(url)): continue
         pg = await Page.new(t['targetId'], cdp)

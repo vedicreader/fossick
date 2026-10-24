@@ -31,7 +31,7 @@ def debug_ready(port, host='127.0.0.1'):
 _debug_ready = debug_ready
 
 def _chrome_flags(port, d, headless, extra_flags):
-    "Assemble Chrome launch flags; auto-adds --no-sandbox when running as root (containers/CI)"
+    "Return the Chrome launch arguments. Adds `--no-sandbox` when the process runs as root, as in containers and CI."
     args = [chrome_bin(), f'--remote-debugging-port={port}', f'--user-data-dir={d}',
             '--no-first-run', '--no-default-browser-check']
     if headless: args.append('--headless=new')
@@ -113,27 +113,32 @@ async def calls(self:CDP, url=None, pattern='.*', tail=3):
     "Record the requests matching `pattern` that a page sends, opening `url` first when given."
     page = await self.new_page()
     rx, out = compile_pattern(pattern), {}
-    await page.network.enable()
-    async with self.on('Network.requestWillBeSent') as q:
-        async with self.on('Network.loadingFinished') as done:
-            async def drain():
-                while True:
-                    m = await q.get()
-                    if m.get('sessionId') not in (None, page.sid): continue
-                    r, rid = m['params']['request'], m['params']['requestId']
-                    if rx.search(r['url']): out[rid] = r|dict(rid=rid)
-            d = asyncio.create_task(drain())
-            if url: await page.goto(url)
-            else: await asyncio.sleep(tail)
-            await asyncio.sleep(tail)
-            d.cancel()
-            while not done.empty():
-                m = await done.get()
-                if (rid:=m['params']['requestId']) not in out: continue
+    try:
+        await page.network.enable()
+        async with self.on('Network.requestWillBeSent') as q:
+            async with self.on('Network.loadingFinished') as done:
+                async def drain():
+                    while True:
+                        m = await q.get()
+                        if m.get('sessionId') not in (None, page.sid): continue
+                        r, rid = m['params']['request'], m['params']['requestId']
+                        if rx.search(r['url']): out[rid] = r|dict(rid=rid)
+                d = asyncio.create_task(drain())
                 try:
-                    body = await self.network.getResponseBody(requestId=rid, sid=page.sid)
-                    out[rid] = out[rid] | dict(response_body=body)
-                except Exception: pass  # redirect or evicted — no body available
+                    if url: await page.goto(url)
+                    else: await asyncio.sleep(tail)
+                    await asyncio.sleep(tail)
+                finally:
+                    d.cancel()
+                    await asyncio.gather(d, return_exceptions=True)
+                while not done.empty():
+                    m = await done.get()
+                    if (rid:=m['params']['requestId']) not in out: continue
+                    try:
+                        body = await self.network.getResponseBody(requestId=rid, sid=page.sid)
+                        out[rid] = out[rid] | dict(response_body=body)
+                    except Exception: pass  # a redirect or an evicted response has no body
+    finally: await page.close()
     return out
 
 # %% ../nbs/01_cdp.ipynb #af3e7589fc4649cf
@@ -154,7 +159,8 @@ def cdp_cookies(url_or_domain=None, port=9223, as_dict=False):
         urls = [u]
     async def _run():
         cdp = await cdp_connect(port=port)
-        return await _get_cookies(cdp, urls)
+        try: return await _get_cookies(cdp, urls)
+        finally: await cdp.close()
     raw = syncy(_run())
     if as_dict: return {c['name']: c['value'] for c in raw}
     keep = ('name', 'value', 'domain', 'path', 'expires', 'httpOnly', 'secure', 'sameSite')
@@ -218,9 +224,9 @@ async def type_text(page:Page, backendNodeId, text):
 @patch
 async def click_settle(page:Page, backendNodeId, timeout=8):
     "Click an element and wait for the page to settle, without failing when the click does not navigate."
-    await page.click(backendNodeId)
-    try: await asyncio.wait_for(page.wait_for_ready(timeout=timeout), timeout+1)
-    except Exception: pass
+    try:
+        async with page.wait_ready(timeout=timeout): await page.click(backendNodeId)
+    except TimeoutError: pass
 
 @patch
 async def fill_form(page:Page, fields:dict, submit:str=None):
