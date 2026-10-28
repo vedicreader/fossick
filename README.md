@@ -124,3 +124,14 @@ From the shell: `fossick search "q"`, `fossick fetch URL --auto`, `fossick resea
 Some pages are only shown to a logged-in user. fossick reaches them through a separate copy of Chrome that runs with remote debugging switched on, on port 9223, with its own profile in `~/.cache/fastcdp/cdp-chrome`. [`cdp_connect`](https://vedicreader.github.io/fossick/cdp.html#cdp_connect) starts it the first time it is needed. Log in to a site once in that window. The cookies stay in the profile. Later calls such as `fetch(url, session=True)` then use the logged-in session. `fetch(url, auto=True)` and [`read`](https://vedicreader.github.io/fossick/core.html#read) fall back to this Chrome when every other method is blocked.
 
 To start it by hand in a visible window, for logging in, run `await cdp_setup(headless=False)`. The `fastcdp-setup` command, installed with fossick’s `fastcdp` dependency, adds a launcher for the same Chrome and profile to your applications.
+
+## Untrusted URLs
+
+`fetch(url, auto=True)` and [`read`](https://vedicreader.github.io/fossick/core.html#read), which uses `auto=True` by default, can end in the logged-in Chrome on port 9223. That step starts the Chrome if it is not running and sends the cookies it has for the site. Use it only for URLs that you chose. When a URL comes from a web page, a document or another person, pass `auto=False`:
+
+``` python
+fetch(url, auto=False, max_bytes=20_000_000)   # plain HTTP only; stop after 20 MB
+read(url, auto=False, max_bytes=20_000_000)    # also for PDFs, arXiv papers and GitHub files
+```
+
+With `auto=False`, fossick does not start a browser or connect to port 9223, also for PDFs and the redirects that a page sends. The plain path refuses private and local addresses. It connects only to the address that it checked, so a second DNS answer cannot send it to `127.0.0.1`. It checks each redirect in the same way. `max_bytes` and `max_recv_speed` limit the size and speed of a download. Both are off by default. Through a proxy, and in the browser paths, fossick checks only the first URL.

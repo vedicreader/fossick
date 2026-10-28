@@ -53,6 +53,7 @@ have a URL:
   not sure / mixed     -> fetch(url, auto=True)                 # escalates plain->heavy->stealthy->session; winner on page.tier
   behind a login       -> fetch(url, session=True)             # reuses the debug Chrome's logged-in cookies, no login code
   localhost / intranet -> fetch(url, allow_private=True)        # private+metadata addresses are refused by default (SSRF)
+  untrusted URL        -> fetch(url, auto=False, max_bytes=N)  # plain HTTP only; never the browsers or the debug Chrome; read() too
   many links           -> crawl(url, follow_sel='a[href]', max_pages=N)   # reuse=True keeps one browser open
   many known URLs      -> fetch_all(urls)
   hidden JSON API      -> find_xhr(url, pattern='*api*') -> paginate_api(...)
@@ -84,7 +85,7 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `page_date(page)` | — | str\|None (`YYYY-MM-DD` the page says it was published) |
 | `extract(url)` | — | dict (`url`, `content`; page content through ddgs) |
 | `lookup_doi(title)` | — | str\|None |
-| `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `allow_private`, `method`, `payload` | Page dict (`.tier` when `auto`) |
+| `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `allow_private`, `max_bytes`, `max_recv_speed`, `method`, `payload` | Page dict (`.tier` when `auto`) |
 | `plan(q)` | `max_queries`, `min_words`, `rewrite` | list[str] — the searches a question is really asking; `[q]` when it is one |
 | `interleave(lists)` | `key` | list — round-robin across per-facet lists (coverage, not consensus) |
 | `curate(q, hits)` | `intent`, `max_per_domain`, `rerank` | (hits, report) — spam dropped, authority-ranked, diversity described |
