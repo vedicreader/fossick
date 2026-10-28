@@ -164,6 +164,16 @@ def check_url(url:str,                   # the URL about to be fetched
             raise BlockedURL(f'{h} resolves to {sockaddr[0]}, a private or reserved address{hint}')
     return url
 
+def _host(url:str) -> str:
+    "The lower-case host name of `url`, also when it has no scheme, or '' when it has none."
+    try: return (urlparse(url if '//' in url else f'//{url}').hostname or '').rstrip('.')
+    except ValueError: return ''
+
+def _on_host(url:str, *domains) -> bool:
+    "Is the host of `url` one of `domains`, or a subdomain of one?"
+    h = _host(url)
+    return any(h == d or h.endswith(f'.{d}') for d in domains)
+
 
 # %% ../nbs/00_core.ipynb #9f5a399cf870a5d1
 @cache
@@ -596,7 +606,7 @@ def url2nb(url, # URL to convert (PDF, arxiv, or HTML page)
 	if url.endswith('.pdf'): return pdf2nb(url, nb_path=nb_path, **kwargs)
 	nb_path = Path(nb_path or f'{_nb_stem(url)}.ipynb')
 	if nb_path.exists() and not force: return nb_path
-	if 'arxiv.org' in url:
+	if _on_host(url, 'arxiv.org'):
 		res = read_arxiv(url, save_dir=str(nb_path.parent))
 		return pdf2nb(res['pdf_path'], nb_path=nb_path, force=force, **kwargs)
 	md = clean_md(to_md(fetch(url, **kwargs)))
@@ -952,15 +962,15 @@ def download_yt(url:str, # YouTube URL or video ID
 _ARXIV_ID = re.compile(r'\d{4}\.\d{4,5}(?:v\d+)?')
 _GH_URL   = re.compile(r'https?://github\.com/([^/]+)/([^/]+)')
 _GH_BLOB  = re.compile(r'https?://github\.com/([^/]+)/([^/]+)/blob/[^/]+/(.+)')
-_YT_URL   = re.compile(r'youtube\.com|youtu\.be')
+_YT_HOSTS = ('youtube.com', 'youtu.be', 'youtube-nocookie.com')
 
 def what_is(target:str  # a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a path
             ) -> str:
     "Return the name of the reader `read` would use for `target`."
     if (p := Path(target)).is_dir(): return 'dir'
     if p.exists(): return 'file'
-    if 'arxiv.org' in target or _ARXIV_ID.fullmatch(target.strip()): return 'arxiv'
-    if _YT_URL.search(target): return 'youtube'
+    if _on_host(target, 'arxiv.org') or _ARXIV_ID.fullmatch(target.strip()): return 'arxiv'
+    if _on_host(target, *_YT_HOSTS): return 'youtube'
     if _GH_URL.match(target): return 'ghfile' if '/blob/' in target else 'github'
     path = urlparse(target).path.rstrip('/').lower()
     if path.endswith('.pdf') or path.endswith('/pdf'): return 'pdf'

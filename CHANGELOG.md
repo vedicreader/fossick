@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.1.22
+
+- `what_is` and `url2nb` find arXiv and YouTube links by the host of the URL. Before, `https://docs.example.dev/youtube.com-guide` went to the YouTube reader.
+
 ## 0.1.21
 
 - `shop_add` with an explicit `variant` picks an exact name match first, then a unique substring match. An ambiguous or unmatched variant, or one that cannot be applied on the page, is refused with `need='variant'` and nothing is added. Before, `variant='L'` could add Small, and a variant on a page without a variant list was ignored.
