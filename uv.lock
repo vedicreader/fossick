@@ -684,16 +684,16 @@ wheels = [
 
 [[package]]
 name = "fastcdp"
-version = "0.0.9"
+version = "0.0.17"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastcore" },
     { name = "httpx" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/21/30/df54272f048dfaccb6ebca98abeaf16b877dfb5e738304998b87f79f4cf3/fastcdp-0.0.9.tar.gz", hash = "sha256:b59bff5cb2d4a0ea52ab79c70df344683cc6e93ec218822c024ba4170cd37d8d", size = 285568, upload-time = "2026-08-29T10:03:27.79Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/09/d3/0a6b96b71521c0c6d4f3739f968e3ee39105fab2266661e1f2b4d4feb372/fastcdp-0.0.17.tar.gz", hash = "sha256:41ac6f256467106c614e1337b31fc0c8de99763322dd9c72281e3239a22058f9", size = 293260, upload-time = "2026-09-15T05:53:45.28Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ce/3d/82635fced75291cea63e574479f512adafa9ae72725e38aa07c06d35a8e3/fastcdp-0.0.9-py3-none-any.whl", hash = "sha256:d4c08e4a6b69f80bfeeedbbf7ec30a6c29a973ea2b8f4f936866f733ee81bc65", size = 289035, upload-time = "2026-08-29T10:03:26.266Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/2a/cd1d256d879f235517560c49a8bd04d4694d4749480facf721ecbd5fe63d/fastcdp-0.0.17-py3-none-any.whl", hash = "sha256:ceafcc3aa945867f79fee3feece436d2ffdc40a0656016f0a42e07f17816e31a", size = 294538, upload-time = "2026-09-15T05:53:43.613Z" },
 ]
 
 [[package]]
@@ -823,7 +823,7 @@ requires-dist = [
     { name = "curl-cffi", specifier = ">=0.15.0" },
     { name = "ddgs", specifier = ">=9.14.4" },
     { name = "diskcache", specifier = ">=5.6.3" },
-    { name = "fastcdp", specifier = ">=0.0.9" },
+    { name = "fastcdp", specifier = ">=0.0.17" },
     { name = "fastcore", specifier = ">=1.12.31" },
     { name = "flashrank", marker = "extra == 'dev'", specifier = ">=0.2.10" },
     { name = "html2text", specifier = ">=2025.4.15" },

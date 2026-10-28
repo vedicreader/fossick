@@ -225,7 +225,7 @@ async def type_text(page:Page, backendNodeId, text):
 async def click_settle(page:Page, backendNodeId, timeout=8):
     "Click an element and wait for the page to settle, without failing when the click does not navigate."
     try:
-        async with page.wait_ready(timeout=timeout): await page.click(backendNodeId)
+        async with page.expect_navigation(timeout=timeout): await page.click(backendNodeId)
     except TimeoutError: pass
 
 @patch
