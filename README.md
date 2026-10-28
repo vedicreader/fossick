@@ -135,3 +135,5 @@ read(url, auto=False, max_bytes=20_000_000)    # also for PDFs, arXiv papers and
 ```
 
 With `auto=False`, fossick does not start a browser or connect to port 9223, also for PDFs and the redirects that a page sends. The plain path refuses private and local addresses. It connects only to the address that it checked, so a second DNS answer cannot send it to `127.0.0.1`. It checks each redirect in the same way. `max_bytes` and `max_recv_speed` limit the size and speed of a download. Both are off by default. Through a proxy, and in the browser paths, fossick checks only the first URL.
+
+On a machine that inspects TLS traffic with its own root certificate, curl_cffi does not trust that root, because it does not use the system keychain. A download then fails with `curl: (60) ... unable to get local issuer certificate`. Set `SSL_CERT_FILE` to a CA bundle file that holds the normal roots and the inspection root, for example `export SSL_CERT_FILE=~/Library/Java/macos-all-ca.pem`. fossick also reads `CURL_CA_BUNDLE` and `REQUESTS_CA_BUNDLE`, and takes `ca_bundle=` on each call. Verification stays on.

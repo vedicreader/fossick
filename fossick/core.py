@@ -231,9 +231,22 @@ def _http_client(opts:dict, own:bool=False):
     c._curl_session = s = Session(curl_options=dict(opts))  # a set session replaces the one-off session FetcherClient makes per request
     return c, s
 
+#: Environment variables that name a CA bundle file, in the order they are read
+_CA_ENV = ('SSL_CERT_FILE', 'CURL_CA_BUNDLE', 'REQUESTS_CA_BUNDLE')
+
+def _verify(verify=True, ca_bundle=None):
+    "What to give curl as `verify`: `ca_bundle` or a `verify` path, else for `verify=True` the first CA bundle file named in `_CA_ENV`, else `verify` unchanged."
+    if ca_bundle: return str(Path(ca_bundle).expanduser())
+    if isinstance(verify, (str, Path)): return str(Path(verify).expanduser())
+    if verify is not True: return verify
+    for v in _CA_ENV:
+        if (p := os.environ.get(v)) and (p := Path(p).expanduser()).is_file(): return str(p)
+    return True
+
 def _send(F, url, method='GET', payload=None, max_bytes=None, **kw) -> Response:
     "Send one request with the scrapling client `F`, and raise `TooLarge` when libcurl stops at `max_bytes`."
     from curl_cffi import CurlError
+    kw['verify'] = _verify(kw.get('verify', True), kw.pop('ca_bundle', None))
     if F is not _fetcher(): kw['selector_config'] = _fetcher()._generate_parser_arguments() | (kw.get('selector_config') or {})
     m = method.upper()
     try:
@@ -250,10 +263,11 @@ def _send(F, url, method='GET', payload=None, max_bytes=None, **kw) -> Response:
 def http_page(url, method='GET', payload=None, verify=False,
               max_bytes:int=None,      # stop with `TooLarge` when the body is larger than this many bytes
               curl_options:dict=None,  # extra libcurl options for this request, keyed by `curl_cffi.CurlOpt`
+              ca_bundle:str=None,      # CA bundle file to verify TLS with (default: $SSL_CERT_FILE, $CURL_CA_BUNDLE, $REQUESTS_CA_BUNDLE, then curl's own)
               **kw) -> Response:
 	"Send one plain HTTP request with scrapling's `Fetcher` and return the response, without the private address check."
 	F, s = _http_client(_curl_opts(max_bytes, curl_options))
-	try: return _send(F, url, method, payload, max_bytes, verify=verify, **kw)
+	try: return _send(F, url, method, payload, max_bytes, verify=verify, ca_bundle=ca_bundle, **kw)
 	finally:
 		if s: s.close()
 
@@ -308,6 +322,7 @@ def get_page(url, method='GET', payload=None, heavy=False, stealthy=False, sessi
 		if max_recv_speed: kw['max_recv_speed'] = int(max_recv_speed)
 		return _checked_http(url, method, payload, allow_private, max_bytes=max_bytes, **kw)
 	check_url(url, allow_private)
+	kw.pop('ca_bundle', None)
 	if session:
 		from fossick.cdp import cdp_ws, cdp_cookies
 		port = 9223 if session is True else int(session)
