@@ -6,7 +6,7 @@ Docs: https://vedicreader.github.io/fossick/core.html.md"""
 
 # %% auto #0
 __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', 'html_title', 'html2md', 'to_md', 'BlockedURL',
-           'check_url', 'BrowserUnavailable', 'http_page', 'get_page', 'fetch', 'browser_session', 'crawl',
+           'check_url', 'BrowserUnavailable', 'TooLarge', 'http_page', 'get_page', 'fetch', 'browser_session', 'crawl',
            'get_options', 'fetch_all', 'get_pdf', 'read_arxiv', 'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_clone',
            'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records', 'paginate_api',
            'download_files', 'search_yt', 'read_yt', 'download_yt', 'what_is', 'md_title', 'pdf_pages', 'read',
@@ -23,7 +23,7 @@ from collections import deque
 import lxml.etree as etree, lxml.html
 from scrapling import Selector
 from scrapling.engines.toolbelt.custom import Response
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlparse, urlencode, urljoin
 from functools import cache
 
 # %% ../nbs/00_core.ipynb #b7683b88563710b3
@@ -135,17 +135,19 @@ def _env_allows_private() -> bool:
     return (os.environ.get('FOSSICK_ALLOW_PRIVATE') or '').strip().strip('\'"').lower() in (
         '1', 'true', 'yes', 'on')
 
+def _private_ok(allow_private) -> bool:
+    "Does this call skip the private address check?"
+    return bool(allow_private or (allow_private is None and _env_allows_private()))
+
 def _bad_ip(addr:str) -> bool:
     "Is `addr` an address no outbound fetch should reach?"
     try: ip = ipaddress.ip_address(addr)
     except ValueError: return False
     return (not ip.is_global) or ip.is_multicast
 
-def check_url(url:str,                   # the URL about to be fetched
-              allow_private:bool=None,   # True skips the check; None skips it only when FOSSICK_ALLOW_PRIVATE is 1, true, yes or on
-             ) -> str:
-    "Return `url` unchanged when it is safe to fetch, or raise `BlockedURL` when it is not http or https or its host is private or reserved."
-    if allow_private or (allow_private is None and _env_allows_private()): return url
+def _check_addrs(url:str, allow_private:bool=None) -> list:
+    "Run the checks of `check_url` and return the addresses the host resolves to, or [] when the check is skipped or the host is an IP address."
+    if _private_ok(allow_private): return []
     u = urlparse(url if '//' in (url or '') else f'//{url or ""}')
     if u.scheme and u.scheme.lower() not in ('http', 'https', ''):
         raise BlockedURL(f'fetch is http/https only, got {u.scheme!r}: {url}')
@@ -159,9 +161,17 @@ def check_url(url:str,                   # the URL about to be fetched
                                     proto=socket.IPPROTO_TCP)
     except socket.gaierror as e:
         raise BlockedURL(f'cannot resolve {h}: {e}') from e
-    for *_, sockaddr in infos:
-        if _bad_ip(sockaddr[0]):
-            raise BlockedURL(f'{h} resolves to {sockaddr[0]}, a private or reserved address{hint}')
+    addrs = list(dict.fromkeys(sa[0] for *_, sa in infos))
+    for a in addrs:
+        if _bad_ip(a): raise BlockedURL(f'{h} resolves to {a}, a private or reserved address{hint}')
+    try: ipaddress.ip_address(h); return []
+    except ValueError: return addrs
+
+def check_url(url:str,                   # the URL about to be fetched
+              allow_private:bool=None,   # True skips the check; None skips it only when FOSSICK_ALLOW_PRIVATE is 1, true, yes or on
+             ) -> str:
+    "Return `url` unchanged when it is safe to fetch, or raise `BlockedURL` when it is not http or https or its host is private or reserved."
+    _check_addrs(url, allow_private)
     return url
 
 def _host(url:str) -> str:
@@ -204,20 +214,99 @@ def _browser_fetchers():
 class BrowserUnavailable(RuntimeError):
     "The error raised when scrapling's browser fetchers fail to import; the message suggests running `scrapling install`."
 
-def http_page(url, method='GET', payload=None, verify=False, **kw) -> Response:
+class TooLarge(ValueError):
+    "The error raised when a plain HTTP response body is larger than `max_bytes`."
+
+def _curl_opts(max_bytes=None, curl_options=None) -> dict:
+    "libcurl options for one request: the `max_bytes` limit, then the caller's own `curl_options`."
+    from curl_cffi import CurlOpt
+    return ({CurlOpt.MAXFILESIZE_LARGE: int(max_bytes)} if max_bytes else {}) | dict(curl_options or {})
+
+def _http_client(opts:dict, own:bool=False):
+    "Return scrapling's `Fetcher` and None, or, when `opts` or `own` is set, a client of the same kind and the curl session it owns, which sends `opts` with each request."
+    if not (opts or own): return _fetcher(), None
+    from scrapling.engines.static import FetcherClient
+    from curl_cffi.requests import Session
+    c = FetcherClient()
+    c._curl_session = s = Session(curl_options=dict(opts))  # a set session replaces the one-off session FetcherClient makes per request
+    return c, s
+
+def _send(F, url, method='GET', payload=None, max_bytes=None, **kw) -> Response:
+    "Send one request with the scrapling client `F`, and raise `TooLarge` when libcurl stops at `max_bytes`."
+    from curl_cffi import CurlError
+    if F is not _fetcher(): kw['selector_config'] = _fetcher()._generate_parser_arguments() | (kw.get('selector_config') or {})
+    m = method.upper()
+    try:
+        if m == 'POST': return F.post(url, json=payload, **kw)
+        if m == 'PUT': return F.put(url, json=payload, **kw)
+        if payload: kw['params'] = payload
+        if m == 'DELETE': return F.delete(url, **kw)
+        if m == 'GET': return F.get(url, **kw)
+    except CurlError as e:
+        if getattr(e, 'code', None) == 63: raise TooLarge(f'{url} sent more than max_bytes={max_bytes} bytes') from e
+        raise
+    raise ValueError(f"Unsupported method: {method}")
+
+def http_page(url, method='GET', payload=None, verify=False,
+              max_bytes:int=None,      # stop with `TooLarge` when the body is larger than this many bytes
+              curl_options:dict=None,  # extra libcurl options for this request, keyed by `curl_cffi.CurlOpt`
+              **kw) -> Response:
 	"Send one plain HTTP request with scrapling's `Fetcher` and return the response, without the private address check."
-	F, kw = _fetcher(), dict(verify=verify) | kw
-	if method.upper() == 'POST': return F.post(url, json=payload, **kw)
-	if method.upper() == 'PUT': return F.put(url, json=payload, **kw)
-	if payload: kw['params'] = payload
-	if method.upper() == 'DELETE': return F.delete(url, **kw)
-	if method.upper() == 'GET': return F.get(url, **kw)
-	else: raise ValueError(f"Unsupported method: {method}")
+	F, s = _http_client(_curl_opts(max_bytes, curl_options))
+	try: return _send(F, url, method, payload, max_bytes, verify=verify, **kw)
+	finally:
+		if s: s.close()
+
+def _pin(url:str, addrs:list) -> dict:
+	"libcurl options that connect to `url`'s host and port only at the checked `addrs`, so libcurl does not look the name up again."
+	from curl_cffi import CurlOpt
+	u = urlparse(url)
+	try: h = u.hostname.encode('idna').decode()
+	except UnicodeError: h = u.hostname
+	port = u.port or (443 if u.scheme.lower() == 'https' else 80)
+	ips = [f'[{a}]' if ':' in a else a for a in addrs]
+	o = {CurlOpt.RESOLVE: [f"{h}:{port}:{','.join(ips)}"]}
+	# a non-ASCII name may not match libcurl's own IDN form, so also send every connection to the first address
+	if not u.hostname.isascii(): o[CurlOpt.CONNECT_TO] = [f'::{ips[0]}:']
+	return o
+
+_REDIRECTS = (301, 302, 303, 307, 308)
+_CRED_HEADERS = ('authorization', 'cookie', 'proxy-authorization')
+
+def _drop_creds(kw:dict) -> dict:
+	"`kw` without the cookies, auth and credential headers that must not follow a redirect to another host."
+	kw = {k: v for k, v in kw.items() if k not in ('cookies', 'auth')}
+	if kw.get('headers'): kw['headers'] = {k: v for k, v in dict(kw['headers']).items() if k.lower() not in _CRED_HEADERS}
+	return kw
+
+def _checked_http(url, method='GET', payload=None, allow_private=None, verify=False, max_bytes=None,
+                  curl_options=None, **kw) -> Response:
+	"Send a plain request that connects only to the addresses `check_url` approved, and check and pin each redirect the same way."
+	if _private_ok(allow_private): return http_page(url, method, payload, verify, max_bytes, curl_options, **kw)
+	follow, left = kw.pop('follow_redirects', 'safe'), kw.pop('max_redirects', 30)
+	if left is None or left < 0: left = 30
+	pin = not (kw.get('proxy') or kw.get('proxies'))   # through a proxy, the proxy looks the name up
+	F, s = _http_client(_curl_opts(max_bytes, curl_options), own=True)
+	try:
+		while True:
+			addrs = _check_addrs(url, False)
+			if pin and addrs: s.curl_options.update(_pin(url, addrs))
+			r = _send(F, url, method, payload, max_bytes, verify=verify, follow_redirects=False, **kw)
+			loc = next((v for k, v in (r.headers or {}).items() if k.lower() == 'location'), None)
+			if not (follow and loc and r.status in _REDIRECTS) or left == 0: return r
+			nxt = urljoin(url, loc)
+			if _host(nxt) != _host(url): kw = _drop_creds(kw)
+			if r.status == 303 or (r.status in (301, 302) and method.upper() == 'POST'): method, payload = 'GET', None
+			url, left = nxt, left - 1
+	finally: s.close()
 
 def get_page(url, method='GET', payload=None, heavy=False, stealthy=False, session=False,
-             allow_private=None, **kw) -> Response:
+             allow_private=None, max_bytes:int=None, max_recv_speed:int=None, **kw) -> Response:
 	"Download `url` with plain HTTP, a headless browser, the stealth browser or the logged-in debug Chrome, after checking it with `check_url`."
 	assert method.upper() in ('GET', 'POST'), 'Only GET and POST methods are supported'
+	if not (heavy or stealthy or session):
+		if max_recv_speed: kw['max_recv_speed'] = int(max_recv_speed)
+		return _checked_http(url, method, payload, allow_private, max_bytes=max_bytes, **kw)
 	check_url(url, allow_private)
 	if session:
 		from fossick.cdp import cdp_ws, cdp_cookies
@@ -226,13 +315,13 @@ def get_page(url, method='GET', payload=None, heavy=False, stealthy=False, sessi
 		if (ck := cdp_cookies(url, port=port)): kw.setdefault('cookies', ck)
 		kw.pop('verify', None)
 		if not stealthy: heavy = True
-	if not (heavy or stealthy): return http_page(url, method, payload, **kw)
 	StealthyFetcher, DynamicFetcher = _browser_fetchers()
 	f = DynamicFetcher.async_fetch if heavy else StealthyFetcher.async_fetch
 	return syncy(f(url, **kw))
 
 http_get = bind(get_page, method='GET', verify=True, timeout=30)
 http_post = bind(get_page, method='POST', timeout=30)
+
 
 # %% ../nbs/00_core.ipynb #4c84bd2931cbee8e
 _warned = set()
@@ -308,17 +397,18 @@ def fetch(url:str,                # URL to fetch
           stealthy:bool=False,    # Anti-bot stealth fetcher (Cloudflare etc.)
           capture_xhr:bool=False, # Capture XHR calls made by the page (only works with heavy or stealthy)
           session:bool=False,     # Route through the persistent debug Chrome (reuses its logged-in cookies); True or a port int
-          auto:bool=False,        # Try plain, heavy, stealthy, then the debug Chrome, stopping at the first response that is not a bot wall
+          auto:bool=False,        # Try plain, heavy, stealthy, then the logged-in debug Chrome with its cookies for the site; keep False for untrusted URLs
           allow_private:bool=None,# Allow localhost/intranet targets (default: refuse; $FOSSICK_ALLOW_PRIVATE=1)
-          **kw,                   # Extra kwargs passed to scrapling (e.g. verify, headers)
+          max_bytes:int=None,     # Plain HTTP only: raise `TooLarge` when the body is larger than this many bytes (default: no limit)
+          max_recv_speed:int=None,# Plain HTTP only: the highest download speed, in bytes per second (default: no limit)
+          **kw,                   # Extra kwargs passed to scrapling (e.g. verify, headers, timeout)
          ) -> Response:
-    "Download `url` and return the response with `.html` set to the page, or the part matching `sel`, and `.xhr` set to any recorded background requests."
-    if auto: return _fetch_auto(url, sel=sel, method=method, payload=payload, capture_xhr=capture_xhr,
-                            allow_private=allow_private, **kw)
+    "Download `url` and return the response with `.html` set to the page, or the part matching `sel`, and `.xhr` set to any recorded background requests. `auto=True` can end in the logged-in debug Chrome, so pass `auto=False` for untrusted URLs."
+    kw |= dict(allow_private=allow_private, max_bytes=max_bytes, max_recv_speed=max_recv_speed)
+    if auto: return _fetch_auto(url, sel=sel, method=method, payload=payload, capture_xhr=capture_xhr, **kw)
     heavy = heavy or capture_xhr
     if capture_xhr: kw.setdefault('capture_xhr', '.*')
-    page = get_page(url, method=method, payload=payload, heavy=heavy, stealthy=stealthy, session=session,
-                    allow_private=allow_private, **kw)
+    page = get_page(url, method=method, payload=payload, heavy=heavy, stealthy=stealthy, session=session, **kw)
     return _finish(page, sel, capture_xhr)
 
 @contextmanager
@@ -399,8 +489,8 @@ def _is_pdf(b) -> bool:
     "True when `b` starts with the %PDF- magic bytes (allowing leading whitespace/junk)."
     return isinstance(b, bytes) and b'%PDF-' in b[:1024]
 
-def _pmc_pow_pdf(url, page:bytes, timeout=60):
-    "Solve NCBI PMC's small proof-of-work challenge and return the protected PDF bytes."
+def _pmc_pow_pdf(url, page:bytes, **kw):
+    "Solve NCBI PMC's small proof-of-work challenge and download the PDF again with the answer, through `get_page`'s plain HTTP path and its checks."
     text = page.decode(errors='replace')
     challenge = re.search(r'const POW_CHALLENGE = \"([^\"]+)', text)
     difficulty = re.search(r'const POW_DIFFICULTY = \"(\d+)', text)
@@ -410,21 +500,23 @@ def _pmc_pow_pdf(url, page:bytes, timeout=60):
     if difficulty > 6: return None
     prefix, nonce = '0' * difficulty, 0
     while not hashlib.sha256(f'{challenge}{nonce}'.encode()).hexdigest().startswith(prefix): nonce += 1
-    from curl_cffi import requests
-    s = requests.Session(impersonate='chrome')
-    s.cookies.set(cookie.group(1), f'{challenge},{nonce}', domain=urlparse(url).hostname, path='/')
-    r = s.get(url, timeout=timeout)
-    return r.content if r.status_code == 200 and _is_pdf(r.content) else None
+    ck = kw.get('cookies') if isinstance(kw.get('cookies'), dict) else {}
+    r = get_page(url, **(kw | dict(heavy=False, stealthy=False, session=False,
+                                   cookies=ck | {cookie.group(1): f'{challenge},{nonce}'})))
+    return r.body if r.status == 200 and _is_pdf(r.body) else None
 
 def get_pdf(url_or_path:str, # URL or local path to PDF
             save_path=None, # optional path to save the PDF (directory or full path)
-            **scrapling_kw # extra kwargs passed to scrapling fetcher (e.g. verify, headers, timeout)
+            max_bytes:int=None, # raise `TooLarge` when the download is larger than this many bytes (default: no limit)
+            **scrapling_kw # extra kwargs passed to `get_page` (e.g. verify, headers, timeout, allow_private)
             ) -> PdfDocument|None:
     "Download a PDF from a URL, or read one from disk, and return it as a `PdfDocument`, or None when the bytes are not a PDF."
     pth = Path(url_or_path) if not url_or_path.startswith('http') else None
     if pth: src = pth.read_bytes() if pth.exists() else None
-    else: src = r.body if (r:=get_page(url_or_path, **scrapling_kw)).status == 200 else None
-    if not _is_pdf(src) and url_or_path.startswith('http'): src = _pmc_pow_pdf(url_or_path, src or b'', scrapling_kw.get('timeout', 60))
+    else:
+        if max_bytes: scrapling_kw['max_bytes'] = max_bytes
+        src = r.body if (r:=get_page(url_or_path, **scrapling_kw)).status == 200 else None
+    if not _is_pdf(src) and url_or_path.startswith('http'): src = _pmc_pow_pdf(url_or_path, src or b'', **scrapling_kw)
     if not _is_pdf(src): return None
     if save_path:
         pth = p/url_or_path.rsplit('/', 1)[-1].split('?')[0] if (p:=Path(save_path)).is_dir() else p
@@ -689,12 +781,13 @@ def read_gh_repo(path_or_url:str,  # GitHub URL, SSH address, or local path
     if as_list: return files
     return {str(p): p.read_text(errors='ignore') for p in files}
 
-def read_gh_file(url:str # GitHub blob URL of the file to read
+def read_gh_file(url:str, # GitHub blob URL of the file to read
+                 **kw     # passed to `http_get` (e.g. max_bytes, timeout)
                  ):
 	"Return the contents of one file from its GitHub page URL."
 	raw_url = re.sub(r'https://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)',
 	                 r'https://raw.githubusercontent.com/\1/\2/refs/heads/\3/\4', url)
-	if (r:=http_get(raw_url)).status != 200: raise Exception(f"Failed to fetch {raw_url}: {r.status}")
+	if (r:=http_get(raw_url, **kw)).status != 200: raise Exception(f"Failed to fetch {raw_url}: {r.status}")
 	if 'html' not in (r.headers.get('content-type') or ''): return r.body.decode(r.encoding or 'utf-8', 'replace')
 	return to_md(r)
 
@@ -1003,7 +1096,7 @@ def pdf_pages(pdf:PdfDocument,      # an open PDF
 # %% ../nbs/00_core.ipynb #77efa066440f
 def read(target:str,          # a URL, an arXiv id, a YouTube link, a GitHub repo or file, a PDF, a local path
          sel:str=None,        # CSS selector, for the web cases
-         auto:bool=True,      # escalate plain -> heavy -> stealthy -> logged-in Chrome past bot walls
+         auto:bool=True,      # escalate plain -> heavy -> stealthy -> logged-in Chrome past bot walls; pass False for untrusted URLs
          pages:bool=False,    # PDFs as `[(page_index, text)]`, numbered from 0, rather than one string
          save_dir:str='.',    # where a downloaded PDF is kept
          force:bool=False,    # ignore whatever the reader has cached
@@ -1035,7 +1128,7 @@ def read(target:str,          # a URL, an arXiv id, a YouTube link, a GitHub rep
                      duration=v.get('duration'), upload_date=v.get('upload_date'))
     if kind == 'ghfile':
         owner, repo, path = _GH_BLOB.match(target).groups()
-        return _read('ghfile', target, read_gh_file(target), Path(path).name,
+        return _read('ghfile', target, read_gh_file(target, **kw), Path(path).name,
                      repo=f'{owner}/{repo}', path=path)
     if kind == 'pdf':
         if (doc := get_pdf(target, **kw)) is None:
