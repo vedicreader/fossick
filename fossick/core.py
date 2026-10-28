@@ -260,7 +260,7 @@ def _send(F, url, method='GET', payload=None, max_bytes=None, **kw) -> Response:
         raise
     raise ValueError(f"Unsupported method: {method}")
 
-def http_page(url, method='GET', payload=None, verify=False,
+def http_page(url, method='GET', payload=None, verify=True,
               max_bytes:int=None,      # stop with `TooLarge` when the body is larger than this many bytes
               curl_options:dict=None,  # extra libcurl options for this request, keyed by `curl_cffi.CurlOpt`
               ca_bundle:str=None,      # CA bundle file to verify TLS with (default: $SSL_CERT_FILE, $CURL_CA_BUNDLE, $REQUESTS_CA_BUNDLE, then curl's own)
@@ -293,7 +293,7 @@ def _drop_creds(kw:dict) -> dict:
 	if kw.get('headers'): kw['headers'] = {k: v for k, v in dict(kw['headers']).items() if k.lower() not in _CRED_HEADERS}
 	return kw
 
-def _checked_http(url, method='GET', payload=None, allow_private=None, verify=False, max_bytes=None,
+def _checked_http(url, method='GET', payload=None, allow_private=None, verify=True, max_bytes=None,
                   curl_options=None, **kw) -> Response:
 	"Send a plain request that connects only to the addresses `check_url` approved, and check and pin each redirect the same way."
 	if _private_ok(allow_private): return http_page(url, method, payload, verify, max_bytes, curl_options, **kw)
@@ -602,7 +602,7 @@ def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
 # %% ../nbs/00_core.ipynb #bb7d64207baa24dd
 def _crossref_search(**params):
     "Search Crossref API; returns parsed response dict"
-    return fetch(f'https://api.crossref.org/works?{urlencode(params)}', verify=False).json() or {}
+    return fetch(f'https://api.crossref.org/works?{urlencode(params)}').json() or {}
 
 _crossref = bind(_crossref_search, **{'select': 'DOI,title', 'rows': 1})
 
@@ -859,7 +859,6 @@ def replay_xhr(capture:dict,        # a request dict from cdp.calls() or find_xh
         from fossick.cdp import cdp_cookies
         if (ck := cdp_cookies(url, port=port, as_dict=True)): kw.setdefault('cookies', ck)
     kw.setdefault('headers', headers)
-    kw.setdefault('verify', False)
     body = data if data is not None else capture.get('postData')
     F = _fetcher()
     if method == 'GET': return F.get(url, **kw)
@@ -962,7 +961,7 @@ def download_files(url:str,
             seen.add(abs_url)
             fname = save_dir / abs_url.rsplit('/', 1)[-1].split('?')[0]
             if fname.exists() and not force: saved.append(fname); continue
-            if (r:=get_page(abs_url, verify=kw.get('verify', False))).status == 200: fname.write_bytes(r.body)
+            if (r:=get_page(abs_url, verify=kw.get('verify', True))).status == 200: fname.write_bytes(r.body)
             saved.append(fname)
     return saved
 
