@@ -2,6 +2,15 @@
 
 <!-- do not remove -->
 
+## 0.1.23
+
+- `gh_clone` clones over HTTPS only. Before, a failed HTTPS clone tried SSH, and SSH could stop and wait for a passphrase, because `GIT_TERMINAL_PROMPT` does not stop SSH. Pass `ssh=True` to try SSH after HTTPS. SSH then runs with `BatchMode=yes`. An SSH address as the target is cloned over HTTPS too.
+- `gh_clone` makes a shallow clone with `depth=1`. Pass `depth=None` for the full history. New `timeout`, 300 seconds by default, applies to each git network command. When git takes longer, fossick stops it, removes the part-made folder and raises `TimeoutError`.
+- `gh_clone` gives git its own copy of the environment with `GIT_TERMINAL_PROMPT=0`, and does not change `os.environ`.
+- `gh_clone` keeps each clone in a folder named `owner__repo`, with each part percent-encoded and `_` encoded too. Before, `a-b/c` and `a/b-c` used the same `a-b-c` folder. Clones in the old folders are not used again; you can delete them.
+- `gh_clone` refuses a target that starts with `-`, and puts `--` before the URL in `git clone`.
+- On macOS, the plain HTTP path trusts the system keychain. When no CA variable is set, fossick reads the system keychains with `security find-certificate`, adds the certificates to certifi's roots, and keeps the bundle in its cache folder for one day. On a Mac that inspects TLS, `http_get` and `fetch` then work with no `CURL_CA_BUNDLE`. Verification stays on.
+
 ## 0.1.22
 
 - The plain HTTP path of `get_page`, `fetch`, `http_get` and `http_post` connects only to the addresses that `check_url` approved. It gives them to libcurl with `CURLOPT_RESOLVE`, so a second DNS answer cannot send the request to a private address (DNS rebinding). fossick now follows redirects itself. It checks and pins the address of each redirect before it connects, and it does not send cookies, `auth` or credential headers that you supplied to a different host. Through a proxy, and in the browser paths, only the first URL is checked.

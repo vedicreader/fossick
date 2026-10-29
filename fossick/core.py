@@ -23,7 +23,7 @@ from collections import deque
 import lxml.etree as etree, lxml.html
 from scrapling import Selector
 from scrapling.engines.toolbelt.custom import Response
-from urllib.parse import urlparse, urlencode, urljoin
+from urllib.parse import urlparse, urlencode, urljoin, quote
 from functools import cache
 
 # %% ../nbs/00_core.ipynb #b7683b88563710b3
@@ -234,14 +234,33 @@ def _http_client(opts:dict, own:bool=False):
 #: Environment variables that name a CA bundle file, in the order they are read
 _CA_ENV = ('SSL_CERT_FILE', 'CURL_CA_BUNDLE', 'REQUESTS_CA_BUNDLE')
 
+#: macOS keychains whose certificates `_system_ca` adds to certifi's roots
+_MAC_KEYCHAINS = ('/System/Library/Keychains/SystemRootCertificates.keychain', '/Library/Keychains/System.keychain')
+
+def _system_ca(path=None, max_age:int=86400):
+    "On macOS, a CA bundle file of certifi's roots and the system keychain certificates, made again after `max_age` seconds; else None."
+    if sys.platform != 'darwin': return None
+    p = Path(path or fossick_cache('tls/macos-ca.pem'))
+    if p.is_file() and time.time() - p.stat().st_mtime < max_age: return str(p)
+    try: pems = subprocess.run(['security', 'find-certificate', '-a', '-p', *_MAC_KEYCHAINS], stdin=subprocess.DEVNULL,
+                               capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError): pems = ''
+    if 'BEGIN CERTIFICATE' not in pems: return str(p) if p.is_file() else None
+    import certifi
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name(f'{p.name}.{os.getpid()}.tmp')
+    tmp.write_text(Path(certifi.where()).read_text() + '\n' + pems)
+    tmp.replace(p)
+    return str(p)
+
 def _verify(verify=True, ca_bundle=None):
-    "What to give curl as `verify`: `ca_bundle` or a `verify` path, else for `verify=True` the first CA bundle file named in `_CA_ENV`, else `verify` unchanged."
+    "What to give curl as `verify`: `ca_bundle` or a `verify` path, else for `verify=True` the first CA bundle file named in `_CA_ENV`, then `_system_ca`, else `verify` unchanged."
     if ca_bundle: return str(Path(ca_bundle).expanduser())
     if isinstance(verify, (str, Path)): return str(Path(verify).expanduser())
     if verify is not True: return verify
     for v in _CA_ENV:
         if (p := os.environ.get(v)) and (p := Path(p).expanduser()).is_file(): return str(p)
-    return True
+    return _system_ca() or True
 
 def _send(F, url, method='GET', payload=None, max_bytes=None, **kw) -> Response:
     "Send one request with the scrapling client `F`, and raise `TooLarge` when libcurl stops at `max_bytes`."
@@ -739,48 +758,63 @@ def pdf2nb(u_or_p,  # URL or local path to PDF
 	return nb_path
 
 # %% ../nbs/00_core.ipynb #b3518187d2621cbc
-def _gh_remotes(url:str) -> L: # GitHub URL or SSH remote
-    'Clone URLs for a GitHub repo, HTTPS first so a public repo needs no key. Empty if not GitHub.'
-    if url.startswith('git@github.com:'): return L(url)
-    if m := re.match(r'https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?(?:/|$)', url):
-        return L(f'https://github.com/{m[1]}/{m[2]}.git', f'git@github.com:{m[1]}/{m[2]}.git')
-    return L()
+def _gh_remotes(url:str, ssh:bool=False) -> L: # GitHub URL or SSH remote
+    'Clone URLs for a GitHub repo: HTTPS, then with `ssh` the SSH address. Empty if not GitHub.'
+    m = (re.match(r'git@github\.com:([^/]+)/([^/]+?)(?:\.git)?/?$', url) or
+         re.match(r'https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?(?:/|$)', url))
+    if not m: return L()
+    return L(f'https://github.com/{m[1]}/{m[2]}.git') + (L(f'git@github.com:{m[1]}/{m[2]}.git') if ssh else L())
 
 def _clone_dir(remote:str) -> Path:
-    'Cache directory for a clone, keyed on `owner-repo` — two owners can name a repo the same thing.'
+    'Cache folder for a clone: `owner__repo`, each part percent-encoded with `_` too, so no two repos share a folder.'
     m = re.search(r'[:/]([^/:]+)/([^/]+?)(?:\.git)?$', remote)
-    nm = f'{m[1]}-{m[2]}' if m else remote.rsplit('/', 1)[-1].removesuffix('.git')
-    return fossick_cache('git_clones')/nm
+    parts = (m[1], m[2]) if m else (remote,)
+    return fossick_cache('git_clones')/'__'.join(quote(p, safe='-.').replace('_', '%5F') for p in parts)
 
-def _git(*a):
-    "Run git with `/dev/null` as stdin; its stripped stdout, or `IOError` with its output on failure."
-    p = subprocess.run(['git', *a], stdin=subprocess.DEVNULL, capture_output=True, text=True)
+def _clone_env(ssh:bool=False) -> dict:
+    "A copy of `os.environ` for git network commands: no password prompt, and an SSH that never asks."
+    env = dict(os.environ, GIT_TERMINAL_PROMPT='0')
+    if ssh: env.setdefault('GIT_SSH_COMMAND', 'ssh -o BatchMode=yes')
+    return env
+
+def _git(*a, env:dict=None, timeout:float=None):
+    "Run git with `/dev/null` as stdin; its stripped stdout, `IOError` with its output on failure, or `TimeoutError` after `timeout` seconds."
+    try: p = subprocess.run(['git', *a], stdin=subprocess.DEVNULL, capture_output=True, text=True, env=env, timeout=timeout)
+    except subprocess.TimeoutExpired as e: raise TimeoutError(f'git {" ".join(a)} took more than {timeout}s') from e
     if p.returncode: raise IOError(f'{p.stdout} ;; {p.stderr}'.strip())
     return p.stdout.strip()
 
-def _get_git_repo(remotes):
+def _get_git_repo(remotes, depth:int=1, timeout:float=300, ssh:bool=False):
     'Clone or update a GitHub repo to local cache; return Path'
-    remotes = L(remotes)
+    remotes, env = L(remotes), _clone_env(ssh)
+    dp = ['--depth', str(depth)] if depth else []
     repo_dir = _clone_dir(remotes[0])
     if repo_dir.exists():
         try:
-            _git('-C', str(repo_dir), 'fetch')
+            _git('-C', str(repo_dir), 'fetch', *dp, env=env, timeout=timeout)
             branch = _git('-C', str(repo_dir), 'symbolic-ref', 'refs/remotes/origin/HEAD').split('/')[-1]
             _git('-C', str(repo_dir), 'reset', '--hard', f'origin/{branch}')
             return repo_dir
-        except IOError: shutil.rmtree(repo_dir)
+        except IOError: shutil.rmtree(repo_dir, ignore_errors=True)
     repo_dir.parent.mkdir(parents=True, exist_ok=True)
-    for r in remotes:                       # HTTPS, then SSH: a private repo still works with a key
+    for r in remotes:                       # HTTPS, then SSH when asked for
         try:
-            _git('clone', r, str(repo_dir))
+            _git('clone', *dp, '--', r, str(repo_dir), env=env, timeout=timeout)
             return repo_dir
-        except IOError as e: err = e
+        except IOError as e:                # TimeoutError is an IOError too
+            err = e
+            shutil.rmtree(repo_dir, ignore_errors=True)
     raise err
 
-def gh_clone(path_or_url:str  # GitHub URL, SSH address, or a local path (returned as-is)
+def gh_clone(path_or_url:str,  # GitHub URL, SSH address, or a local path (returned as-is)
+             depth:int=1,      # commits of history to clone; None for all of them
+             timeout:float=300,# seconds for each git command; then git is stopped and the part-made folder removed
+             ssh:bool=False    # try SSH after HTTPS, for a private repo and an SSH key
              ) -> Path:
     "Return a local clone of a GitHub repository, cloned or updated in fossick's cache, or return a local path unchanged."
-    return _get_git_repo(rs) if (rs := _gh_remotes(path_or_url)) else Path(path_or_url)
+    if str(path_or_url).startswith('-'): raise ValueError(f'refusing a target that starts with "-": {path_or_url!r}')
+    rs = _gh_remotes(path_or_url, ssh)
+    return _get_git_repo(rs, depth, timeout, ssh) if rs else Path(path_or_url)
 
 @timed_cache(seconds=3600)
 def read_gh_repo(path_or_url:str,  # GitHub URL, SSH address, or local path
