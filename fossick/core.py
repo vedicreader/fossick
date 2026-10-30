@@ -9,9 +9,9 @@ __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', '
            'check_url', 'BrowserUnavailable', 'TooLarge', 'http_page', 'get_page', 'fetch', 'browser_session', 'crawl',
            'get_options', 'fetch_all', 'get_pdf', 'read_arxiv', 'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_clone',
            'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records', 'paginate_api',
-           'download_files', 'search_yt', 'read_yt', 'download_yt', 'what_is', 'md_title', 'pdf_pages', 'read',
-           'repo_root', 'mv_skill_md', 'clean_md', 'fix_layout', 'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc',
-           'pdf_md']
+           'download_files', 'yt_link', 'search_yt', 'read_yt', 'download_yt', 'what_is', 'md_title', 'pdf_pages',
+           'read', 'repo_root', 'mv_skill_md', 'clean_md', 'fix_layout', 'needs_ocr', 'ocr_parse', 'orphan_vals',
+           'pdf_doc', 'pdf_md']
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
@@ -1027,6 +1027,37 @@ def _parse_vtt(vtt:str) -> str:
         if text and (not lines or lines[-1] != text): lines.append(text)
     return ' '.join(lines)
 
+def _secs(t:str) -> float:
+    "Seconds from a VTT time like `01:02:03.456` or `02:03.456`"
+    return sum(float(p) * 60**i for i,p in enumerate(reversed(t.replace(',', '.').split(':'))))
+
+_cue_t = re.compile(r'((?:\d+:)?\d{2}:\d{2}[.,]\d{3})\s*-->\s*((?:\d+:)?\d{2}:\d{2}[.,]\d{3})')
+
+def _parse_cues(vtt:str) -> list:
+    "Return `[{start, end, text}]` in seconds, with YouTube's rolling repeated lines folded into their first cue"
+    cues, prev, cur = [], [], None
+    def flush():
+        nonlocal prev
+        if cur and cur[2]:
+            cues.extend(dict(start=cur[0], end=cur[1], text=t) for t in cur[2] if t not in prev)
+            prev = cur[2]
+    for line in vtt.splitlines():
+        if m := _cue_t.search(line): flush(); cur = [*map(_secs, m.groups()), []]
+        elif cur and (t := re.sub(r'<[^>]+>', '', line).strip()): cur[2].append(t)
+        elif cur and cur[2]: flush(); cur = None
+    flush()
+    return cues
+
+_vid_re = re.compile(r'[A-Za-z0-9_-]{11}')
+
+def yt_link(url_or_id:str, # YouTube URL or video ID
+            seconds:float, # moment to open the video at
+) -> str:
+    "Return a watch link that opens the video at `seconds`."
+    vid = _yt_id(url_or_id)
+    if not _vid_re.fullmatch(vid): raise ValueError(f'not a YouTube video id: {url_or_id!r}')
+    return f'https://www.youtube.com/watch?v={vid}&t={int(seconds)}s'
+
 # %% ../nbs/00_core.ipynb #fb19ccef
 def _yt_opts(opts, **kw):
     if 'verify' not in kw: return opts | kw
@@ -1047,33 +1078,40 @@ def search_yt(q:str,  # search query
         return []
 
 # %% ../nbs/00_core.ipynb #449cd78d676e612f
+def _yt_out(res:dict, cues:bool) -> dict:
+    "Drop `cues` from a cached result unless asked for"
+    return res if cues else {k:v for k,v in res.items() if k!='cues'}
+
 def read_yt(url:str, # YouTube URL or video ID
             force:bool=False, # if True, forces re-fetching even if cached
+            cues:bool=False, # if True, add `cues`: `[{start, end, text}]` in seconds
             **kw,  # SSL/proxy opts (e.g. **ddgs_env()); verify= translated to nocheckcertificate
 ) -> dict:
-    "Return a YouTube video's title, channel, description, duration, upload date and English transcript, cached by video id."
+    "Return a YouTube video's title, channel, description, duration, upload date and English transcript, cached by video id. With `cues=True` it also gives timed transcript lines."
     vid, cache = _yt_id(url), _yt_index()
-    if not force and vid in cache: return cache[vid]
+    if not force and vid in cache and (not cues or 'cues' in cache[vid]): return _yt_out(cache[vid], cues)
 
     with _ytdl().YoutubeDL(_yt_opts({'quiet': True, 'skip_download': True}, **kw)) as ydl:
         info = ydl.extract_info(f'https://www.youtube.com/watch?v={vid}', download=False)
     caps = info.get('automatic_captions', {})
     en_caps = caps.get('en') or caps.get('en-orig') or []
     vtt_url = next((c['url'] for c in en_caps if c.get('ext') == 'vtt'), None)
-    source = ''
+    source, cl = '', []
     if vtt_url:
         r = http_get(vtt_url)
         # `.status` not `.status_code`, and `.body` not `.text`: a Response parses its body as HTML,
         # so `.text` on a text/vtt payload is empty. Decode the raw bytes instead.
-        if r.status == 200: source = _parse_vtt(r.body.decode(errors='replace'))
+        if r.status == 200:
+            vtt = r.body.decode(errors='replace')
+            source, cl = _parse_vtt(vtt), _parse_cues(vtt)
     res = dict(title=info.get('title', ''),
                channel=info.get('channel') or info.get('uploader', ''),
                description=info.get('description', ''),
                duration=info.get('duration'),
                upload_date=info.get('upload_date'),
-               source=source)
+               source=source, cues=cl)
     cache[vid] = res
-    return res
+    return _yt_out(res, cues)
 
 # %% ../nbs/00_core.ipynb #8e8fd7de49827232
 def download_yt(url:str, # YouTube URL or video ID
