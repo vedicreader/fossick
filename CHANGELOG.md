@@ -2,6 +2,11 @@
 
 <!-- do not remove -->
 
+## 0.1.24
+
+- `read_yt(url, cues=True)` also gives `cues`: a list of `{start, end, text}`, with the times in seconds and in order. YouTube's rolling captions repeat each line in the next cue, so a repeated line is dropped and each line keeps its first start and end. A video with no captions gives `cues=[]`. The default `cues=False` gives the same keys as before. The cache keeps the cues, and an old cache entry with no cues is fetched again when you ask for them.
+- New `yt_link(url_or_id, seconds)` gives a link that opens the video at that second. A value that is not an 11-character video id raises `ValueError`.
+
 ## 0.1.23
 
 - `gh_clone` clones over HTTPS only. Before, a failed HTTPS clone tried SSH, and SSH could stop and wait for a passphrase, because `GIT_TERMINAL_PROMPT` does not stop SSH. Pass `ssh=True` to try SSH after HTTPS. SSH then runs with `BatchMode=yes`. An SSH address as the target is cloned over HTTPS too.
