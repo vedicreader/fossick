@@ -8,6 +8,7 @@
 - New `arxiv_id(s)` gives the bare arXiv id, with no version, from an id, an `arxiv:` id, or an abs, pdf, html or export link. It gives None for any other text, such as `and/or`.
 - `read_arxiv` keeps the archive name of an old id, and saves its PDF as `hep-th_9901001.pdf`. It also takes a PDF link that ends in `.pdf`.
 - New `is_pdf(b)` gives True when the bytes `b` hold the `%PDF-` signature in their first 1024 bytes. It is the check that `get_pdf` uses. `_is_pdf` stays as an alias.
+- New `local_host(host)` tells, with no DNS look-up, whether a host names this computer or the local network: `localhost`, a name that ends in `.local`, `.lan`, `.internal`, `.localhost` or `.home.arpa`, a name with no dot, or an address that is not global, also in a short form such as `127.1`. `check_url` does not change.
 
 ## 0.1.24
 

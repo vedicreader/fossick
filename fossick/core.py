@@ -6,12 +6,12 @@ Docs: https://vedicreader.github.io/fossick/core.html.md"""
 
 # %% auto #0
 __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', 'html_title', 'html2md', 'to_md', 'BlockedURL',
-           'check_url', 'BrowserUnavailable', 'TooLarge', 'http_page', 'get_page', 'fetch', 'browser_session', 'crawl',
-           'get_options', 'fetch_all', 'is_pdf', 'get_pdf', 'arxiv_id', 'read_arxiv', 'lookup_doi', 'pdf2md', 'url2nb',
-           'pdf2nb', 'gh_clone', 'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr',
-           'json_records', 'paginate_api', 'download_files', 'yt_link', 'search_yt', 'read_yt', 'download_yt',
-           'what_is', 'md_title', 'pdf_pages', 'read', 'repo_root', 'mv_skill_md', 'clean_md', 'fix_layout',
-           'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc', 'pdf_md']
+           'check_url', 'local_host', 'BrowserUnavailable', 'TooLarge', 'http_page', 'get_page', 'fetch',
+           'browser_session', 'crawl', 'get_options', 'fetch_all', 'is_pdf', 'get_pdf', 'arxiv_id', 'read_arxiv',
+           'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_clone', 'read_gh_repo', 'read_gh_file', 'compile_pattern',
+           'find_xhr', 'replay_xhr', 'json_records', 'paginate_api', 'download_files', 'yt_link', 'search_yt',
+           'read_yt', 'download_yt', 'what_is', 'md_title', 'pdf_pages', 'read', 'repo_root', 'mv_skill_md', 'clean_md',
+           'fix_layout', 'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc', 'pdf_md']
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
@@ -174,6 +174,23 @@ def check_url(url:str,                   # the URL about to be fetched
     _check_addrs(url, allow_private)
     return url
 
+#: Name endings that a local network uses, never the public internet
+_LOCAL_ENDS = ('.localhost', '.local', '.lan', '.internal', '.home.arpa')
+
+def _ip(host:str):
+    "`host` as an IP address, also in a short form that the system takes, such as `127.1`; None for a name."
+    try: return ipaddress.ip_address(host.strip('[]'))
+    except ValueError: pass
+    try: return ipaddress.ip_address(socket.inet_aton(host))
+    except OSError: return None
+
+def local_host(host:str  # a host name or an IP address, with no scheme or port
+              ) -> bool:
+    "True when `host` is this computer or the local network, with no DNS look-up: `localhost`, a local name ending, a name with no dot, or an address that is not global."
+    h = str(host or '').strip().rstrip('.').lower()
+    if h == 'localhost' or h.endswith(_LOCAL_ENDS) or ('.' not in h and ':' not in h): return True
+    return (ip := _ip(h)) is not None and _bad_ip(str(ip))
+
 def _host(url:str) -> str:
     "The lower-case host name of `url`, also when it has no scheme, or '' when it has none."
     try: return (urlparse(url if '//' in url else f'//{url}').hostname or '').rstrip('.')
@@ -183,7 +200,6 @@ def _on_host(url:str, *domains) -> bool:
     "Is the host of `url` one of `domains`, or a subdomain of one?"
     h = _host(url)
     return any(h == d or h.endswith(f'.{d}') for d in domains)
-
 
 # %% ../nbs/00_core.ipynb #9f5a399cf870a5d1
 @cache
