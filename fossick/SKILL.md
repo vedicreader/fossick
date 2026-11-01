@@ -31,6 +31,7 @@ from fossick.shop import shop                     # shopping carts: search -> ad
 
 ```
 arxiv URL/ID          -> read_arxiv(id)              # dict; source is 30-100k chars, slice it
+  with the maths       -> read_arxiv_html(id)         # LaTeXML page, $TeX$; None when there is none
 YouTube URL           -> read_yt(url)                # metadata + transcript
   download media       -> download_yt(url, format='audio'|'video')
   search               -> search_yt(q, n=10)
@@ -77,7 +78,7 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 
 | Function | Key params | Returns |
 |---|---|---|
-| `search(q)` | `category`, `max_results`, `region`, `timelimit`, `backend` | list[dict] (`title, href, body`) |
+| `search(q)` | `category`, `max_results`, `region`, `timelimit`, `backend`, `cache` | list[dict] (`title, href, body`) |
 | `images(q)` / `news(q)` / `videos(q)` / `books(q)` | `max_results`, `region` | list[dict] (ddgs-native fields) |
 | `google(q)` | `n`, `lang`, `region`, `timelimit` | list[dict] (`title, href, content`; stealth browser) |
 | `infer_region(q)` | `dflt` | str (`country-lang`, e.g. `'au-en'`; resolves the halves separately) |
@@ -85,7 +86,8 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `page_date(page)` | — | str\|None (`YYYY-MM-DD` the page says it was published) |
 | `extract(url)` | — | dict (`url`, `content`; page content through ddgs) |
 | `lookup_doi(title)` | — | str\|None |
-| `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `allow_private`, `max_bytes`, `max_recv_speed`, `method`, `payload` | Page dict (`.tier` when `auto`) |
+| `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `allow_private`, `max_bytes`, `max_recv_speed`, `method`, `payload`, `cache`, `per_host`, `remember_blocks` | Page dict (`.tier` when `auto`) |
+| `forget()` | — | clears what `fetch(cache=)` and `search(cache=)` keep, the refused hosts and the host locks |
 | `plan(q)` | `max_queries`, `min_words`, `rewrite` | list[str] — the searches a question is really asking; `[q]` when it is one |
 | `interleave(lists)` | `key` | list — round-robin across per-facet lists (coverage, not consensus) |
 | `curate(q, hits)` | `intent`, `max_per_domain`, `rerank` | (hits, report) — spam dropped, authority-ranked, diversity described |
@@ -95,8 +97,9 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `diversity(hits)` | `threshold` | dict (`score, domains, dominant_domain, dup_urls, near_dups, sources`) |
 | `research(q)` | `n`, `engine` ('search'\|'google'), `region`, `timelimit`, `curated`, `intent`, `facets`, `rewrite`, `sel`, `chars` | dict (`query, sources, digest, dropped, region, curation, plan`); each source has `date`, `queries` |
 | `check_url(url)` | `allow_private` | url, or raises `BlockedURL` for private/loopback/metadata targets |
-| `to_md(page)` | `sel`, `multi`, `wrap_tag` | str |
-| `crawl(url)` | `follow_sel`, `same_domain`, `max_pages`, `heavy`, `reuse` | list[Page] |
+| `local_host(host)` | — | bool — this computer or the local network, with no DNS look-up |
+| `to_md(page)` | `sel`, `multi`, `wrap_tag`, `readability` (None: the whole page when the article is too short) | str |
+| `crawl(url)` | `follow_sel`, `same_domain`, `max_pages`, `heavy`, `reuse`, `keep` | list[Page] |
 | `fetch_all(urls)` | `sel`, `concurrency`, `auto` | list[Page] |
 | `browser_session(stealthy)` | `headless`, `**init` | ctx mgr -> `fetch(url, sel)` func (one warm browser) |
 | `find_xhr(url)` | `pattern`, `session`, `port`, `tail` | list[{url, content_type, data, capture}] |
@@ -105,6 +108,8 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `cdp_cookies(url)` | `port`, `as_dict` | Playwright cookies list (or `{name:value}` dict) |
 | `url2nb(url)` / `pdf2nb(src)` | `nb_path` | Path |
 | `read_arxiv(url)` | `save_pdf`, `force` | dict (`title authors summary source`) |
+| `read_arxiv_html(id)` / `arxiv_md(html)` | `**fetch` | dict (`title text figures url`, maths as `$TeX$`) or None / str |
+| `arxiv_id(s)` / `gh_repo(s)` / `is_pdf(b)` | — | bare arXiv id or None / `owner/name` or None / bool |
 | `read_yt(url)` / `search_yt(q)` | `force` / `n` | dict / `L[dict]` |
 | `read_gh_repo(url)` / `read_gh_file(url)` | `globs`, `limit` | {path:content} / str |
 | `cdp_connect(port)` / `syncy(coro)` | — | CDP / any |
