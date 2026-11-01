@@ -17,9 +17,8 @@ from urllib.parse import quote_plus, urlsplit, urlunsplit, parse_qsl, urlencode
 from fastcore.all import first, bind, ifnone
 from fastcore.parallel import parallel
 from scrapling import Selector
-from .core import to_md, html2md, fetch, fossick_cache, _blocked, search_yt
+from .core import to_md, html2md, fetch, fossick_cache, _blocked, search_yt, _kept, _keep
 from .quality import norm_url, curate as _curate, host, plan as _plan, interleave
-
 
 # %% ../nbs/02_search.ipynb #7cf01c5d
 _warned = set()
@@ -268,7 +267,7 @@ def _region(q:str, region:str) -> str:
 
 # %% ../nbs/02_search.ipynb #780933b0
 def _fused(q, n, backends, region, timeout, k, method, pages, kw=()):
-    "Fan out, fuse, rerank. Raises when every backend failed, so a transient outage isn't cached for 15 minutes."
+    "Fan out, fuse, rerank. Raises when every backend failed, so `search(cache=)` does not keep a passing outage."
     lists = _backend_lists(q, backends, region=region, timeout=timeout, pages=pages, **dict(kw))
     if not (out := rerank(q, rrf(lists, k=k), n=n, method=method)):
         raise ValueError('every backend returned nothing')
@@ -296,10 +295,16 @@ def search(q:str,                  # search query
            region:str='auto',      # ddgs region, or 'auto' to read the country off the query
            timelimit:str=None,     # d | w | m | y — only results from the last day/week/month/year
            timeout:int=8,
+           cache:float=0,          # keep a result that is not empty for this many seconds, and give it again for the same call (default: off)
            **kw,                   # extra kwargs passed to ddgs (max_results, safesearch, page)
           ) -> list:
     "Search the web, merging text results from several engines with RRF and optionally reranking them."
     if not (q and q.strip()): return []
+    if cache:
+        a = (q, category, n, fuse, backend, method, pages, region, timelimit, timeout)
+        key = repr((a, sorted(kw.items())))
+        if (hs := _kept('hits', key, cache)) is not None: return hs
+        return _keep('hits', key, hs) if (hs := search(*a, **kw)) else hs
     assert category in ('text', 'images', 'news', 'videos', 'books'), f'Invalid category: {category}'
     n = kw.pop('max_results', None) or n
     region = _region(q, region)

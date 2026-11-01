@@ -13,6 +13,7 @@
 - `html2md` and `to_md` take `readability=None`: they keep the article when it has at least `WHOLE_BELOW` (200) characters, and else convert the whole document. `read` takes `readability` for web pages, with the default `True`, so a call that does not set it gives the same text as before.
 - New `keep` on `crawl`: `keep(url) -> bool` filters the links before they go into the queue. It gets each link as an absolute URL, made from the address of the page after its redirects. With the default `keep=None`, the crawl is the same as before.
 - `fetch` can remember, with three new settings that are off by default. `cache=` keeps a response with status 200 for that many seconds and gives the same response again for a call with the same arguments, in a memory of at most `MEM_MOST` (256) responses that drops the one used longest ago. `per_host=True` sends one request at a time to each host. `remember_blocks=(401, 403, 429)` remembers a host that gave one of these statuses for `cache` seconds: a later call to that host raises `BlockedURL` with no request. `remember_blocks` without `cache` raises `ValueError`. New `forget()` clears the three memories.
+- New `cache` on `search`, off by default: it keeps a result that is not empty for that many seconds, in the same memory as `fetch(cache=)`, and `forget()` clears it. The note in `_fused` that said results were cached for 15 minutes was out of date: before this release, `search` kept nothing.
 
 ## 0.1.24
 

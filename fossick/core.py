@@ -456,7 +456,7 @@ def _fetch_once(url, sel, method, payload, heavy, stealthy, capture_xhr, session
 
 #: The most responses, and the most hosts that refused, that `fetch` keeps; the oldest goes first
 MEM_MOST = 256
-_mem, _mem_lock = dict(pages={}, blocks={}, hosts={}), threading.Lock()
+_mem, _mem_lock = dict(pages={}, blocks={}, hosts={}, hits={}), threading.Lock()   # `hits` holds the results of `search(cache=)`
 
 def _kept(box:str, key, secs:float):
     "The value under `key` in the memory `box` while it is younger than `secs` seconds, now the newest; else None."
@@ -480,7 +480,7 @@ def _host_lock(h:str) -> threading.Lock:
     with _mem_lock: return _mem['hosts'].setdefault(h, threading.Lock())
 
 def forget():
-    "Clear what `fetch` remembers: the kept responses, the hosts that refused, and the lock of each host."
+    "Clear what `fetch` and `search` remember: the kept responses and searches, the hosts that refused, and the lock of each host."
     with _mem_lock:
         for b in _mem.values(): b.clear()
 
