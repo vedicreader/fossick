@@ -491,6 +491,7 @@ def crawl(start_url:str,               # URL to start from
           heavy:bool=False, # Full JS rendering via headless browser
           stealthy:bool=False, # Anti-bot stealth fetcher (Cloudflare etc.)
           reuse:bool=True,  # For heavy/stealthy crawls, keep one browser open across pages
+          keep=None,        # `keep(url) -> bool`: queue only the links it keeps, each one absolute
           **kw,                        # Extra kwargs passed to scrapling (e.g. verify, timeout)
          ) -> list:
     "Visit pages breadth-first from `start_url`, following links that match `follow_sel`, and return the responses that had status 200."
@@ -513,6 +514,7 @@ def crawl(start_url:str,               # URL to start from
                     if not href or href.startswith(('#', 'javascript:', 'mailto:')): continue
                     abs_url = pg.urljoin(href)
                     if same_domain and urlparse(abs_url).netloc != bd: continue
+                    if keep and not keep(abs_url): continue
                     if abs_url not in v: q.append(abs_url)
             except Exception as ex:
                 print(f"Error fetching {url}: {ex}. Continuing crawl.")

@@ -11,6 +11,7 @@
 - New `local_host(host)` tells, with no DNS look-up, whether a host names this computer or the local network: `localhost`, a name that ends in `.local`, `.lan`, `.internal`, `.localhost` or `.home.arpa`, a name with no dot, or an address that is not global, also in a short form such as `127.1`. `check_url` does not change.
 - New `gh_repo(s)` gives `owner/name` from a github.com link with any subpath, `.git`, `#` or `?`, from an SSH remote, or from the shorthand `owner/name`. It gives None for anything else, and makes no network call.
 - `html2md` and `to_md` take `readability=None`: they keep the article when it has at least `WHOLE_BELOW` (200) characters, and else convert the whole document. `read` takes `readability` for web pages, with the default `True`, so a call that does not set it gives the same text as before.
+- New `keep` on `crawl`: `keep(url) -> bool` filters the links before they go into the queue. It gets each link as an absolute URL, made from the address of the page after its redirects. With the default `keep=None`, the crawl is the same as before.
 
 ## 0.1.24
 
