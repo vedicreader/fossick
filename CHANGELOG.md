@@ -4,6 +4,9 @@
 
 ## 0.1.25
 
+- `what_is` and `read` know the old arXiv ids, such as `hep-th/9901001` and `math.GT/0309136`, and an `arxiv:` id. Before, these raised `ValueError`. A path that exists on disk still wins.
+- New `arxiv_id(s)` gives the bare arXiv id, with no version, from an id, an `arxiv:` id, or an abs, pdf, html or export link. It gives None for any other text, such as `and/or`.
+- `read_arxiv` keeps the archive name of an old id, and saves its PDF as `hep-th_9901001.pdf`. It also takes a PDF link that ends in `.pdf`.
 - New `is_pdf(b)` gives True when the bytes `b` hold the `%PDF-` signature in their first 1024 bytes. It is the check that `get_pdf` uses. `_is_pdf` stays as an alias.
 
 ## 0.1.24

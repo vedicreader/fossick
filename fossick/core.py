@@ -7,11 +7,11 @@ Docs: https://vedicreader.github.io/fossick/core.html.md"""
 # %% auto #0
 __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', 'html_title', 'html2md', 'to_md', 'BlockedURL',
            'check_url', 'BrowserUnavailable', 'TooLarge', 'http_page', 'get_page', 'fetch', 'browser_session', 'crawl',
-           'get_options', 'fetch_all', 'is_pdf', 'get_pdf', 'read_arxiv', 'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb',
-           'gh_clone', 'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records',
-           'paginate_api', 'download_files', 'yt_link', 'search_yt', 'read_yt', 'download_yt', 'what_is', 'md_title',
-           'pdf_pages', 'read', 'repo_root', 'mv_skill_md', 'clean_md', 'fix_layout', 'needs_ocr', 'ocr_parse',
-           'orphan_vals', 'pdf_doc', 'pdf_md']
+           'get_options', 'fetch_all', 'is_pdf', 'get_pdf', 'arxiv_id', 'read_arxiv', 'lookup_doi', 'pdf2md', 'url2nb',
+           'pdf2nb', 'gh_clone', 'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr',
+           'json_records', 'paginate_api', 'download_files', 'yt_link', 'search_yt', 'read_yt', 'download_yt',
+           'what_is', 'md_title', 'pdf_pages', 'read', 'repo_root', 'mv_skill_md', 'clean_md', 'fix_layout',
+           'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc', 'pdf_md']
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
@@ -587,9 +587,23 @@ def _fetch_arxiv_meta(arxiv_id:str, **kw):
                 published=txt('published'), link=txt('id'), pdf_url=pu, authors=list(au))
 
 # %% ../nbs/00_core.ipynb #d2ed0fcb31d735a8
+_ARXIV_ID   = re.compile(r'(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?/\d{7})(?:v\d+)?')   # 1706.03762, and the old form hep-th/9901001
+_ARXIV_LINK = re.compile(rf'(?:https?://)?(?:www\.|export\.)?arxiv\.org/(?:abs|pdf|html)/({_ARXIV_ID.pattern})(?:\.pdf)?/?(?:[?#]\S*)?', re.I)
+
+def _arxiv_full(s:str) -> str|None:
+    "The arXiv id in `s`, with its version, as `arxiv_id` finds it."
+    s = re.sub(r'^arxiv:\s*', '', str(s or '').strip(), flags=re.I)
+    if m := _ARXIV_ID.fullmatch(s): return m[0]
+    return m[1] if (m := _ARXIV_LINK.fullmatch(s)) else None
+
+def arxiv_id(s:str  # an arXiv id, an `arxiv:` id, or an abs, pdf, html or export link
+             ) -> str|None:
+    "The bare arXiv id in an id, an `arxiv:` id, or an abs, pdf, html or export link. None for any other text."
+    return re.sub(r'v\d+$', '', v) if (v := _arxiv_full(s)) else None
+
 def _arxiv_key(url:str) -> tuple:
     "Split an arXiv URL/ID into its bare id and version suffix, e.g. '1706.03762', 'v7'."
-    aid = url.rsplit('/', 1)[-1]
+    aid = _arxiv_full(url) or url.rsplit('/', 1)[-1]
     ver = re.search(r'v(\d+)$', aid)
     return re.sub(r'v\d+$', '', aid), (f'v{ver.group(1)}' if ver else '')
 
@@ -601,13 +615,14 @@ def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
                **kw # http_get kwargs (e.g. verify=False to skip SSL verification, headers=... etc.)
                )-> dict:
     "Return an arXiv paper's metadata and PDF path, and optionally its full text, caching the metadata on disk."
-    arxiv_id, ver_sfx = _arxiv_key(url)
-    key, idx = f'{arxiv_id}{ver_sfx}', _arxiv_index()
+    aid, ver_sfx = _arxiv_key(url)
+    key, idx = f'{aid}{ver_sfx}', _arxiv_index()
+    fn = key.replace('/', '_')   # an old id such as hep-th/9901001 names one file, not a folder
     if force: idx.pop(key, None)
     res = dict(idx[key]) if key in idx else None
-    pdf_path = Path(save_dir)/f'{key}.pdf' if save_pdf else None
+    pdf_path = Path(save_dir)/f'{fn}.pdf' if save_pdf else None
     if res is None:
-        res = dict(_fetch_arxiv_meta(arxiv_id, **kw))   # kw belongs to the request, not the result
+        res = dict(_fetch_arxiv_meta(aid, **kw))   # kw belongs to the request, not the result
         if not res['pdf_url']: raise Exception("No PDF URL found in arxiv metadata")
         res['pdf_path'] = None
     have = bool(res.get('pdf_path')) and Path(res['pdf_path']).exists()
@@ -616,7 +631,7 @@ def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
         doc = get_pdf(res['pdf_url'], save_path=pdf_path, **kw)
         if doc is None: raise Exception(f"Could not download the PDF for {key} from {res['pdf_url']}")
         if pdf_path: res['pdf_path'] = str(pdf_path)
-    if want_src: res['source'] = pdf2md(doc, out_path=Path(save_dir)/f'{key}.ipynb')
+    if want_src: res['source'] = pdf2md(doc, out_path=Path(save_dir)/f'{fn}.ipynb')
     idx[key] = res
     return dict(res, doc=doc)
 
@@ -1140,7 +1155,6 @@ def download_yt(url:str, # YouTube URL or video ID
     return candidates[0] if candidates else save_dir / f'{stem}.{ext}'
 
 # %% ../nbs/00_core.ipynb #871d40d06733
-_ARXIV_ID = re.compile(r'\d{4}\.\d{4,5}(?:v\d+)?')
 _GH_URL   = re.compile(r'https?://github\.com/([^/]+)/([^/]+)')
 _GH_BLOB  = re.compile(r'https?://github\.com/([^/]+)/([^/]+)/blob/[^/]+/(.+)')
 _YT_HOSTS = ('youtube.com', 'youtu.be', 'youtube-nocookie.com')
@@ -1150,7 +1164,7 @@ def what_is(target:str  # a URL, an arXiv id, a YouTube link, a GitHub repo or f
     "Return the name of the reader `read` would use for `target`."
     if (p := Path(target)).is_dir(): return 'dir'
     if p.exists(): return 'file'
-    if _on_host(target, 'arxiv.org') or _ARXIV_ID.fullmatch(target.strip()): return 'arxiv'
+    if _on_host(target, 'arxiv.org') or _arxiv_full(target): return 'arxiv'
     if _on_host(target, *_YT_HOSTS): return 'youtube'
     if _GH_URL.match(target): return 'ghfile' if '/blob/' in target else 'github'
     path = urlparse(target).path.rstrip('/').lower()
