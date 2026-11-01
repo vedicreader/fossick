@@ -10,6 +10,7 @@
 - New `is_pdf(b)` gives True when the bytes `b` hold the `%PDF-` signature in their first 1024 bytes. It is the check that `get_pdf` uses. `_is_pdf` stays as an alias.
 - New `local_host(host)` tells, with no DNS look-up, whether a host names this computer or the local network: `localhost`, a name that ends in `.local`, `.lan`, `.internal`, `.localhost` or `.home.arpa`, a name with no dot, or an address that is not global, also in a short form such as `127.1`. `check_url` does not change.
 - New `gh_repo(s)` gives `owner/name` from a github.com link with any subpath, `.git`, `#` or `?`, from an SSH remote, or from the shorthand `owner/name`. It gives None for anything else, and makes no network call.
+- `html2md` and `to_md` take `readability=None`: they keep the article when it has at least `WHOLE_BELOW` (200) characters, and else convert the whole document. `read` takes `readability` for web pages, with the default `True`, so a call that does not set it gives the same text as before.
 
 ## 0.1.24
 
