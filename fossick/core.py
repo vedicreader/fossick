@@ -8,10 +8,10 @@ Docs: https://vedicreader.github.io/fossick/core.html.md"""
 __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', 'html_title', 'html2md', 'to_md', 'BlockedURL',
            'check_url', 'local_host', 'BrowserUnavailable', 'TooLarge', 'http_page', 'get_page', 'fetch',
            'browser_session', 'crawl', 'get_options', 'fetch_all', 'is_pdf', 'get_pdf', 'arxiv_id', 'read_arxiv',
-           'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_clone', 'read_gh_repo', 'read_gh_file', 'compile_pattern',
-           'find_xhr', 'replay_xhr', 'json_records', 'paginate_api', 'download_files', 'yt_link', 'search_yt',
-           'read_yt', 'download_yt', 'what_is', 'md_title', 'pdf_pages', 'read', 'repo_root', 'mv_skill_md', 'clean_md',
-           'fix_layout', 'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc', 'pdf_md']
+           'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_repo', 'gh_clone', 'read_gh_repo', 'read_gh_file',
+           'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records', 'paginate_api', 'download_files', 'yt_link',
+           'search_yt', 'read_yt', 'download_yt', 'what_is', 'md_title', 'pdf_pages', 'read', 'repo_root',
+           'mv_skill_md', 'clean_md', 'fix_layout', 'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc', 'pdf_md']
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
@@ -798,6 +798,18 @@ def _gh_remotes(url:str, ssh:bool=False) -> L: # GitHub URL or SSH remote
     if not m: return L()
     return L(f'https://github.com/{m[1]}/{m[2]}.git') + (L(f'git@github.com:{m[1]}/{m[2]}.git') if ssh else L())
 
+_GH_OWNER, _GH_NAME = r'[A-Za-z0-9][A-Za-z0-9-]{0,38}', r'[\w.-]{1,100}?'
+_GH_FORMS = (rf'(?:https?://)?(?:www\.)?github\.com/({_GH_OWNER})/({_GH_NAME})(?:\.git)?(?:[/#?]\S*)?',   # a link, with any subpath
+             rf'(?:ssh://)?git@github\.com[:/]({_GH_OWNER})/({_GH_NAME})(?:\.git)?/?',                    # an SSH remote
+             rf'({_GH_OWNER})/({_GH_NAME})(?:\.git)?')                                                   # owner/name
+
+def gh_repo(s:str  # a github.com link, an SSH remote, or `owner/name`
+           ) -> str|None:
+    "Return `owner/name` of the GitHub repository that `s` names: a github.com link with any subpath, `.git`, `#` or `?`, an SSH remote, or an `owner/name` shorthand. None for anything else."
+    s = str(s or '').strip()
+    m = first((re.fullmatch(f, s, re.I) for f in _GH_FORMS), bool)
+    return f'{m[1]}/{m[2]}' if m and m[2].strip('.') else None
+
 def _clone_dir(remote:str) -> Path:
     'Cache folder for a clone: `owner__repo`, each part percent-encoded with `_` too, so no two repos share a folder.'
     m = re.search(r'[:/]([^/:]+)/([^/]+?)(?:\.git)?$', remote)
@@ -872,7 +884,6 @@ def read_gh_file(url:str, # GitHub blob URL of the file to read
 	if (r:=http_get(raw_url, **kw)).status != 200: raise Exception(f"Failed to fetch {raw_url}: {r.status}")
 	if 'html' not in (r.headers.get('content-type') or ''): return r.body.decode(r.encoding or 'utf-8', 'replace')
 	return to_md(r)
-
 
 # %% ../nbs/00_core.ipynb #38ab5369106489f5
 def compile_pattern(pattern):
