@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.1.25
+
+- New `is_pdf(b)` gives True when the bytes `b` hold the `%PDF-` signature in their first 1024 bytes. It is the check that `get_pdf` uses. `_is_pdf` stays as an alias.
+
 ## 0.1.24
 
 - `read_yt(url, cues=True)` also gives `cues`: a list of `{start, end, text}`, with the times in seconds and in order. YouTube's rolling captions repeat each line in the next cue, so a repeated line is dropped and each line keeps its first start and end. A video with no captions gives `cues=[]`. The default `cues=False` gives the same keys as before. The cache keeps the cues, and an old cache entry with no cues is fetched again when you ask for them.

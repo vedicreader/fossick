@@ -7,11 +7,11 @@ Docs: https://vedicreader.github.io/fossick/core.html.md"""
 # %% auto #0
 __all__ = ['BLOCKED_HOSTS', 'http_get', 'http_post', 'fossick_cache', 'syncy', 'html_title', 'html2md', 'to_md', 'BlockedURL',
            'check_url', 'BrowserUnavailable', 'TooLarge', 'http_page', 'get_page', 'fetch', 'browser_session', 'crawl',
-           'get_options', 'fetch_all', 'get_pdf', 'read_arxiv', 'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb', 'gh_clone',
-           'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records', 'paginate_api',
-           'download_files', 'yt_link', 'search_yt', 'read_yt', 'download_yt', 'what_is', 'md_title', 'pdf_pages',
-           'read', 'repo_root', 'mv_skill_md', 'clean_md', 'fix_layout', 'needs_ocr', 'ocr_parse', 'orphan_vals',
-           'pdf_doc', 'pdf_md']
+           'get_options', 'fetch_all', 'is_pdf', 'get_pdf', 'read_arxiv', 'lookup_doi', 'pdf2md', 'url2nb', 'pdf2nb',
+           'gh_clone', 'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr', 'json_records',
+           'paginate_api', 'download_files', 'yt_link', 'search_yt', 'read_yt', 'download_yt', 'what_is', 'md_title',
+           'pdf_pages', 'read', 'repo_root', 'mv_skill_md', 'clean_md', 'fix_layout', 'needs_ocr', 'ocr_parse',
+           'orphan_vals', 'pdf_doc', 'pdf_md']
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
@@ -519,9 +519,11 @@ def fetch_all(urls:list,           # URLs to fetch
 from pdf_oxide import PdfDocument
 
 # %% ../nbs/00_core.ipynb #80f691ca933d706
-def _is_pdf(b) -> bool:
-    "True when `b` starts with the %PDF- magic bytes (allowing leading whitespace/junk)."
+def is_pdf(b) -> bool:
+    "True when the bytes `b` hold the `%PDF-` signature in their first 1024 bytes."
     return isinstance(b, bytes) and b'%PDF-' in b[:1024]
+
+_is_pdf = is_pdf
 
 def _pmc_pow_pdf(url, page:bytes, **kw):
     "Solve NCBI PMC's small proof-of-work challenge and download the PDF again with the answer, through `get_page`'s plain HTTP path and its checks."
@@ -537,7 +539,7 @@ def _pmc_pow_pdf(url, page:bytes, **kw):
     ck = kw.get('cookies') if isinstance(kw.get('cookies'), dict) else {}
     r = get_page(url, **(kw | dict(heavy=False, stealthy=False, session=False,
                                    cookies=ck | {cookie.group(1): f'{challenge},{nonce}'})))
-    return r.body if r.status == 200 and _is_pdf(r.body) else None
+    return r.body if r.status == 200 and is_pdf(r.body) else None
 
 def get_pdf(url_or_path:str, # URL or local path to PDF
             save_path=None, # optional path to save the PDF (directory or full path)
@@ -550,8 +552,8 @@ def get_pdf(url_or_path:str, # URL or local path to PDF
     else:
         if max_bytes: scrapling_kw['max_bytes'] = max_bytes
         src = r.body if (r:=get_page(url_or_path, **scrapling_kw)).status == 200 else None
-    if not _is_pdf(src) and url_or_path.startswith('http'): src = _pmc_pow_pdf(url_or_path, src or b'', **scrapling_kw)
-    if not _is_pdf(src): return None
+    if not is_pdf(src) and url_or_path.startswith('http'): src = _pmc_pow_pdf(url_or_path, src or b'', **scrapling_kw)
+    if not is_pdf(src): return None
     if save_path:
         pth = p/url_or_path.rsplit('/', 1)[-1].split('?')[0] if (p:=Path(save_path)).is_dir() else p
         if not pth.suffix: pth = pth.with_suffix('.pdf')
