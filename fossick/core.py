@@ -8,11 +8,11 @@ Docs: https://vedicreader.github.io/fossick/core.html.md"""
 __all__ = ['WHOLE_BELOW', 'BLOCKED_HOSTS', 'http_get', 'http_post', 'MEM_MOST', 'ARXIV_HTML', 'fossick_cache', 'syncy',
            'html_title', 'html2md', 'to_md', 'BlockedURL', 'check_url', 'local_host', 'BrowserUnavailable', 'TooLarge',
            'http_page', 'get_page', 'forget', 'fetch', 'browser_session', 'crawl', 'get_options', 'fetch_all', 'is_pdf',
-           'get_pdf', 'arxiv_id', 'read_arxiv', 'arxiv_md', 'read_arxiv_html', 'lookup_doi', 'pdf2md', 'url2nb',
-           'pdf2nb', 'gh_repo', 'gh_clone', 'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr', 'replay_xhr',
-           'json_records', 'paginate_api', 'download_files', 'yt_link', 'search_yt', 'read_yt', 'download_yt',
-           'what_is', 'md_title', 'pdf_pages', 'read', 'repo_root', 'mv_skill_md', 'clean_md', 'fix_layout',
-           'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc', 'pdf_md']
+           'get_pdf', 'JsonStore', 'arxiv_id', 'read_arxiv', 'arxiv_md', 'read_arxiv_html', 'lookup_doi', 'pdf2md',
+           'url2nb', 'pdf2nb', 'gh_repo', 'gh_clone', 'read_gh_repo', 'read_gh_file', 'compile_pattern', 'find_xhr',
+           'replay_xhr', 'json_records', 'paginate_api', 'download_files', 'yt_link', 'search_yt', 'read_yt',
+           'download_yt', 'what_is', 'md_title', 'pdf_pages', 'read', 'repo_root', 'mv_skill_md', 'clean_md',
+           'fix_layout', 'needs_ocr', 'ocr_parse', 'orphan_vals', 'pdf_doc', 'pdf_md']
 
 # %% ../nbs/00_core.ipynb #e4a80ed3a7db03d0
 import json, asyncio, threading
@@ -633,17 +633,38 @@ def get_pdf(url_or_path:str, # URL or local path to PDF
     return PdfDocument.from_bytes(src)
 
 # %% ../nbs/00_core.ipynb #jsoncache
+class JsonStore:
+    "A key-value store in one SQLite file. Values are JSON, so an edited file cannot run code as a pickle can."
+    def __init__(self, path):
+        self.path = Path(path)
+        self._q('create table if not exists kv (k text primary key, v text not null)')
+    def _q(self, sql, *args):
+        import sqlite3
+        from contextlib import closing
+        with closing(sqlite3.connect(self.path, timeout=30)) as db, db: return db.execute(sql, args).fetchone()
+    def __contains__(self, k): return self._q('select 1 from kv where k=?', k) is not None
+    def __getitem__(self, k):
+        if (r := self._q('select v from kv where k=?', k)) is None: raise KeyError(k)
+        return json.loads(r[0])
+    def __setitem__(self, k, v): self._q('insert or replace into kv values (?,?)', k, json.dumps(v))
+    def get(self, k, default=None):
+        try: return self[k]
+        except KeyError: return default
+    def pop(self, k, default=None):
+        v = self.get(k, default)
+        self._q('delete from kv where k=?', k)
+        return v
+
 def _json_index(name):
-    "A `diskcache.Index` that stores JSON, not pickle."
-    from diskcache import Cache, Index, JSONDisk
-    return Index.fromcache(Cache(str(fossick_cache(name)), disk=JSONDisk))
+    "The `JsonStore` named `name` in fossick's cache folder."
+    return JsonStore(fossick_cache(name))
 
 
 # %% ../nbs/00_core.ipynb #da946b97ed964105
 @cache
 def _arxiv_index():
     "Disk cache for arXiv metadata, opened on first use rather than at import."
-    return _json_index('arxiv_cache_json.db')
+    return _json_index('arxiv_cache.sqlite')
 
 def _fetch_arxiv_meta(arxiv_id:str, **kw):
     "Fetch and parse arxiv metadata for a given ID; result is cached to disk"
@@ -1196,7 +1217,7 @@ def _ytdl():
 @cache
 def _yt_index():
     "Disk cache for `read_yt`, opened on first use rather than at import."
-    return _json_index('yt_cache_json.db')
+    return _json_index('yt_cache.sqlite')
 
 def _yt_id(url:str) -> str:
     "Extract 11-char video ID from any YouTube URL or pass through bare ID"

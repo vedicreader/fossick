@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.1.26
+
+- The arXiv and YouTube caches are `JsonStore`s: JSON in one SQLite file, `arxiv_cache.sqlite` and `yt_cache.sqlite`. fossick no longer needs diskcache, which has PYSEC-2026-2447 (a changed cache file can run code through pickle) and no fixed version. The first read of each paper or video after the update fetches it again. The old `arxiv_cache_json.db` and `yt_cache_json.db` folders are not used and can be deleted.
+
 ## 0.1.25
 
 - `what_is` and `read` know the old arXiv ids, such as `hep-th/9901001` and `math.GT/0309136`, and an `arxiv:` id. Before, these raised `ValueError`. A path that exists on disk still wins.
