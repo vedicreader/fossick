@@ -4,6 +4,9 @@
 
 ## 0.1.26
 
+- `html2md` and `to_md` use markdownify (MIT), not html2text (GPL-3.0). The options do not change. Tables are GFM pipe tables, and a table with a caption and no `<thead>` keeps its header row. A code block is a fenced block with the language that its class names (`language-yaml`, `lang-py`, `highlight-python3`). Before, a code block was `[code]`...`[/code]` with four-space indent. The `<title>` text is not in the output. Bullets are `* `, emphasis is `*x*`, and a caption is on its own line under its image.
+- Code in a `<pre>` keeps its spacing with `readability=False`. Before, `Path('.')` came out as `Path ( '.')`.
+- `url2nb` makes a code cell from each fenced block that starts a line.
 - The arXiv and YouTube caches are `JsonStore`s: JSON in one SQLite file, `arxiv_cache.sqlite` and `yt_cache.sqlite`. fossick no longer needs diskcache, which has PYSEC-2026-2447 (a changed cache file can run code through pickle) and no fixed version. The first read of each paper or video after the update fetches it again. The old `arxiv_cache_json.db` and `yt_cache_json.db` folders are not used and can be deleted.
 
 ## 0.1.25

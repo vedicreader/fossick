@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html><head><title>GitHub - example/fastgrep: A fast grep for code</title></head>
+<body>
+<div class="Header"><a href="/">GitHub</a><a href="/features">Features</a><a href="/pricing">Pricing</a></div>
+<div class="repository-content"><div class="file-navigation"><span>main</span> <a href="/example/fastgrep/branches">3 branches</a> <a href="/example/fastgrep/tags">12 tags</a></div>
+<article class="markdown-body entry-content" itemprop="text">
+<div class="markdown-heading"><h1 class="heading-element">fastgrep</h1></div>
+<p><a href="https://github.com/example/fastgrep/actions"><img src="https://github.com/example/fastgrep/workflows/ci/badge.svg" alt="CI"></a> <a href="https://pypi.org/project/fastgrep/"><img src="https://img.shields.io/pypi/v/fastgrep" alt="PyPI"></a></p>
+<p><code>fastgrep</code> searches code faster than <code>grep -r</code>. It skips files that <code>.gitignore</code> names, and it reads files in parallel.</p>
+<div class="markdown-heading"><h2 class="heading-element">Install</h2></div>
+<div class="highlight highlight-source-shell"><pre>pip install fastgrep</pre></div>
+<div class="markdown-heading"><h2 class="heading-element">Usage</h2></div>
+<div class="highlight highlight-source-python"><pre><span class="pl-k">from</span> <span class="pl-s1">fastgrep</span> <span class="pl-k">import</span> <span class="pl-s1">search</span>
+<span class="pl-k">for</span> <span class="pl-s1">hit</span> <span class="pl-c1">in</span> <span class="pl-en">search</span>(<span class="pl-s">"TODO"</span>, <span class="pl-s1">root</span><span class="pl-c1">=</span><span class="pl-s">"."</span>):
+    <span class="pl-en">print</span>(<span class="pl-s1">hit</span>.<span class="pl-c1">path</span>, <span class="pl-s1">hit</span>.<span class="pl-c1">line</span>)</pre></div>
+<div class="markdown-heading"><h2 class="heading-element">Options</h2></div>
+<markdown-accessiblity-table><table>
+<thead><tr><th>Option</th><th>Default</th><th>Meaning</th></tr></thead>
+<tbody><tr><td><code>--hidden</code></td><td>off</td><td>Search hidden files too</td></tr>
+<tr><td><code>--max-size</code></td><td><code>1M</code></td><td>Skip larger files</td></tr>
+<tr><td><code>-j N</code></td><td>CPU count</td><td>Number of threads</td></tr></tbody></table></markdown-accessiblity-table>
+<ul class="contains-task-list"><li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" checked disabled> Regex search</li><li class="task-list-item"><input type="checkbox" class="task-list-item-checkbox" disabled> Fuzzy search</li></ul>
+<div class="markdown-heading"><h2 class="heading-element">License</h2></div>
+<p>MIT. See <a href="/example/fastgrep/blob/main/LICENSE">LICENSE</a>.</p>
+</article></div>
+<footer class="footer">&copy; 2026 GitHub, Inc. <a href="/site/terms">Terms</a></footer>
+</body></html>

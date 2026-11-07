@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head><title>python - How do I merge two dictionaries in a single expression? - Q&amp;A</title></head>
+<body>
+<header class="top-bar"><a href="/">Q&amp;A</a><a href="/questions">Questions</a><a href="/tags">Tags</a><a href="/users/login">Log in</a></header>
+<div id="content">
+<div id="question-header"><h1><a href="/questions/38987">How do I merge two dictionaries in a single expression?</a></h1></div>
+<div class="question"><div class="post-text">
+<p>I want to merge two dictionaries into a new dictionary.</p>
+<pre class="lang-py"><code>x = {'a': 1, 'b': 2}
+y = {'b': 3, 'c': 4}
+z = merge(x, y)
+
+&gt;&gt;&gt; z
+{'a': 1, 'b': 3, 'c': 4}
+</code></pre>
+<p>Whenever a key <code>k</code> is present in both dictionaries, only the value <code>y[k]</code> should be kept.</p>
+</div><div class="post-taglist"><a class="post-tag" href="/tags/python">python</a> <a class="post-tag" href="/tags/dictionary">dictionary</a></div></div>
+<div id="answers"><h2>12 Answers</h2>
+<div class="answer accepted-answer"><div class="votes">9218</div><div class="post-text">
+<h2>How can I merge two Python dictionaries in a single expression?</h2>
+<p>For dictionaries <code>x</code> and <code>y</code>, their shallowly-merged dictionary <code>z</code> takes values from <code>y</code>, replacing those from <code>x</code>.</p>
+<ul><li><p>In Python 3.9.0 or greater (released 17 October 2020, <a href="https://peps.python.org/pep-0584/" rel="nofollow">PEP-584</a>):</p><pre class="lang-py"><code>z = x | y
+</code></pre></li>
+<li><p>In Python 3.5 or greater:</p><pre class="lang-py"><code>z = {**x, **y}
+</code></pre></li>
+<li><p>In Python 2, (or 3.4 or lower) write a function:</p><pre class="lang-py"><code>def merge_two_dicts(x, y):
+    z = x.copy()   # start with keys and values of x
+    z.update(y)    # modifies z with keys and values of y
+    return z
+</code></pre></li></ul>
+<p>The names <code>__init__</code> and <code>**kwargs</code> keep their underscores and stars.</p>
+</div></div>
+<div class="answer"><div class="votes">1612</div><div class="post-text"><p>You can also use <code>dict(x, **y)</code>, but it fails when the keys are not strings.</p></div></div>
+</div></div>
+<div id="sidebar"><div class="hot-network"><h4>Hot Network Questions</h4><ul><li><a href="/q/1">Why is the sky blue?</a></li></ul></div></div>
+<footer>site design / logo &copy; 2026; user contributions licensed under CC BY-SA</footer>
+</body></html>

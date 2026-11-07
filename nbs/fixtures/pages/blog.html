@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head><title>How we cut our build time in half | Example Engineering</title>
+<meta property="og:image" content="https://blog.example.com/og.png"><script async src="https://analytics.example.com/a.js"></script></head>
+<body>
+<div class="banner">Subscribe to our newsletter! <a href="/subscribe">Sign up</a></div>
+<nav class="top"><a href="/">Home</a><a href="/blog">Blog</a><a href="/careers">Careers</a></nav>
+<main><article class="post">
+<header><h1>How we cut our build time in half</h1><p class="byline">By <a href="/authors/ana">Ana Ruiz</a> · 4 November 2026 · 6 min read</p></header>
+<p>Our CI pipeline took <strong>42 minutes</strong> on a good day. Engineers pushed a change, went for lunch, and came back to a red build. This post describes the three changes that brought it down to <em>19 minutes</em>.</p>
+<h2>1. Cache the dependency layer</h2>
+<p>Most of the time went to installing the same packages again. We moved the install into its own layer, keyed by the hash of the lock file:</p>
+<pre><code class="language-yaml">- uses: actions/cache@v4
+  with:
+    path: ~/.cache/uv
+    key: uv-${{ hashFiles('uv.lock') }}
+</code></pre>
+<figure><img src="/images/build-times.png" alt="Chart of build times falling from 42 to 19 minutes over six weeks"><figcaption>Median build time per week</figcaption></figure>
+<h2>2. Split the test suite</h2>
+<p>We ran the tests on four machines with <code>pytest -n 4 --dist loadfile</code>. Tests that share a database fixture stayed on the same machine.</p>
+<blockquote><p>The slowest test file decides the build time. Find it first.</p><p>— our build engineer</p></blockquote>
+<h2>3. Stop building what did not change</h2>
+<ol><li>List the packages that a commit touches.</li><li>Build only those packages and the packages that depend on them.</li><li>Keep a full build every night, so that nothing is missed.</li></ol>
+<p>The results, before and after:</p>
+<table><tr><th>Stage</th><th>Before</th><th>After</th></tr><tr><td>Install</td><td>14 min</td><td>2 min</td></tr><tr><td>Tests</td><td>24 min</td><td>13 min</td></tr><tr><td>Package</td><td>4 min</td><td>4 min</td></tr></table>
+<p>Read the <a href="https://docs.example.com/ci">CI guide</a> for the full setup.</p>
+</article>
+<aside class="related"><h3>Related posts</h3><ul><li><a href="/blog/flaky">Taming flaky tests</a></li><li><a href="/blog/monorepo">Why we kept the monorepo</a></li></ul></aside>
+<div class="ad"><img src="/ads/banner.gif" alt="Advertisement"></div>
+</main>
+<footer>&copy; 2026 Example Inc. <a href="/privacy">Privacy</a></footer>
+</body></html>

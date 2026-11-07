@@ -82,7 +82,7 @@ def _clean_html(s:str) -> str:
     except Exception: return s
     for el in doc.xpath('|'.join(f'//{t}' for t in _DROP_TAGS)+'|//comment()'): el.drop_tree()
     for el in doc.iter():
-        if el.tag in _INLINE_TAGS and not el.tail:
+        if el.tag in _INLINE_TAGS and not el.tail and not el.xpath('ancestor::pre'):
             nxt = el.getnext()
             if nxt is not None and nxt.tag in _INLINE_TAGS and (nxt.text or ' ')[:1] not in ',.;:!?)]}%': el.tail = ' '
     return lxml.html.tostring(doc, encoding='unicode')
@@ -94,6 +94,31 @@ def html_title(s:str) -> str:
         if m: return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', m.group(1))).strip()
     return ''
 
+#: Classes that name a code block's language: `language-py`, `lang-py`, `highlight-python3`, `highlight-source-python`
+_LANG_RE = re.compile(r'(?:language|lang|highlight(?:-source)?)-([\w+#-]+)$')
+
+def _code_lang(el):
+    "The language a `<pre>` or its `<code>` or the wrapper around it names in a class, or None."
+    for e in (el, el.find('code'), el.parent, getattr(el.parent, 'parent', None)):
+        for k in (e.get('class') or []) if e is not None and hasattr(e, 'get') else []:
+            if (m := _LANG_RE.match(k)) and m[1] not in ('notranslate',): return re.sub(r'\d+$', '', m[1])
+
+def _captions_out(s:str) -> str:
+    "`s` with each table `<caption>` as a paragraph before its table; markdownify finds a table's first row by its first sibling."
+    if '<caption' not in s: return s
+    doc = lxml.html.fromstring(s)
+    for cap in doc.xpath('//table/caption'):
+        p = lxml.html.Element('p'); p.text = cap.text_content().strip()
+        cap.getparent().addprevious(p); cap.drop_tree()
+    return lxml.html.tostring(doc, encoding='unicode')
+
+def _md_conv(strip):
+    "A markdownify converter that drops the `<title>` text; the page title is `html_title`'s job."
+    from markdownify import MarkdownConverter
+    class _Md(MarkdownConverter):
+        def convert_title(self, el, text, *a, **kw): return ''
+    return _Md
+
 #: With `readability=None`, an article shorter than this many characters gives way to the whole document
 WHOLE_BELOW = 200
 
@@ -101,15 +126,15 @@ def html2md(s:str, ignore_links=True, ignore_images=False,
             readability:bool=True,  # Extract the article (right for fetched pages); False converts the whole document; None the whole document when the article is shorter than `WHOLE_BELOW`
            ):
     "Convert the HTML string `s` to markdown, keeping only the main article unless `readability=False`."
-    import html2text
     from readability import Document
     if not s.strip(): return ''
     if readability is None:
         md = html2md(s, ignore_links, ignore_images, True)
         return md if len(md.strip()) >= WHOLE_BELOW else html2md(s, ignore_links, ignore_images, False)
-    o = html2text.HTML2Text(bodywidth=5000)
-    o.ignore_links, o.mark_code, o.ignore_images = ignore_links, True, ignore_images
-    return o.handle(Document(s).summary(keep_all_images=True) if readability else _clean_html(s))
+    h = _captions_out(Document(s).summary(keep_all_images=True) if readability else _clean_html(s))
+    strip = [t for t, on in (('a', ignore_links), ('img', ignore_images)) if on]
+    md = _md_conv(strip)(heading_style='ATX', bullets='*', table_infer_header=True, escape_underscores=False, escape_asterisks=False, strip=strip, code_language_callback=_code_lang).convert(h)
+    return re.sub(r'\n{3,}', '\n\n', '\n'.join(l.rstrip() for l in md.splitlines())).strip() + '\n'
 
 def to_md(res_or_html,  # Page dict (from fetch/crawl) or raw HTML string
           sel:str=None,  # CSS selector to extract before conversion; returns '' if no match
@@ -890,11 +915,11 @@ def _restore_py_indent(code):
 	return '\n'.join(result)
 
 def _md2cells(md):
-	"Split markdown into cells: `[code]` blocks become code cells, REPL sessions code with `# =>` output, bare output a fenced block."
+	"Split markdown into cells: fenced code blocks become code cells, REPL sessions code with `# =>` output, bare output a fenced block."
 	segs, last = [], 0
-	for m in re.finditer(r'\[code\]\n\n(.*?)\n\[/code\]', md, re.DOTALL):
+	for m in re.finditer(r'^```[^\n`]*\n(.*?)\n?```$', md, re.DOTALL|re.MULTILINE):
 		segs += [('markdown', s) for s in _text_segs(md[last:m.start()].strip())]
-		if code := re.sub(r'^    ', '', m.group(1), flags=re.MULTILINE).strip():
+		if code := m.group(1).strip('\n'):
 			if _is_repl(code): segs.append(('code', _repl_to_code(code)))
 			elif _OUTPUT_ONLY.match(code) and not _PY_LIKE.search(code): segs.append(('markdown', f'```\n{code}\n```'))
 			else: segs.append(('code', _restore_py_indent(code) if _needs_reindent(code) else code))

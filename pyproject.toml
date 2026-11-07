@@ -21,7 +21,6 @@ dependencies = [
     "ddgs>=9.14.4",
     "fastcdp>=0.0.17",
     "fastcore>=1.12.31",
-    "html2text>=2025.4.15",
     "pdf-oxide>=0.3.67",
     "pdflite>=0.0.1",
     "readability-lxml>=0.8.4.1",
@@ -29,6 +28,7 @@ dependencies = [
     "yt-dlp>=2026.3.17",
     "mcp>=1.2.0,<2",
     "certifi>=2026.7.22",
+    "markdownify>=1.2",
 ]
 
 [project.urls]
