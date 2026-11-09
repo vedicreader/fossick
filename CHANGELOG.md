@@ -2,6 +2,18 @@
 
 <!-- do not remove -->
 
+## 0.1.27
+
+- `replay_xhr` sends through the checked plain HTTP path. It refuses a private or local address, pins the checked address and checks each redirect. New `allow_private` turns the check off.
+- `browser_session` checks each URL with `check_url` before the browser loads it. So `crawl(heavy=True)` and `crawl(stealthy=True)` refuse a link to a private address. New `allow_private` turns the check off.
+- `CDP.open_page`, `CDP.calls`, the `goto` step of `Page.act` and the shop pages check each URL with `check_url`. They refuse `file://` and private addresses. `FOSSICK_ALLOW_PRIVATE=1` turns the check off.
+- The plain HTTP path follows at most `MAX_REDIRECTS` (10) redirects. Before, it followed 30.
+- The MCP server does not show the tools that use the logged-in Chrome. Set `FOSSICK_MCP_SESSION=1` to show them. Without it, `fetch_page(session=True)`, `fetch_page(auto=True)` and `find_hidden_apis(session=True)` raise `PermissionError`, and `replay_capture` sends no cookies.
+- MCP `shop_fill(confirm=True)` raises `PermissionError` unless `FOSSICK_MCP_PAY=1` is set.
+- MCP tools read local files and write files only in `FOSSICK_MCP_ROOT`, which is the working folder by default. A path outside it raises `PermissionError`.
+- MCP `fetch_page`, `fetch_pages` and plain `crawl_site` stop at `MAX_BYTES` (20 MB) per page.
+- `fossick-mcp --http` binds only to a loopback address. It needs `Authorization: Bearer <token>` on each request. The token comes from `FOSSICK_MCP_TOKEN`, or the server makes one and prints it to stderr. DNS rebinding protection is on. fossick needs `mcp>=1.10.0`.
+
 ## 0.1.26
 
 - `html2md` and `to_md` use markdownify (MIT), not html2text (GPL-3.0). The options do not change. Tables are GFM pipe tables, and a table with a caption and no `<thead>` keeps its header row. A code block is a fenced block with the language that its class names (`language-yaml`, `lang-py`, `highlight-python3`). Before, a code block was `[code]`...`[/code]` with four-space indent. The `<title>` text is not in the output. Bullets are `* `, emphasis is `*x*`, and a caption is on its own line under its image.

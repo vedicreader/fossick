@@ -101,16 +101,18 @@ async def eval(self:CDP, expr:str, sid=None):
 
 # %% ../nbs/01_cdp.ipynb #71588caefe040302
 @patch
-async def open_page(self:CDP, url):
+async def open_page(self:CDP, url, allow_private:bool=None):
 	"Open a new tab at `url` and return its `Page`."
+	check_url(url, allow_private)
 	pg = await self.new_page()
 	await pg.goto(url)
 	return pg
 
 # %% ../nbs/01_cdp.ipynb #b16e20c6faf9e3d5
 @patch
-async def calls(self:CDP, url=None, pattern='.*', tail=3):
+async def calls(self:CDP, url=None, pattern='.*', tail=3, allow_private:bool=None):
     "Record the requests matching `pattern` that a page sends, opening `url` first when given."
+    if url: check_url(url, allow_private)
     page = await self.new_page()
     rx, out = compile_pattern(pattern), {}
     try:
@@ -294,7 +296,7 @@ async def act(page:Page, steps:list):
         nonlocal tree; tree = await page.ax_tree(); return tree
     for step in steps:
         op = step[0]
-        if op == 'goto': await page.goto(step[1]); tree = None
+        if op == 'goto': check_url(step[1]); await page.goto(step[1]); tree = None
         elif op == 'fill':
             if tree is None: await _tree()
             bid = first(n.backend_id for r in _EDITABLE for n in tree.find_all(role=r) if step[1].lower() in (n.name or '').lower())

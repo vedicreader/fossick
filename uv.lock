@@ -817,7 +817,7 @@ requires-dist = [
     { name = "flashrank", marker = "extra == 'dev'", specifier = ">=0.2.10" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=7.3.0" },
     { name = "markdownify", specifier = ">=1.2" },
-    { name = "mcp", specifier = ">=1.2.0,<2" },
+    { name = "mcp", specifier = ">=1.10.0,<2" },
     { name = "nbdev", marker = "extra == 'dev'", specifier = ">=3.3.25" },
     { name = "notebook", marker = "extra == 'dev'", specifier = ">=7.5.5" },
     { name = "pdf-oxide", specifier = ">=0.3.67" },

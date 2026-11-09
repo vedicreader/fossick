@@ -13,7 +13,7 @@ from urllib.parse import quote_plus, urlparse
 from functools import wraps
 from fastcore.all import patch, store_attr, first, L, ifnone
 from fastcdp import *
-from .core import syncy
+from .core import syncy, check_url
 from .cdp import cdp_connect
 
 
@@ -648,6 +648,7 @@ _CHANGE_FN = ("async (id, q) => {const r = await fetch('/cart/change.js', {metho
 
 async def _goto(page, url, tout:int=25):
     "Navigate and tolerate a chatty page that never goes network-idle; re-injects the helpers."
+    check_url(url)
     try: await page.goto(url, timeout=tout)
     except Exception: pass
     await asyncio.sleep(0.3)
