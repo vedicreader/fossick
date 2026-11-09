@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.11.9">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Choose useful search results and searches">
+
+<title>Quality – fossick</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/scrollable-regions/scrollable-regions.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-63b5708e65d6cd79cd7618c58d0c21e7.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-69961562f744cce4bc22a2c84bdc0b21.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Quality – fossick">
+<meta property="og:description" content="Choose useful search results and searches">
+<meta property="og:site_name" content="fossick">
+<meta name="twitter:title" content="Quality – fossick">
+<meta name="twitter:description" content="Choose useful search results and searches">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light"><a id="quarto-skip-link" class="visually-hidden-focusable" href="#quarto-document-content">Skip to main content</a>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark" aria-label="Site">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fossick</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" aria-label="Toolbar">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="Breadcrumbs"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./quality.html">Quality</a></li></ol></nav>
+        <a class="flex-grow-1" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto" aria-label="Section">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fossick</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cdp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">cdp</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./search.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">search</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">cli</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./mcp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">mcp</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./shop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">shop</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./quality.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Quality</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <button type="button" class="sidebar-item-text sidebar-item-toggle sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-controls="quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text" id="quarto-sidebar-section-1-label">fixtures</span><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      </div>
+      <ul id="quarto-sidebar-section-1" aria-labelledby="quarto-sidebar-section-1-label" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <button type="button" class="sidebar-item-text sidebar-item-toggle sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-controls="quarto-sidebar-section-2" aria-expanded="false">
+ <span class="menu-text" id="quarto-sidebar-section-2-label">pages</span><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      </div>
+      <ul id="quarto-sidebar-section-2" aria-labelledby="quarto-sidebar-section-2-label" class="collapse list-unstyled sidebar-section depth2 ">  
+      </ul>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" aria-labelledby="toc-title" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#identify-a-site-from-a-url" id="toc-identify-a-site-from-a-url" class="nav-link active" data-scroll-target="#identify-a-site-from-a-url">Identify a site from a URL</a></li>
+  <li><a href="#use-one-key-for-each-page" id="toc-use-one-key-for-each-page" class="nav-link" data-scroll-target="#use-one-key-for-each-page">Use one key for each page</a></li>
+  <li><a href="#match-authority-to-the-question" id="toc-match-authority-to-the-question" class="nav-link" data-scroll-target="#match-authority-to-the-question">Match authority to the question</a></li>
+  <li><a href="#classify-the-question" id="toc-classify-the-question" class="nav-link" data-scroll-target="#classify-the-question">Classify the question</a></li>
+  <li><a href="#remove-copycat-sites" id="toc-remove-copycat-sites" class="nav-link" data-scroll-target="#remove-copycat-sites">Remove copycat sites</a></li>
+  <li><a href="#split-one-question-into-searches" id="toc-split-one-question-into-searches" class="nav-link" data-scroll-target="#split-one-question-into-searches">Split one question into searches</a></li>
+  <li><a href="#reorder-results" id="toc-reorder-results" class="nav-link" data-scroll-target="#reorder-results">Reorder results</a></li>
+  <li><a href="#count-stories-not-urls" id="toc-count-stories-not-urls" class="nav-link" data-scroll-target="#count-stories-not-urls">Count stories, not URLs</a></li>
+  <li><a href="#describe-a-result-list" id="toc-describe-a-result-list" class="nav-link" data-scroll-target="#describe-a-result-list">Describe a result list</a></li>
+  <li><a href="#curate" id="toc-curate" class="nav-link" data-scroll-target="#curate"><code>curate</code></a></li>
+  <li><a href="#tests" id="toc-tests" class="nav-link" data-scroll-target="#tests">Tests</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="quality.html.md"><i class="bi bi-file-code"></i>Markdown</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content" tabindex="-1">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Quality</h1>
+</div>
+
+<div>
+  <div class="description">
+    Choose useful search results and searches
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>A search engine ranks pages by how well they match a query. That ranking does not show which pages are useful to read. A question about building rules in Australia can return five cost guides from one trade directory before the government page that sets the rules. A programming question can return sites that copy Stack Overflow answers.</p>
+<p>This module reorders results before it downloads a page. It does four things:</p>
+<ul>
+<li>It removes copycat sites.</li>
+<li>It moves authoritative sources for the question towards the top.</li>
+<li>It limits the number of results from one website near the top.</li>
+<li>It splits a question with several parts into one search for each part.</li>
+</ul>
+<p><a href="https://vedicreader.github.io/fossick/cli.html#research"><code>research</code></a> in <code>fossick.search</code> calls <a href="https://vedicreader.github.io/fossick/quality.html#curate"><code>curate</code></a> when <code>curated=True</code>. This is the default. It also uses <a href="https://vedicreader.github.io/fossick/quality.html#plan"><code>plan</code></a> and <a href="https://vedicreader.github.io/fossick/quality.html#interleave"><code>interleave</code></a>. You can use each function with a list of result dictionaries that has an <code>href</code> or <code>url</code>.</p>
+<section id="identify-a-site-from-a-url" class="level2">
+<h2 class="anchored" data-anchor-id="identify-a-site-from-a-url">Identify a site from a URL</h2>
+<p>Two URLs belong to the same site when they share a registrable domain. This is the part of the name that someone registered. <code>docs.python.org</code> and <code>www.python.org</code> both belong to <code>python.org</code>. The registrable domain usually has the last two parts of the host name. Some registries sell names one level down. For example, <code>bbc.co.uk</code> and <code>nsw.gov.au</code> have three parts. <code>MULTI_LABEL_SUFFIXES</code> lists these registry endings for the countries that fossick handles. <a href="https://vedicreader.github.io/fossick/quality.html#host"><code>host</code></a> returns a URL host name in lower case without <code>www.</code>. <a href="https://vedicreader.github.io/fossick/quality.html#registrable_domain"><code>registrable_domain</code></a> returns the site.</p>
+<div id="402211ca" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.416338+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.427529+00:00&quot;,&quot;total&quot;:0.011193276000000196}}" data-execution_count="3">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L46" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="registrable_domain" class="level3">
+<h3 class="anchored" data-anchor-id="registrable_domain">registrable_domain</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> registrable_domain(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the registered site behind <code>url</code>, such as <code>python.org</code> for <code>docs.python.org</code> or <code>bbc.co.uk</code> for <code>www.bbc.co.uk</code>.</em></p>
+</section>
+</div>
+<div id="6952a241" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.427620+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.430434+00:00&quot;,&quot;total&quot;:0.0028166490000103295}}" data-execution_count="4">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L39" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="host" class="level3">
+<h3 class="anchored" data-anchor-id="host">host</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> host(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    url:<span class="bu">str</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the host name of <code>url</code> in lower case, without <code>www.</code> or a trailing dot, or <code>''</code> when it has none.</em></p>
+</section>
+</div>
+</section>
+<section id="use-one-key-for-each-page" class="level2">
+<h2 class="anchored" data-anchor-id="use-one-key-for-each-page">Use one key for each page</h2>
+<p>The same page can have several URLs. The URLs can differ by <code>www.</code>, a trailing slash, or tracking parameters such as <code>utm_source</code>. <a href="https://vedicreader.github.io/fossick/quality.html#norm_url"><code>norm_url</code></a> reduces a URL to one key. It removes the scheme, <code>www.</code>, the fragment, tracking parameters, a default port, and a trailing slash. It sorts the query parameters. A non-default port stays in the key. <a href="https://vedicreader.github.io/fossick/quality.html#interleave"><code>interleave</code></a>, <a href="https://vedicreader.github.io/fossick/quality.html#cluster_sources"><code>cluster_sources</code></a>, and <a href="https://vedicreader.github.io/fossick/quality.html#diversity"><code>diversity</code></a> use this key to identify the same page.</p>
+<div id="a41f0977" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.432524+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.435718+00:00&quot;,&quot;total&quot;:0.0031967500000007476}}" data-execution_count="6">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L62" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="norm_url" class="level3">
+<h3 class="anchored" data-anchor-id="norm_url">norm_url</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> norm_url(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    u:<span class="bu">str</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return a key for <code>url</code> that is the same for every URL of one page.</em></p>
+</section>
+</div>
+</section>
+<section id="match-authority-to-the-question" class="level2">
+<h2 class="anchored" data-anchor-id="match-authority-to-the-question">Match authority to the question</h2>
+<p>The best source depends on the question. A government site is authoritative for a law question. Documentation is authoritative for a library question. A forum is useful for user opinions. <code>DOMAIN_RULES</code> lists the sites to move up (<code>boost</code>) and down (<code>demote</code>) for each question kind. The kinds are <code>docs</code>, <code>policy</code>, <code>release</code>, <code>security</code>, and <code>community</code>.</p>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#domain_matches"><code>domain_matches</code></a> checks a host name against a rule. A rule has one of four forms:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Rule</th>
+<th>Matches</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Ends in a dot</td>
+<td>Host names that start with it</td>
+<td><code>docs.</code></td>
+</tr>
+<tr class="even">
+<td>Starts with a dot</td>
+<td>The ending itself and every host under it</td>
+<td><code>.gov.au</code></td>
+</tr>
+<tr class="odd">
+<td>Contains a <code>/</code></td>
+<td>Only the host name before the <code>/</code>, with no subdomains</td>
+<td><code>github.com/advisories</code></td>
+</tr>
+<tr class="even">
+<td>Any other text</td>
+<td>That domain and its subdomains</td>
+<td><code>sec.gov</code></td>
+</tr>
+</tbody>
+</table>
+<p>Only a rule that ends in a dot matches the start of a host name. <code>openai.com.evil.example</code> does not match <code>openai.com</code>. <a href="https://vedicreader.github.io/fossick/quality.html#blocked_matches"><code>blocked_matches</code></a> applies the last form to a blocked list.</p>
+<div id="61e40819" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.439900+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.443807+00:00&quot;,&quot;total&quot;:0.00391102899999396}}" data-execution_count="8">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L124" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="blocked_matches" class="level3">
+<h3 class="anchored" data-anchor-id="blocked_matches">blocked_matches</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> blocked_matches(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    domain:<span class="bu">str</span>, rule:<span class="bu">str</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">bool</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return True when <code>domain</code> is the domain <code>rule</code> or one of its subdomains.</em></p>
+</section>
+</div>
+<div id="4b29985b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.443930+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.448590+00:00&quot;,&quot;total&quot;:0.00466327600000227}}" data-execution_count="9">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L114" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="domain_matches" class="level3">
+<h3 class="anchored" data-anchor-id="domain_matches">domain_matches</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> domain_matches(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    domain:<span class="bu">str</span>, rule:<span class="bu">str</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">bool</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return True when <code>domain</code> matches <code>rule</code>: a leading label, a domain ending, a host before a <code>/</code>, or a domain and its subdomains.</em></p>
+</section>
+</div>
+</section>
+<section id="classify-the-question" class="level2">
+<h2 class="anchored" data-anchor-id="classify-the-question">Classify the question</h2>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#classify"><code>classify</code></a> reads the question kind from cue words in <code>INTENT_CUES</code>. “regulation” and “permit” indicate <code>policy</code>. “release notes” indicates <code>release</code>. <a href="https://vedicreader.github.io/fossick/quality.html#classify"><code>classify</code></a> returns the kind with the most cue matches. It returns None when the query has no cues or when two kinds tie. With None, <a href="https://vedicreader.github.io/fossick/quality.html#curate"><code>curate</code></a> does not reorder results by authority.</p>
+<div id="57d6d776" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.452587+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.457323+00:00&quot;,&quot;total&quot;:0.004740324000010787}}" data-execution_count="11">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L155" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="classify" class="level3">
+<h3 class="anchored" data-anchor-id="classify">classify</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> classify(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">str</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the kind of question <code>q</code> asks, read from its cue words, or None when the cues are absent or tie.</em></p>
+</section>
+</div>
+</section>
+<section id="remove-copycat-sites" class="level2">
+<h2 class="anchored" data-anchor-id="remove-copycat-sites">Remove copycat sites</h2>
+<p><code>SPAM_MIRRORS</code> lists sites that copy content from other sites. Examples include Stack Overflow scrapers and GitHub mirrors. These sites add nothing to the original. Several search engines can rank them highly because they target each engine.</p>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#drop_spam"><code>drop_spam</code></a> removes results from these sites and from domains in <code>blocked</code>. It returns the remaining results and the removed domains. <code>allowed</code> keeps a domain even when a list contains it. It also keeps subdomains of that domain.</p>
+<p>A query that contains <code>site:reddit.com</code> already selects a site. <a href="https://vedicreader.github.io/fossick/quality.html#site_domains"><code>site_domains</code></a> returns the domains named by <code>site:</code> in a query. For this query, <a href="https://vedicreader.github.io/fossick/quality.html#curate"><code>curate</code></a> skips copycat removal and the per-site limit. <a href="https://vedicreader.github.io/fossick/quality.html#curate"><code>curate</code></a> still reorders results by authority.</p>
+<div id="04df9171" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.461860+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.467066+00:00&quot;,&quot;total&quot;:0.005209102000009125}}" data-execution_count="13">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L191" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="drop_spam" class="level3">
+<h3 class="anchored" data-anchor-id="drop_spam">drop_spam</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> drop_spam(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    hits:<span class="bu">list</span>, blocked:<span class="bu">tuple</span><span class="op">=</span>(), allowed:<span class="bu">tuple</span><span class="op">=</span>()</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">tuple</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Remove results from copycat sites and return the remaining results and the domains removed.</em></p>
+</section>
+</div>
+<div id="5bf22454" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.467194+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.471670+00:00&quot;,&quot;total&quot;:0.004479944999985719}}" data-execution_count="14">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L183" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="site_domains" class="level3">
+<h3 class="anchored" data-anchor-id="site_domains">site_domains</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> site_domains(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, include:<span class="bu">tuple</span><span class="op">=</span>()</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the domains named by <code>site:</code> in <code>q</code>, together with any in <code>include</code>.</em></p>
+</section>
+</div>
+</section>
+<section id="split-one-question-into-searches" class="level2">
+<h2 class="anchored" data-anchor-id="split-one-question-into-searches">Split one question into searches</h2>
+<p>A question such as “I want to rebuild my garage in australia, cheap options, what is the regulation on it, material options” asks three things. One search for all three parts mostly finds pages about the first part. <a href="https://vedicreader.github.io/fossick/quality.html#plan"><code>plan</code></a> creates one search for each part.</p>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#plan"><code>plan</code></a> removes openings such as “I want to” (<code>LEAD_INS</code>) and empty phrases (<code>FILLER</code>). It splits the rest at commas, semicolons, question marks, and words such as “and”. It adds the topic words from the first part to each later part. Each search still contains “garage australia”. The original question is always the first search.</p>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#plan"><code>plan</code></a> returns <code>[q]</code> when it has nothing to split. The table lists these conditions.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Condition</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>max_queries</code> is below 2</td>
+<td><code>[q]</code></td>
+</tr>
+<tr class="even">
+<td>The query has fewer than <code>min_words</code> words</td>
+<td><code>[q]</code></td>
+</tr>
+<tr class="odd">
+<td>The query has <code>site:</code></td>
+<td><code>[q]</code></td>
+</tr>
+<tr class="even">
+<td>The query has only one part</td>
+<td><code>[q]</code></td>
+</tr>
+<tr class="odd">
+<td>The later parts add no new words to the first</td>
+<td><code>[q]</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>max_queries</code> limits the number of searches. <code>rewrite</code> is a function that takes the question and returns a list of searches. You can use a language model for this function. When you pass <code>rewrite</code>, <a href="https://vedicreader.github.io/fossick/quality.html#plan"><code>plan</code></a> uses it instead of these rules. <a href="https://vedicreader.github.io/fossick/quality.html#facets"><code>facets</code></a> returns the parts as lists of topic words.</p>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#interleave"><code>interleave</code></a> merges result lists from several searches. It takes one result from each list in turn. It keeps a page that several searches found only once. For a duplicate page, it joins the <code>queries</code> lists. This gives each question part its own sources. Merging by score would favour a general guide over a source that answers one part.</p>
+<div id="2cfcaec7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.481621+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.487095+00:00&quot;,&quot;total&quot;:0.005477404999993496}}" data-execution_count="16">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L267" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="interleave" class="level3">
+<h3 class="anchored" data-anchor-id="interleave">interleave</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> interleave(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    lists:<span class="bu">list</span>, key:NoneType<span class="op">=</span><span class="va">None</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Merge result lists by taking one from each in turn, keeping each page once.</em></p>
+</section>
+</div>
+<div id="141cc084" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.487224+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.492963+00:00&quot;,&quot;total&quot;:0.005742049999980736}}" data-execution_count="17">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L241" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="plan" class="level3">
+<h3 class="anchored" data-anchor-id="plan">plan</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plan(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, <span class="co"># the question as asked</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    max_queries:<span class="bu">int</span><span class="op">=</span><span class="dv">4</span>, <span class="co"># total searches including the original; 1 disables planning</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    min_words:<span class="bu">int</span><span class="op">=</span><span class="dv">6</span>, <span class="co"># below this a query has no room for two questions</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    rewrite:NoneType<span class="op">=</span><span class="va">None</span>, <span class="co"># optional `f(q) -&gt; list[str]`, e.g. a model. Overrides the heuristic.</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Split a question that asks several things into one search per part, with the original question first.</em></p>
+</section>
+</div>
+<div id="9471a771" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.493094+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.497413+00:00&quot;,&quot;total&quot;:0.004322820999988153}}" data-execution_count="18">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L236" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="facets" class="level3">
+<h3 class="anchored" data-anchor-id="facets">facets</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> facets(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the parts of <code>q</code> as lists of topic words, or <code>[]</code> when there is only one part.</em></p>
+</section>
+</div>
+</section>
+<section id="reorder-results" class="level2">
+<h2 class="anchored" data-anchor-id="reorder-results">Reorder results</h2>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#authority_rerank"><code>authority_rerank</code></a> moves results from sites that <code>DOMAIN_RULES</code> boosts for a question kind to the front. It moves results from sites that <code>DOMAIN_RULES</code> demotes towards the back. <a href="https://vedicreader.github.io/fossick/quality.html#cap_per_domain"><code>cap_per_domain</code></a> keeps at most <code>max_per</code> results from each site near the top. It moves the remaining results to the end in their original order. A list with fewer than three results stays unchanged.</p>
+<p>Neither function drops a result. Results that do not move keep their order. Both functions return the reordered list and a second value. <a href="https://vedicreader.github.io/fossick/quality.html#authority_rerank"><code>authority_rerank</code></a> returns a report dictionary with <code>intent</code>, <code>applied</code>, <code>boosted</code>, and <code>demoted</code>. <a href="https://vedicreader.github.io/fossick/quality.html#cap_per_domain"><code>cap_per_domain</code></a> returns the number of results moved to the end.</p>
+<div id="ba2546e3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.502090+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.506765+00:00&quot;,&quot;total&quot;:0.004679066999983661}}" data-execution_count="20">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L301" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="cap_per_domain" class="level3">
+<h3 class="anchored" data-anchor-id="cap_per_domain">cap_per_domain</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> cap_per_domain(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    hits:<span class="bu">list</span>, max_per:<span class="bu">int</span><span class="op">=</span><span class="dv">2</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">tuple</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Keep at most <code>max_per</code> results per site near the top and move the rest, in order, to the end.</em></p>
+</section>
+</div>
+<div id="05f83722" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.506896+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.513013+00:00&quot;,&quot;total&quot;:0.00611940699999991}}" data-execution_count="21">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L284" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="authority_rerank" class="level3">
+<h3 class="anchored" data-anchor-id="authority_rerank">authority_rerank</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> authority_rerank(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    hits:<span class="bu">list</span>, cls:<span class="bu">str</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">tuple</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Move results from sites favoured for the kind of question <code>cls</code> up and disfavoured ones down, dropping none.</em></p>
+</section>
+</div>
+</section>
+<section id="count-stories-not-urls" class="level2">
+<h2 class="anchored" data-anchor-id="count-stories-not-urls">Count stories, not URLs</h2>
+<p>Ten results can represent one story. For example, nine sites can reprint one news agency report. <a href="https://vedicreader.github.io/fossick/quality.html#cluster_sources"><code>cluster_sources</code></a> groups results with the same <a href="https://vedicreader.github.io/fossick/quality.html#norm_url"><code>norm_url</code></a> key or with mostly shared text.</p>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#shingles"><code>shingles</code></a> returns the set of three-word sequences in a text. <a href="https://vedicreader.github.io/fossick/quality.html#jaccard"><code>jaccard</code></a> divides the overlap of two sets by their union. <a href="https://vedicreader.github.io/fossick/quality.html#cluster_sources"><code>cluster_sources</code></a> applies <a href="https://vedicreader.github.io/fossick/quality.html#jaccard"><code>jaccard</code></a> to the shingles from each result title and text. Two results with a similarity at or above <code>threshold</code> are one story. The default threshold is 0.6. The grouping is transitive. When A matches B and B matches C, all three results form one group. Each group uses its first input member as its name.</p>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#independence"><code>independence</code></a> returns the groups with a score. The score rises with the number of separate stories and sites. The result also lists its limits. Two sites that rewrite one press release in their own words do not share enough text to form one group.</p>
+<div id="c9c8ff0e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.520838+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.524432+00:00&quot;,&quot;total&quot;:0.0035968599999876005}}" data-execution_count="23">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L364" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="independence" class="level3">
+<h3 class="anchored" data-anchor-id="independence">independence</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> independence(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    hits:<span class="bu">list</span>, threshold:<span class="bu">float</span><span class="op">=</span><span class="fl">0.6</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">dict</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return how many separate stories and sites a result list holds, with a score and the method’s limits.</em></p>
+</section>
+</div>
+<div id="aa8ffe97" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.524562+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.527329+00:00&quot;,&quot;total&quot;:0.0027705820000107906}}" data-execution_count="24">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L335" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="cluster_sources" class="level3">
+<h3 class="anchored" data-anchor-id="cluster_sources">cluster_sources</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> cluster_sources(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    hits:<span class="bu">list</span>, <span class="co"># search hits or research sources</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    threshold:<span class="bu">float</span><span class="op">=</span><span class="fl">0.6</span>, <span class="co"># trigram Jaccard at or above which two texts are one story</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">list</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Group results that are the same page or share most of their text, and return the groups.</em></p>
+</section>
+</div>
+<div id="61f6d42c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.527457+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.530124+00:00&quot;,&quot;total&quot;:0.002669084000018529}}" data-execution_count="25">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L318" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="jaccard" class="level3">
+<h3 class="anchored" data-anchor-id="jaccard">jaccard</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> jaccard(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    a:<span class="bu">set</span>, b:<span class="bu">set</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">float</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the size of the overlap of two sets divided by the size of their union, or 0.0 when either is empty.</em></p>
+</section>
+</div>
+<div id="c306dbc4" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.530212+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.532925+00:00&quot;,&quot;total&quot;:0.002715088000002197}}" data-execution_count="26">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L313" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="shingles" class="level3">
+<h3 class="anchored" data-anchor-id="shingles">shingles</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> shingles(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    text:<span class="bu">str</span>, n:<span class="bu">int</span><span class="op">=</span><span class="dv">3</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">set</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the set of <code>n</code>-word sequences in <code>text</code>, empty when it has fewer than <code>n</code> words.</em></p>
+</section>
+</div>
+</section>
+<section id="describe-a-result-list" class="level2">
+<h2 class="anchored" data-anchor-id="describe-a-result-list">Describe a result list</h2>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#diversity"><code>diversity</code></a> describes a list without changing it. The result has these keys:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Key</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>n</code>, <code>domains</code></td>
+<td>Number of results and number of sites</td>
+</tr>
+<tr class="even">
+<td><code>dominant_domain</code></td>
+<td>The site with the most results, and its <code>share</code> of the results</td>
+</tr>
+<tr class="odd">
+<td><code>dup_urls</code></td>
+<td>Number of results whose <a href="https://vedicreader.github.io/fossick/quality.html#norm_url"><code>norm_url</code></a> key repeats an earlier one</td>
+</tr>
+<tr class="even">
+<td><code>near_dups</code></td>
+<td>Number of pairs of results that read alike</td>
+</tr>
+<tr class="odd">
+<td><code>sources</code></td>
+<td>Number of separate stories</td>
+</tr>
+<tr class="even">
+<td><code>score</code></td>
+<td>A number from 0 to 1. A higher number means a more varied list.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>score</code> is the weighted sum of three components.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Weight</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Share of separate sites</td>
+<td>0.5</td>
+</tr>
+<tr class="even">
+<td>Share of unique URLs</td>
+<td>0.3</td>
+</tr>
+<tr class="odd">
+<td>Share of pairs that do not read alike</td>
+<td>0.2</td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#snippet_similarity"><code>snippet_similarity</code></a> returns the Jaccard similarity of the three-word sequences of two texts.</p>
+<div id="bc33b76a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.535863+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.539674+00:00&quot;,&quot;total&quot;:0.0038139469999975972}}" data-execution_count="28">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L395" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="diversity" class="level3">
+<h3 class="anchored" data-anchor-id="diversity">diversity</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> diversity(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    hits:<span class="bu">list</span>, threshold:<span class="bu">float</span><span class="op">=</span><span class="fl">0.6</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">dict</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Describe how varied a result list is: its sites, repeated URLs, look-alike pairs and separate stories.</em></p>
+</section>
+</div>
+<div id="dd5495e5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.539811+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.542344+00:00&quot;,&quot;total&quot;:0.002534018999995169}}" data-execution_count="29">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L387" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="snippet_similarity" class="level3">
+<h3 class="anchored" data-anchor-id="snippet_similarity">snippet_similarity</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> snippet_similarity(</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    a:<span class="bu">str</span>, b:<span class="bu">str</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">float</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Return the Jaccard similarity of two texts’ three-word sequences, or 0.0 when either has fewer than three words.</em></p>
+</section>
+</div>
+</section>
+<section id="curate" class="level2">
+<h2 class="anchored" data-anchor-id="curate"><a href="https://vedicreader.github.io/fossick/quality.html#curate"><code>curate</code></a></h2>
+<p><a href="https://vedicreader.github.io/fossick/quality.html#curate"><code>curate</code></a> runs these steps in order:</p>
+<ol type="1">
+<li><a href="https://vedicreader.github.io/fossick/quality.html#drop_spam"><code>drop_spam</code></a> removes copycat sites.</li>
+<li><a href="https://vedicreader.github.io/fossick/quality.html#authority_rerank"><code>authority_rerank</code></a> reorders by authority for the kind of question. <a href="https://vedicreader.github.io/fossick/quality.html#classify"><code>classify</code></a> reads the kind from the query, or you pass <code>intent</code>. <code>intent=None</code> skips this step.</li>
+<li><a href="https://vedicreader.github.io/fossick/quality.html#cap_per_domain"><code>cap_per_domain</code></a> applies the per-site limit. <code>max_per_domain=0</code> skips this step.</li>
+<li><a href="https://vedicreader.github.io/fossick/quality.html#diversity"><code>diversity</code></a> describes the result.</li>
+</ol>
+<p>A query with <code>site:</code> skips steps 1 and 3. <a href="https://vedicreader.github.io/fossick/quality.html#curate"><code>curate</code></a> returns the reordered results and a report of what each step did. With <code>rerank=False</code> it returns the results untouched. The report then has <code>dropped=[]</code>, <code>demoted=0</code> and <code>authority=None</code>, and still has <code>intent</code> and <a href="https://vedicreader.github.io/fossick/quality.html#diversity"><code>diversity</code></a>.</p>
+<div id="3551b9dd" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-11-09T23:52:20.544163+00:00&quot;,&quot;shell.execute_reply&quot;:&quot;2026-11-09T23:52:20.547702+00:00&quot;,&quot;total&quot;:0.003542778999985785}}" data-execution_count="31">
+<hr>
+<p><a href="https://github.com/vedicreader/fossick/blob/main/fossick/quality.py#L419" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="curate-1" class="level3">
+<h3 class="anchored" data-anchor-id="curate-1">curate</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> curate(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    q:<span class="bu">str</span>, <span class="co"># the query, read for intent and `site:` constraints</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    hits:<span class="bu">list</span>, <span class="co"># search hits (dicts with `href`/`url`, `title`, `body`)</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    intent:<span class="bu">str</span><span class="op">=</span><span class="st">'auto'</span>, <span class="co"># an intent class, 'auto' to classify, or None to skip authority</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    max_per_domain:<span class="bu">int</span><span class="op">=</span><span class="dv">2</span>, <span class="co"># per-registrable-domain cap; 0 disables</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    blocked:<span class="bu">tuple</span><span class="op">=</span>(), allowed:<span class="bu">tuple</span><span class="op">=</span>(), <span class="co"># extra mirror domains, and rescues from the built-in list</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    rerank:<span class="bu">bool</span><span class="op">=</span><span class="va">True</span>, <span class="co"># False: describe only, return `hits` untouched</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>)<span class="op">-&gt;</span><span class="bu">tuple</span>:</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><em>Remove copycat sites, reorder by authority, limit results per site, and return the results with a report.</em></p>
+</section>
+</div>
+</section>
+<section id="tests" class="level2">
+<h2 class="anchored" data-anchor-id="tests">Tests</h2>
+<p>The cells below test each function offline. Most tests use the garage question from this module.</p>
+<div id="5fffa7c4" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test registrable domains, including three-label registries.</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> registrable_domain(<span class="st">'https://docs.python.org/3/library/functions.html'</span>) <span class="op">==</span> <span class="st">'python.org'</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> registrable_domain(<span class="st">'https://www.bbc.co.uk/news'</span>) <span class="op">==</span> <span class="st">'bbc.co.uk'</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> registrable_domain(<span class="st">'https://planning.nsw.gov.au/x'</span>) <span class="op">==</span> <span class="st">'nsw.gov.au'</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> registrable_domain(<span class="st">'https://wko.at/'</span>) <span class="op">==</span> <span class="st">'wko.at'</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> registrable_domain(<span class="st">'https://x.com'</span>) <span class="op">==</span> <span class="st">'x.com'</span> <span class="kw">and</span> registrable_domain(<span class="st">''</span>) <span class="op">==</span> <span class="st">''</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> registrable_domain(<span class="st">'http://192.168.1.1/a'</span>) <span class="op">==</span> <span class="st">'192.168.1.1'</span>      <span class="co"># An IP address has no site prefix to strip.</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> host(<span class="st">'https://WWW.Example.COM./p'</span>) <span class="op">==</span> <span class="st">'example.com'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="477a29ad" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test one key per page and sorted query parameters.</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> norm_url(<span class="st">'https://www.x.com/a/?utm_source=t#frag'</span>) <span class="op">==</span> norm_url(<span class="st">'http://x.com/a'</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> norm_url(<span class="st">'https://x.com/a'</span>) <span class="op">!=</span> norm_url(<span class="st">'https://x.com/b'</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> norm_url(<span class="st">'https://x.com/a?b=2&amp;a=1'</span>) <span class="op">==</span> norm_url(<span class="st">'https://x.com/a?a=1&amp;b=2'</span>)   <span class="co"># Query parameters are sorted.</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> norm_url(<span class="st">'https://x.com:443/a'</span>) <span class="op">==</span> norm_url(<span class="st">'https://x.com/a'</span>)               <span class="co"># A default port is removed.</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> norm_url(<span class="st">'https://x.com:8443/a'</span>) <span class="op">!=</span> norm_url(<span class="st">'https://x.com/a'</span>)              <span class="co"># A non-default port stays.</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> norm_url(<span class="st">'https://x.com/a?mkt_tok=z&amp;_ga=1&amp;keep=2'</span>) <span class="op">==</span> norm_url(<span class="st">'https://x.com/a?keep=2'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="9b3e7e0c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Rule matching controls both security and ranking.</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> domain_matches(<span class="st">'docs.python.org'</span>, <span class="st">'docs.'</span>) <span class="kw">and</span> <span class="kw">not</span> domain_matches(<span class="st">'notdocs.com'</span>, <span class="st">'docs.'</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> domain_matches(<span class="st">'planning.nsw.gov.au'</span>, <span class="st">'.gov.au'</span>)          <span class="co"># A suffix rule covers a whole registry.</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> domain_matches(<span class="st">'gov.uk'</span>, <span class="st">'.gov.uk'</span>)                       <span class="co"># The rule also covers the registry itself.</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> domain_matches(<span class="st">'abcb.gov.au'</span>, <span class="st">'.gov.au'</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="kw">not</span> domain_matches(<span class="st">'hipages.com.au'</span>, <span class="st">'.gov.au'</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> domain_matches(<span class="st">'sec.gov'</span>, <span class="st">'sec.gov'</span>) <span class="kw">and</span> domain_matches(<span class="st">'www.sec.gov'</span>, <span class="st">'sec.gov'</span>)</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="kw">not</span> domain_matches(<span class="st">'openai.com.evil.example'</span>, <span class="st">'openai.com'</span>)   <span class="co"># A bare prefix must not match.</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> blocked_matches(<span class="st">'de.newbedev.com'</span>, <span class="st">'newbedev.com'</span>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="kw">not</span> blocked_matches(<span class="st">'newbedev.com.evil.example'</span>, <span class="st">'newbedev.com'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="f899f540" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test intent detection and abstention.</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> classify(<span class="st">'rebuild my garage in australia, what is the regulation on it'</span>) <span class="op">==</span> <span class="st">'policy'</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> classify(<span class="st">'planning permission for a garage'</span>) <span class="op">==</span> <span class="st">'policy'</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> classify(<span class="st">'latest Tailscale release notes'</span>) <span class="op">==</span> <span class="st">'release'</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> classify(<span class="st">'python asyncio api reference'</span>) <span class="op">==</span> <span class="st">'docs'</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> classify(<span class="st">'CVE-2024-1234 advisory'</span>) <span class="kw">is</span> <span class="va">None</span> <span class="kw">or</span> classify(<span class="st">'log4j vulnerability advisory'</span>) <span class="op">==</span> <span class="st">'security'</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> classify(<span class="st">'what do people on reddit think of it'</span>) <span class="op">==</span> <span class="st">'community'</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> classify(<span class="st">'best turntables under 1000 euro'</span>) <span class="kw">is</span> <span class="va">None</span>          <span class="co"># says nothing -&gt; no reranking</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> classify(<span class="st">'reddit release notes'</span>) <span class="kw">is</span> <span class="va">None</span>                     <span class="co"># says two things -&gt; no reranking</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> classify(<span class="st">''</span>) <span class="kw">is</span> <span class="va">None</span> <span class="kw">and</span> classify(<span class="va">None</span>) <span class="kw">is</span> <span class="va">None</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="bae7d1ca" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test copycat removal and explicit `site:` constraints.</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>_h <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://stackoverflow.com/questions/1'</span>, title<span class="op">=</span><span class="st">'real'</span>),</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>      <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://newbedev.com/questions/1'</span>, title<span class="op">=</span><span class="st">'mirror'</span>),</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>      <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://de.newbedev.com/q/1'</span>, title<span class="op">=</span><span class="st">'mirror subdomain'</span>)]</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>_kept, _rm <span class="op">=</span> drop_spam(_h)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> [h[<span class="st">'title'</span>] <span class="cf">for</span> h <span class="kw">in</span> _kept] <span class="op">==</span> [<span class="st">'real'</span>] <span class="kw">and</span> _rm <span class="op">==</span> [<span class="st">'de.newbedev.com'</span>, <span class="st">'newbedev.com'</span>]</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> drop_spam(_h, allowed<span class="op">=</span>[<span class="st">'newbedev.com'</span>])[<span class="dv">0</span>] <span class="op">==</span> _h            <span class="co"># The allowed domain also keeps its subdomain.</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> site_domains(<span class="st">'site:reddit.com/r/LocalLLaMA best server'</span>) <span class="op">==</span> [<span class="st">'reddit.com'</span>]</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> site_domains(<span class="st">'plain query'</span>, include<span class="op">=</span>[<span class="st">'NSW.gov.au'</span>]) <span class="op">==</span> [<span class="st">'nsw.gov.au'</span>]</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>_, _r <span class="op">=</span> curate(<span class="st">'site:reddit.com best local llm'</span>, [<span class="bu">dict</span>(href<span class="op">=</span><span class="ss">f'https://reddit.com/</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span>) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>)])</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _r[<span class="st">'site_constrained'</span>] <span class="op">==</span> [<span class="st">'reddit.com'</span>] <span class="kw">and</span> _r[<span class="st">'demoted'</span>] <span class="op">==</span> <span class="dv">0</span>   <span class="co"># The site constraint prevents diversity changes.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="064eeb1b" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test authority ranking with the garage query.</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>_garage <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://hipages.com.au/article/garage-cost'</span>, title<span class="op">=</span><span class="st">'How much to build a garage'</span>),</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>           <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://oneflare.com.au/costs/garage'</span>, title<span class="op">=</span><span class="st">'Garage costs 2026'</span>),</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>           <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://www.planning.nsw.gov.au/exempt-development'</span>, title<span class="op">=</span><span class="st">'Exempt development'</span>),</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>           <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://airtasker.com/garage'</span>, title<span class="op">=</span><span class="st">'Get quotes'</span>),</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>           <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://abcb.gov.au/ncc'</span>, title<span class="op">=</span><span class="st">'National Construction Code'</span>)]</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>_out, _rep <span class="op">=</span> curate(<span class="st">'rebuild my garage in australia, what is the regulation on it'</span>, _garage)</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _rep[<span class="st">'intent'</span>] <span class="op">==</span> <span class="st">'policy'</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> [host(_url(h)) <span class="cf">for</span> h <span class="kw">in</span> _out][:<span class="dv">2</span>] <span class="op">==</span> [<span class="st">'planning.nsw.gov.au'</span>, <span class="st">'abcb.gov.au'</span>], [_url(h) <span class="cf">for</span> h <span class="kw">in</span> _out]</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _rep[<span class="st">'authority'</span>][<span class="st">'applied'</span>] <span class="kw">and</span> _rep[<span class="st">'authority'</span>][<span class="st">'top_before'</span>] <span class="op">==</span> <span class="st">'hipages.com.au'</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Reranking drops nothing.</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(_out) <span class="op">==</span> <span class="bu">len</span>(_garage)</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="co"># An unknown or absent intent does nothing.</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> authority_rerank(_garage, <span class="va">None</span>)[<span class="dv">0</span>] <span class="op">==</span> _garage</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> authority_rerank(_garage, <span class="st">'nonsense'</span>)[<span class="dv">1</span>][<span class="st">'applied'</span>] <span class="kw">is</span> <span class="va">False</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="df19b940" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test site caps and list diversity.</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>_mono <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="ss">f'https://hipages.com.au/a/</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span>, title<span class="op">=</span><span class="st">'Garage cost guide'</span>, body<span class="op">=</span><span class="st">'what a garage costs'</span>)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>         <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>)] <span class="op">+</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://abcb.gov.au/ncc'</span>, title<span class="op">=</span><span class="st">'NCC'</span>, body<span class="op">=</span><span class="st">'construction code'</span>)]</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>_capped, _n <span class="op">=</span> cap_per_domain(_mono, <span class="dv">2</span>)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _n <span class="op">==</span> <span class="dv">3</span> <span class="kw">and</span> [host(_url(h)) <span class="cf">for</span> h <span class="kw">in</span> _capped][:<span class="dv">3</span>] <span class="op">==</span> [<span class="st">'hipages.com.au'</span>]<span class="op">*</span><span class="dv">2</span> <span class="op">+</span> [<span class="st">'abcb.gov.au'</span>]</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(_capped) <span class="op">==</span> <span class="bu">len</span>(_mono)                                    <span class="co"># Results move. They are not dropped.</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>_d <span class="op">=</span> diversity(_mono)</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _d[<span class="st">'n'</span>] <span class="op">==</span> <span class="dv">6</span> <span class="kw">and</span> _d[<span class="st">'domains'</span>] <span class="op">==</span> <span class="dv">2</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _d[<span class="st">'dominant_domain'</span>] <span class="op">==</span> <span class="bu">dict</span>(domain<span class="op">=</span><span class="st">'hipages.com.au'</span>, share<span class="op">=</span><span class="bu">round</span>(<span class="dv">5</span><span class="op">/</span><span class="dv">6</span>, <span class="dv">4</span>))</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _d[<span class="st">'near_dups'</span>] <span class="op">&gt;</span> <span class="dv">0</span>                                           <span class="co"># The five guides have similar text.</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> diversity([])[<span class="st">'n'</span>] <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> diversity([])[<span class="st">'score'</span>] <span class="op">==</span> <span class="fl">0.0</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="co"># A diverse set scores higher than one dominated by one site.</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>_div <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="ss">f'https://s</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">.com/a'</span>, title<span class="op">=</span><span class="ss">f'topic </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span>, body<span class="op">=</span><span class="ss">f'quite different text number </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">6</span>)]</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> diversity(_div)[<span class="st">'score'</span>] <span class="op">&gt;</span> _d[<span class="st">'score'</span>]</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> snippet_similarity(<span class="st">'one two three four'</span>, <span class="st">'one two three four'</span>) <span class="op">==</span> <span class="fl">1.0</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> snippet_similarity(<span class="st">'too short'</span>, <span class="st">'too short'</span>) <span class="op">==</span> <span class="fl">0.0</span>           <span class="co"># Fewer than three words provide no trigram evidence.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="e5a77017" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test empty and describe-only paths.</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> curate(<span class="st">'anything'</span>, [])[<span class="dv">0</span>] <span class="op">==</span> []</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>_h2 <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://a.com/1'</span>, title<span class="op">=</span><span class="st">'t'</span>)]</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> curate(<span class="st">'q'</span>, _h2, rerank<span class="op">=</span><span class="va">False</span>)[<span class="dv">0</span>] <span class="kw">is</span> _h2                      <span class="co"># Describe-only mode does not change the list.</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="st">'diversity'</span> <span class="kw">in</span> curate(<span class="st">'q'</span>, _h2, rerank<span class="op">=</span><span class="va">False</span>)[<span class="dv">1</span>]</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> curate(<span class="st">'q'</span>, _h2, intent<span class="op">=</span><span class="va">None</span>)[<span class="dv">1</span>][<span class="st">'intent'</span>] <span class="kw">is</span> <span class="va">None</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="ab3713de" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test planning for one question with three parts.</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>_GARAGE <span class="op">=</span> (<span class="st">'I want to rebuild my garage in australia, cheap options, '</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>           <span class="st">'what is the regulation on it, material options'</span>)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>_p <span class="op">=</span> plan(_GARAGE)</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _p[<span class="dv">0</span>] <span class="op">==</span> _GARAGE                                   <span class="co"># The original question stays first.</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(_p) <span class="op">==</span> <span class="dv">4</span>                                       <span class="co"># The result has the original and three parts.</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">any</span>(<span class="st">'regulation'</span> <span class="kw">in</span> s <span class="cf">for</span> s <span class="kw">in</span> _p[<span class="dv">1</span>:]), _p</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">any</span>(<span class="st">'cheap'</span> <span class="kw">in</span> s <span class="cf">for</span> s <span class="kw">in</span> _p[<span class="dv">1</span>:]) <span class="kw">and</span> <span class="bu">any</span>(<span class="st">'material'</span> <span class="kw">in</span> s <span class="cf">for</span> s <span class="kw">in</span> _p[<span class="dv">1</span>:]), _p</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">all</span>(<span class="st">'garage'</span> <span class="kw">in</span> s <span class="kw">and</span> <span class="st">'australia'</span> <span class="kw">in</span> s <span class="cf">for</span> s <span class="kw">in</span> _p[<span class="dv">1</span>:]), _p   <span class="co"># The subject returns in each facet.</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="st">'want'</span> <span class="kw">not</span> <span class="kw">in</span> _p[<span class="dv">1</span>] <span class="kw">and</span> <span class="st">'what'</span> <span class="kw">not</span> <span class="kw">in</span> _p[<span class="dv">1</span>]        <span class="co"># Planning removes the lead-in and filler.</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Planning abstains when it cannot split safely.</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> plan(<span class="st">'sqlite wal mode vs journal mode performance'</span>) <span class="op">==</span> [<span class="st">'sqlite wal mode vs journal mode performance'</span>]</span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> plan(<span class="st">'garage cost'</span>) <span class="op">==</span> [<span class="st">'garage cost'</span>]                        <span class="co"># This query is too short for two questions.</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> plan(<span class="st">'site:reddit.com best local llm, cheap options'</span>) <span class="op">==</span> [<span class="st">'site:reddit.com best local llm, cheap options'</span>]</span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> plan(_GARAGE, max_queries<span class="op">=</span><span class="dv">1</span>) <span class="op">==</span> [_GARAGE]                     <span class="co"># Planning is disabled explicitly.</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> plan(<span class="st">''</span>) <span class="op">==</span> []</span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(plan(_GARAGE, max_queries<span class="op">=</span><span class="dv">2</span>)) <span class="op">==</span> <span class="dv">2</span>                        <span class="co"># The query limit applies.</span></span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a><span class="co"># A facet with no new words is not a search.</span></span>
+<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> plan(<span class="st">'rebuild my garage in australia, the garage, australia'</span>) <span class="op">==</span> <span class="op">\</span></span>
+<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a>       [<span class="st">'rebuild my garage in australia, the garage, australia'</span>]</span>
+<span id="cb29-23"><a href="#cb29-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-24"><a href="#cb29-24" aria-hidden="true" tabindex="-1"></a><span class="co"># A rewriter replaces the heuristic and keeps the original.</span></span>
+<span id="cb29-25"><a href="#cb29-25" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> plan(<span class="st">'anything at all here'</span>, rewrite<span class="op">=</span><span class="kw">lambda</span> q: [<span class="st">'one'</span>, <span class="st">'two'</span>]) <span class="op">==</span> [<span class="st">'anything at all here'</span>, <span class="st">'one'</span>, <span class="st">'two'</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="dce30874" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Interleaving gives coverage.</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="co"># A general result must not outrank a specialist result.</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>_cost <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://hipages.com.au/guide'</span>, title<span class="op">=</span><span class="st">'complete garage guide'</span>),</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>         <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://oneflare.com.au/cost'</span>, title<span class="op">=</span><span class="st">'costs'</span>)]</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>_reg  <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://hipages.com.au/guide'</span>, title<span class="op">=</span><span class="st">'complete garage guide'</span>),</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>         <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://planning.nsw.gov.au/exempt'</span>, title<span class="op">=</span><span class="st">'exempt development'</span>)]</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>_mat  <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://hipages.com.au/guide'</span>, title<span class="op">=</span><span class="st">'complete garage guide'</span>),</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>         <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://bunnings.com.au/materials'</span>, title<span class="op">=</span><span class="st">'materials'</span>)]</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>_il <span class="op">=</span> interleave([_cost, _reg, _mat])</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> [host(_url(h)) <span class="cf">for</span> h <span class="kw">in</span> _il][:<span class="dv">2</span>] <span class="op">==</span> [<span class="st">'hipages.com.au'</span>, <span class="st">'oneflare.com.au'</span>]</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="st">'planning.nsw.gov.au'</span> <span class="kw">in</span> [host(_url(h)) <span class="cf">for</span> h <span class="kw">in</span> _il[:<span class="dv">4</span>]], [_url(h) <span class="cf">for</span> h <span class="kw">in</span> _il]</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(_il) <span class="op">==</span> <span class="dv">4</span>                                      <span class="co"># The guide appears once.</span></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Ragged and empty lists are valid.</span></span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> interleave([]) <span class="op">==</span> [] <span class="kw">and</span> interleave([[], []]) <span class="op">==</span> []</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(interleave([_cost, []])) <span class="op">==</span> <span class="dv">2</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="f2be34c9" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test clustering, including transitive groups.</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>_wire <span class="op">=</span> (<span class="st">'OpenAI said today that it is lowering prices for its newest model across all tiers, '</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>         <span class="st">'effective immediately for every API customer.'</span>)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>_syn <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://a.invalid/x'</span>, title<span class="op">=</span><span class="st">'OpenAI cuts prices'</span>, body<span class="op">=</span>_wire),</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://b.invalid/y'</span>, title<span class="op">=</span><span class="st">'OpenAI cuts prices'</span>, body<span class="op">=</span>_wire),</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://c.invalid/z'</span>, title<span class="op">=</span><span class="st">'OpenAI cuts prices'</span>, body<span class="op">=</span>_wire),</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>        <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://openai.com/index/new-pricing'</span>, title<span class="op">=</span><span class="st">'New pricing for our latest model'</span>,</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>             body<span class="op">=</span><span class="st">'We are updating the per-token price of our newest model from today.'</span>)]</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>_cl <span class="op">=</span> cluster_sources(_syn)</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(_cl) <span class="op">==</span> <span class="dv">2</span>, _cl                                  <span class="co"># Three copies form one group. The original forms another.</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _cl[<span class="dv">0</span>][<span class="st">'size'</span>] <span class="op">==</span> <span class="dv">3</span> <span class="kw">and</span> _cl[<span class="dv">1</span>][<span class="st">'size'</span>] <span class="op">==</span> <span class="dv">1</span></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _cl[<span class="dv">0</span>][<span class="st">'canonical'</span>] <span class="op">==</span> <span class="st">'https://a.invalid/x'</span>        <span class="co"># The first input member names the group.</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>_ind <span class="op">=</span> independence(_syn)</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _ind[<span class="st">'n'</span>] <span class="op">==</span> <span class="dv">4</span> <span class="kw">and</span> _ind[<span class="st">'sources'</span>] <span class="op">==</span> <span class="dv">2</span>             <span class="co"># The source count is the useful count.</span></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _ind[<span class="st">'method'</span>] <span class="op">==</span> <span class="st">'url+text'</span> <span class="kw">and</span> _ind[<span class="st">'confidence'</span>] <span class="op">==</span> <span class="st">'medium'</span></span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> _ind[<span class="st">'limitations'</span>]                                 <span class="co"># The result lists its limits.</span></span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a><span class="co"># transitivity: A~B and B~C is one family even where A and C alone fall short of the threshold</span></span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>_chain <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://a.invalid/1'</span>, body<span class="op">=</span><span class="st">'alpha beta gamma delta epsilon zeta eta theta'</span>),</span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>          <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://b.invalid/2'</span>, body<span class="op">=</span><span class="st">'beta gamma delta epsilon zeta eta theta iota'</span>),</span>
+<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>          <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://c.invalid/3'</span>, body<span class="op">=</span><span class="st">'gamma delta epsilon zeta eta theta iota kappa'</span>)]</span>
+<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> jaccard(shingles(_chain[<span class="dv">0</span>][<span class="st">'body'</span>]), shingles(_chain[<span class="dv">2</span>][<span class="st">'body'</span>])) <span class="op">&lt;</span> <span class="fl">0.6</span>      <span class="co"># These results are not one pair.</span></span>
+<span id="cb31-24"><a href="#cb31-24" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(cluster_sources(_chain, threshold<span class="op">=</span><span class="fl">0.5</span>)) <span class="op">==</span> <span class="dv">1</span>, cluster_sources(_chain, <span class="fl">0.5</span>)  <span class="co"># The transitive chain forms one group.</span></span>
+<span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a><span class="co"># the same url twice is one source however differently it is described</span></span>
+<span id="cb31-27"><a href="#cb31-27" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">len</span>(cluster_sources([<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://x.com/a?utm_source=t'</span>, body<span class="op">=</span><span class="st">'one two three four'</span>),</span>
+<span id="cb31-28"><a href="#cb31-28" aria-hidden="true" tabindex="-1"></a>                            <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'http://www.x.com/a'</span>, body<span class="op">=</span><span class="st">'utterly different words here'</span>)])) <span class="op">==</span> <span class="dv">1</span></span>
+<span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Independent results stay independent.</span></span>
+<span id="cb31-31"><a href="#cb31-31" aria-hidden="true" tabindex="-1"></a>_div <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="ss">f'https://s</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">.invalid/a'</span>, body<span class="op">=</span><span class="ss">f'entirely separate subject number </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss"> here'</span>)</span>
+<span id="cb31-32"><a href="#cb31-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>)]</span>
+<span id="cb31-33"><a href="#cb31-33" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> independence(_div)[<span class="st">'sources'</span>] <span class="op">==</span> <span class="dv">5</span> <span class="kw">and</span> independence(_div)[<span class="st">'score'</span>] <span class="op">&gt;</span> independence(_syn)[<span class="st">'score'</span>]</span>
+<span id="cb31-34"><a href="#cb31-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-35"><a href="#cb31-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Without text, use URL identity and report low confidence.</span></span>
+<span id="cb31-36"><a href="#cb31-36" aria-hidden="true" tabindex="-1"></a>_bare <span class="op">=</span> [<span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://a.invalid/1'</span>), <span class="bu">dict</span>(href<span class="op">=</span><span class="st">'https://b.invalid/2'</span>)]</span>
+<span id="cb31-37"><a href="#cb31-37" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> independence(_bare)[<span class="st">'method'</span>] <span class="op">==</span> <span class="st">'url'</span> <span class="kw">and</span> independence(_bare)[<span class="st">'confidence'</span>] <span class="op">==</span> <span class="st">'low'</span></span>
+<span id="cb31-38"><a href="#cb31-38" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">any</span>(<span class="st">'too little text'</span> <span class="kw">in</span> l <span class="cf">for</span> l <span class="kw">in</span> independence(_bare)[<span class="st">'limitations'</span>])</span>
+<span id="cb31-39"><a href="#cb31-39" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> independence([]) <span class="op">==</span> <span class="bu">dict</span>(n<span class="op">=</span><span class="dv">0</span>, sources<span class="op">=</span><span class="dv">0</span>, score<span class="op">=</span><span class="fl">0.0</span>, clusters<span class="op">=</span>[], method<span class="op">=</span><span class="st">'none'</span>,</span>
+<span id="cb31-40"><a href="#cb31-40" aria-hidden="true" tabindex="-1"></a>                                confidence<span class="op">=</span><span class="st">'low'</span>, limitations<span class="op">=</span>[])</span>
+<span id="cb31-41"><a href="#cb31-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-42"><a href="#cb31-42" aria-hidden="true" tabindex="-1"></a><span class="co"># Diversity reports source count beside URL count.</span></span>
+<span id="cb31-43"><a href="#cb31-43" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> diversity(_syn)[<span class="st">'n'</span>] <span class="op">==</span> <span class="dv">4</span> <span class="kw">and</span> diversity(_syn)[<span class="st">'sources'</span>] <span class="op">==</span> <span class="dv">2</span></span>
+<span id="cb31-44"><a href="#cb31-44" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> shingles(<span class="st">'two words'</span>) <span class="op">==</span> <span class="bu">set</span>() <span class="kw">and</span> jaccard(<span class="bu">set</span>(), {(<span class="st">'a'</span>,<span class="st">'b'</span>,<span class="st">'c'</span>)}) <span class="op">==</span> <span class="fl">0.0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/vedicreader\.github\.io\/fossick");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+      window.quartoDecorateExternalLinks = function (root) {
+     var links = (root || window.document).querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+          if (!link.classList.contains('no-external-icon')) {
+          }
+        }
+      }
+      };
+      window.quartoDecorateExternalLinks(window.document);
+    // Esc closes the popup (WCAG 1.4.13) and focus leaving both trigger and
+    // popup closes it (WCAG 2.4.11); tippy handles neither for interactive popups.
+    const hideOnEscAndFocusOut = {
+      name: 'hideOnEscAndFocusOut',
+      defaultValue: true,
+      fn(instance) {
+        const dismiss = () => {
+          // A show scheduled by the trigger delay would otherwise reopen it
+          instance.clearDelayTimeouts();
+          instance.hide();
+        };
+        const onKeyDown = (event) => {
+          if (event.key !== 'Escape') {
+            return;
+          }
+          // Keep Esc from also reaching page handlers (e.g. reveal.js overview),
+          // except an open reveal.js slide menu, which Esc should close too.
+          // The menu handles keys only when its keyboard option is on.
+          const menuHandlesEsc = window.Reveal?.getPlugin?.('menu')?.isOpen() &&
+            window.Reveal.getConfig().menu?.keyboard !== false;
+          if (!menuHandlesEsc) {
+            event.stopPropagation();
+          }
+          if (instance.popper.contains(window.document.activeElement)) {
+            // Disabled while refocusing so the focus trigger does not reopen it
+            instance.disable();
+            instance.reference.focus();
+            instance.enable();
+          }
+          dismiss();
+        };
+        const onFocusOut = (event) => {
+          const target = event.relatedTarget;
+          if (target && !instance.reference.contains(target) &&
+              !instance.popper.contains(target)) {
+            dismiss();
+          }
+        };
+        // On the trigger too: a click trigger (code-annotations: select) has no
+        // blur handling. Attached for the instance's lifetime so leaving the
+        // trigger also cancels a show still pending on the trigger delay.
+        instance.reference.addEventListener('focusout', onFocusOut);
+        return {
+          onShow() {
+            window.document.addEventListener('keydown', onKeyDown, true);
+            instance.popper.addEventListener('focusout', onFocusOut);
+          },
+          onHide() {
+            window.document.removeEventListener('keydown', onKeyDown, true);
+            instance.popper.removeEventListener('focusout', onFocusOut);
+          },
+          onDestroy() {
+            instance.reference.removeEventListener('focusout', onFocusOut);
+          },
+        };
+      },
+    };
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+        plugins: [hideOnEscAndFocusOut],
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          // Each band is positioned against its own containing block, which is
+          // not the offsetParent of the lines, so place it from client rects.
+          const placeBand = (band, firstEl, lastEl, codeBlock) => {
+            const container = band.offsetParent;
+            if (container === null) {
+              return;
+            }
+            const containerRect = container.getBoundingClientRect();
+            // Reveal.js scales slides with a transform, so convert client
+            // pixels back to the CSS pixels of the container.
+            const scale = containerRect.height / container.offsetHeight || 1;
+            const firstRect = firstEl.getBoundingClientRect();
+            const lastRect = lastEl.getBoundingClientRect();
+            const top = (firstRect.top - containerRect.top) / scale - container.clientTop + container.scrollTop;
+            const height = (lastRect.bottom - firstRect.top) / scale;
+            band.style.top = top - 2 + "px";
+            band.style.height = height + 4 + "px";
+            if (codeBlock) {
+              // Without the copy button wrapper, the containing block is wider
+              // than the code block, so span the code block explicitly.
+              const blockRect = codeBlock.getBoundingClientRect();
+              band.style.left = (blockRect.left - containerRect.left) / scale - container.clientLeft + container.scrollLeft + "px";
+              band.style.width = blockRect.width / scale + "px";
+            }
+          };
+          if (lineIds.length > 0) {
+            const el = window.document.getElementById(lineIds[0]);
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const parent = el.parentElement.parentElement;
+            // cook up a div (if necessary) and position it
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            placeBand(div, el, lastEl, parent.closest("div.sourceCode") || parent);
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            placeBand(gutterDiv, el, lastEl);
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+  <script type="application/javascript">
+  window.quartoScrollableRegionsLabels = {"code":"Scrollable code","output":"Scrollable output"};
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/vedicreader/fossick/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
