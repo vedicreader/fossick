@@ -18,20 +18,20 @@ from scrapling import Selector
 
 # %% ../nbs/01_cdp.ipynb #112aa2c19a44b86f
 def _debug_running(port, host='127.0.0.1'):
-    "True if a debug Chrome is already accepting connections on `port`"
+    "Return True when debug Chrome accepts connections on `port`."
     with socket.socket() as s:
         s.settimeout(0.3)
         return s.connect_ex((host, port)) == 0
 
 def debug_ready(port, host='127.0.0.1'):
-    "True once the DevTools endpoint on `port` serves `/json/version`, which an open TCP port alone does not mean."
+    "Return True when the DevTools endpoint on `port` serves `/json/version`."
     import httpx
     try: return bool(httpx.get(f'http://{host}:{port}/json/version', timeout=0.5).json().get('webSocketDebuggerUrl'))
     except Exception: return False
 _debug_ready = debug_ready
 
 def _chrome_flags(port, d, headless, extra_flags):
-    "Return the Chrome launch arguments. Adds `--no-sandbox` when the process runs as root, as in containers and CI."
+    "Return Chrome launch arguments and add `--no-sandbox` when the process runs as root."
     args = [chrome_bin(), f'--remote-debugging-port={port}', f'--user-data-dir={d}',
             '--no-first-run', '--no-default-browser-check']
     if headless: args.append('--headless=new')
@@ -39,37 +39,37 @@ def _chrome_flags(port, d, headless, extra_flags):
     return args + list(extra_flags or [])
 
 def _profile_dir(user_data_dir=None):
-    "The persistent CDP Chrome profile dir: `user_data_dir`, or fastcdp's default."
+    "Return the persistent CDP Chrome profile directory."
     return Path(user_data_dir).expanduser() if user_data_dir else Path.home()/'.cache'/'fastcdp'/'cdp-chrome'
 
 async def cdp_setup(port=9223, user_data_dir=None, headless=False, timeout=None, extra_flags=None):
-    "Start the debug Chrome on `port` with its own profile and wait until it accepts connections."
+    "Start debug Chrome on `port` and wait until it accepts connections."
     d = _profile_dir(user_data_dir)
     d.mkdir(parents=True, exist_ok=True)
     args = _chrome_flags(port, d, headless, extra_flags)
     subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     timeout = timeout or int(os.getenv('FOSSICK_CDP_TIMEOUT', 30))
     deadline = time.time() + timeout
-    while not debug_ready(port):  # wait for the HTTP endpoint, not just the open TCP port (races on slow starts)
+    while not debug_ready(port):  # Wait for the HTTP endpoint, not only the TCP port.
         if time.time() > deadline: raise TimeoutError(f'Chrome debug endpoint on :{port} not ready after {timeout}s')
         await asyncio.sleep(0.1)
     return d
 
 async def cdp_connect(port=9223, user_data_dir=None, headless=False, extra_flags=None):
-    "Connect to the debug Chrome on `port`, starting it first if it is not running."
+    "Connect to debug Chrome on `port`, starting it when it is not running."
     if not _debug_running(port): await cdp_setup(port, user_data_dir, headless, extra_flags=extra_flags)
     cdp = await CDP.remote(port)
     cdp.ws.protocol.max_message_size = 2**30
     return cdp
 
 def cdp_ws(port=9223, headless=True, user_data_dir=None, extra_flags=None) -> str:
-    "Return the websocket address of the debug Chrome on `port`, starting a headless one if needed, for scrapling's `cdp_url=`."
+    "Return the debug Chrome websocket address on `port`, starting headless Chrome when needed."
     import httpx
     if not _debug_running(port): syncy(cdp_setup(port, user_data_dir, headless, extra_flags=extra_flags))
     return httpx.get(f'http://127.0.0.1:{port}/json/version').json()['webSocketDebuggerUrl']
 
 def cdp_app(url, port=9223, user_data_dir=None, wait=15):
-    "Open `url` as an app window, with no tabs or address bar, in the debug Chrome."
+    "Open `url` in a debug Chrome app window without tabs or an address bar."
     import httpx
     reused, d = debug_ready(port), _profile_dir(user_data_dir)
     if not reused: d = syncy(cdp_setup(port, d, headless=False, timeout=wait))
@@ -91,7 +91,7 @@ class JSError(RuntimeError): "JavaScript raised an error while an expression was
 
 @patch
 async def eval(self:CDP, expr:str, sid=None):
-    "Evaluate the JavaScript `expr` in the page and return its value as Python data."
+    "Evaluate JavaScript `expr` in the page and return its value as Python data."
     r = await self.runtime.evaluate(sid=sid, expression=expr, awaitPromise=True, returnByValue=True)
     if 'exceptionDetails' in r:
         d = r['exceptionDetails']
@@ -225,14 +225,14 @@ async def type_text(page:Page, backendNodeId, text):
 
 @patch
 async def click_settle(page:Page, backendNodeId, timeout=8):
-    "Click an element and wait for the page to settle, without failing when the click does not navigate."
+    "Click an element and wait for the page to settle without requiring navigation."
     try:
         async with page.expect_navigation(timeout=timeout): await page.click(backendNodeId)
     except TimeoutError: pass
 
 @patch
 async def fill_form(page:Page, fields:dict, submit:str=None):
-    "Fill form fields by visible label or name, optionally click a submit button, and return a new snapshot."
+    "Fill form fields by label or name, optionally click a submit button, and return a snapshot."
     tree = await page.ax_tree()
     for label, value in fields.items():
         node = first(n for r in _EDITABLE for n in tree.find_all(role=r) if label.lower() in (n.name or '').lower())
@@ -345,7 +345,7 @@ SHOW = "document.querySelectorAll('.__capui').forEach(b=>b.style.visibility='vis
 # %% ../nbs/01_cdp.ipynb #c9bbb2ed6c63c346
 @patch
 async def collect(page:Page, save_dir=None, prefix=None, stop=None, tout=None, count=None, every_n=None):
-	"Take screenshots each time the person presses the injected capture button, or on a timer, and return them."
+	"Take screenshots from the capture button or on a timer and return them."
 	stop, sid = stop or asyncio.Event(), page.sid
 	prefix = prefix or await page.eval('document.title')
 	save_dir = Path(save_dir) if save_dir else None

@@ -23,7 +23,7 @@ from .quality import norm_url, curate as _curate, host, plan as _plan, interleav
 # %% ../nbs/02_search.ipynb #7cf01c5d
 _warned = set()
 def _warn(key:str, msg:str):
-    "Print `msg` to stderr once per process — a silently empty result set is worse than a noisy one."
+    "Print `msg` to stderr once per process. A warning is better than an empty result with no explanation."
     if key not in _warned:
         _warned.add(key)
         print(f'fossick: {msg}', file=sys.stderr)
@@ -36,7 +36,7 @@ def ddgs_env() -> dict:
 
 _ddgs = {}
 def get_ddgs(timeout:int=10):
-	"Return the shared ddgs client for this `timeout` and proxy and certificate settings, creating it on first use."
+	"Return the shared ddgs client for these timeout, proxy and certificate settings."
 	env = ddgs_env()
 	if (key := (timeout, *sorted(env.items()))) not in _ddgs:
 		try: from ddgs import DDGS
@@ -53,7 +53,7 @@ def backends(category:str='text') -> list:
     return sorted(ENGINES.get(category, {}))
 
 def _engine_hits(be:str, q:str, region='us-en', page=1, timeout=8, tries=2, **kw) -> list:
-    "One backend's results **in its own rank order**, tagged with `engine` and `rank`. `kw` reaches ddgs (`timelimit`, `safesearch`)."
+    "Return one backend's results in rank order with `engine` and `rank`. Pass `kw` to ddgs."
     from ddgs.engines import ENGINES
     cls = ENGINES['text'].get(be)
     if cls is None: return []
@@ -65,7 +65,7 @@ def _engine_hits(be:str, q:str, region='us-en', page=1, timeout=8, tries=2, **kw
     return []
 
 def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1, page=1, **kw) -> list:
-    "One rank-ordered list per backend, pulling `pages` result pages from each, starting at `page`. Every (backend, page) runs in parallel."
+    "Return one rank-ordered list per backend from `pages` result pages. Start at `page`. Run each backend and page in parallel."
     jobs = [(be, pg) for be in backends for pg in range(page, page+pages)]
     if not jobs: return []
     got = parallel(lambda j: (j, _engine_hits(j[0], q, region=region, page=j[1], timeout=timeout, **kw)),
@@ -77,25 +77,25 @@ def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1, page=1, 
         merged, seen = [], set()
         for pg in sorted(by_be.get(be, {})):
             for h in by_be[be][pg]:
-                if (key := norm_url(h.get('href') or h.get('url') or '')) in seen: continue  # page 2 repeats page 1
+                if (key := norm_url(h.get('href') or h.get('url') or '')) in seen: continue  # Later pages can repeat earlier pages.
                 seen.add(key)
-                merged.append(dict(h, rank=len(merged)+1))    # rank runs on across pages, so RRF sees one list
+                merged.append(dict(h, rank=len(merged)+1))    # Keep one rank sequence across pages.
         if merged: out.append(merged)
     return out
 
 
 # %% ../nbs/02_search.ipynb #694a35e3
-def rrf(lists:list,      # ranked result lists, one per backend
-        k:int=60,        # RRF damping constant
+def rrf(lists:list,      # Ranked result lists, one per backend.
+        k:int=60,        # RRF damping constant.
        ) -> list:
-    "Merge ranked lists with reciprocal rank fusion, scoring each URL by the sum of `1/(k+rank)` over the lists it appears in."
+    "Merge ranked lists with reciprocal rank fusion. Score each URL with the sum of `1/(k+rank)` across its lists."
     score, best, engines = {}, {}, {}
     for hits in lists:
         for i, h in enumerate(hits):
             if not (key := norm_url(h.get('href') or h.get('url') or '')): continue
             score[key] = score.get(key, 0.0) + 1/(k + h.get('rank', i+1))
             engines.setdefault(key, []).append(h.get('engine', ''))
-            cur = best.get(key)                                  # keep the longest snippet we were given
+            cur = best.get(key)                                  # Keep the longest available snippet.
             if cur is None or len(h.get('body') or '') > len(cur.get('body') or ''): best[key] = h
     out = sorted(score, key=lambda u: -score[u])
     return [dict(best[u], score=round(score[u], 6), engines=[e for e in engines[u] if e]) for u in out]
@@ -106,7 +106,7 @@ _word = re.compile(r'[a-z0-9]+')
 def _toks(s:str) -> list: return _word.findall((s or '').lower())
 
 def bm25(q:str, docs:list, k1:float=1.5, b:float=0.75) -> list:
-    "Return the BM25 score of each of `docs` for the query `q`, with word weights computed from `docs` themselves."
+    "Return the BM25 score for each document in `docs` and query `q`. Compute word weights from `docs`."
     qt = {t for t in _toks(q) if len(t) > 1}
     dts = [_toks(d) for d in docs]
     if not (qt and dts): return [0.0]*len(docs)
@@ -125,45 +125,45 @@ def bm25(q:str, docs:list, k1:float=1.5, b:float=0.75) -> list:
     return out
 
 def _hit_text(h:dict) -> str:
-    "Title + snippet + the url's own words — a slug like `/enabling-wal-mode` is real evidence."
+    "Return the title, snippet and words from the URL path."
     u = h.get('href') or h.get('url') or ''
     body = h.get('body') or h.get('content') or ''
     return ' '.join((h.get('title', ''), body, re.sub(r'[/\-_.]', ' ', urlsplit(u).path)))
 
 _ranker = None
 def flashrank_scores(q:str, texts:list, model:str=None, cache_dir:str=None) -> list|None:
-    "Return flashrank cross-encoder scores for `texts` against `q`, or None when flashrank is not installed."
+    "Return flashrank scores for `texts` against `q`, or None when flashrank is not installed."
     global _ranker
     try: from flashrank import Ranker, RerankRequest
     except ImportError: return None
     if _ranker is None:
         _ranker = Ranker(**({'model_name': model} if model else {}),
                          cache_dir=cache_dir or str(fossick_cache('flashrank')))
-    rank = getattr(_ranker, 'rerank', None) or _ranker.rank        # 0.2.x renamed rank -> rerank
+    rank = getattr(_ranker, 'rerank', None) or _ranker.rank        # Version 0.2.x renamed rank to rerank.
     out = rank(RerankRequest(query=q, passages=[dict(id=i, text=t) for i, t in enumerate(texts)]))
     s = [0.0]*len(texts)
     for d in out: s[int(d['id'])] = float(d['score'])
     return s
 
 def _unit(xs:list) -> list:
-    "Min-max to 0..1 so two scorers on different scales can be blended."
+    "Scale values to 0..1 so scorers with different scales can be combined."
     lo, hi = min(xs), max(xs)
     return [0.5]*len(xs) if hi - lo < 1e-9 else [(x-lo)/(hi-lo) for x in xs]
 
-def rerank(q:str,               # search query
-           hits:list,           # fused hits (from `rrf`) or any list of result dicts
-           n:int=None,          # keep the top n (None = all)
-           method:str='none',   # none | lexical | flashrank | auto
-           mix:float=0.4,       # weight on the retrieval score vs the reranker (1 = ignore the reranker)
+def rerank(q:str,               # Search query.
+           hits:list,           # Fused hits from `rrf`, or any result dictionaries.
+           n:int=None,          # Number of top results to keep. None keeps all.
+           method:str='none',   # none, lexical, flashrank or auto.
+           mix:float=0.4,       # Weight of the merged score. 1 ignores the reranker.
           ) -> list:
-    "Reorder hits by relevance to `q`, blending the reranker's score with the merged search score."
+    "Reorder hits by relevance to `q` and the merged search score."
     if not hits or method == 'none': return hits[:n] if n else hits
     texts, rs = [_hit_text(h) for h in hits], None
     if method in ('auto', 'flashrank'):
         try: rs = flashrank_scores(q, texts)
         except Exception:
             if method == 'flashrank': raise
-            rs = None                                      # 'auto' degrades to lexical, never to nothing
+            rs = None                                      # Use lexical scoring when auto mode cannot use flashrank.
     if rs is None:
         if method == 'flashrank': raise ImportError('flashrank is not installed: pip install flashrank')
         rs = bm25(q, texts)
@@ -174,7 +174,7 @@ def rerank(q:str,               # search query
     return hits[:n] if n else hits
 
 # %% ../nbs/02_search.ipynb #677a80fd
-#: Place words where the answer changes with country (law/price/availability).
+#: Add words that identify a country for law, price or availability queries.
 COUNTRY_WORDS = {
     'au': ('australia', 'australian', 'aussie', 'nsw', 'qld', 'sydney', 'melbourne', 'brisbane',
            'canberra', 'adelaide'),
@@ -201,13 +201,11 @@ COUNTRY_WORDS = {
     'ae': ('uae', 'u.a.e.', 'emirates', 'dubai', 'abu dhabi'),
 }
 
-#: What a query *written in that country* is usually written in. Only consulted when the query itself
-#: gives no language signal — a country never overrides the words actually in front of us.
+#: Store the usual language for a country. Use it only when the query gives no language signal.
 COUNTRY_LANG = {'at': 'de', 'br': 'pt', 'ch': 'de', 'de': 'de', 'es': 'es', 'fr': 'fr',
                 'it': 'it', 'jp': 'jp', 'mx': 'es', 'nl': 'nl'}
 
-#: Function words: the part of a language that survives any subject matter. Content words would just
-#: detect the topic.
+#: Store function words that identify a language. Content words identify the topic instead.
 LANG_WORDS = {
     'en': ('the', 'and', 'is', 'are', 'what', 'how', 'why', 'for', 'with', 'from', 'about', 'my',
            'you', 'your', 'need', 'want', 'best', 'should', 'does', 'can', 'i'),
@@ -225,12 +223,12 @@ LANG_WORDS = {
            'que', 'como', 'por'),
 }
 
-#: `timelimit` values every ddgs text engine understands.
+#: Store `timelimit` values supported by every ddgs text engine.
 TIMELIMITS = ('d', 'w', 'm', 'y')
 
 _pats = {}
 def _alt(name:str, table:dict):
-    "One compiled alternation per table, longest phrase first so `u.s.a.` wins over `u.s.`."
+    "Return one compiled alternation per table. Put the longest phrase first."
     if name not in _pats:
         pairs = sorted(((w, k) for k, ws in table.items() for w in ws), key=lambda t: -len(t[0]))
         _pats[name] = (re.compile('|'.join(f'(?<![a-z0-9])({re.escape(w)})(?![a-z0-9])'
@@ -238,13 +236,13 @@ def _alt(name:str, table:dict):
     return _pats[name]
 
 def infer_country(q:str) -> str:
-    "Return the country code of the one country named in `q`, or None when it names none or several."
+    "Return the country code when `q` names one country. Return None for zero or several countries."
     rx, keys = _alt('country', COUNTRY_WORDS)
     found = {keys[m.lastindex - 1] for m in rx.finditer(ifnone(q,'').lower())}
     return found.pop() if len(found) == 1 else None
 
 def infer_language(q:str) -> str:
-    "Return the language code that the function words in `q` point to, or None when it is unclear."
+    "Return the language code indicated by function words in `q`, or None when unclear."
     rx, keys = _alt('lang', LANG_WORDS)
     counts = {}
     for m in rx.finditer(ifnone(q,'').lower()): counts[keys[m.lastindex - 1]] = counts.get(keys[m.lastindex - 1], 0) + 1
@@ -252,22 +250,22 @@ def infer_language(q:str) -> str:
     winners = [k for k, n in counts.items() if n == top]
     return winners[0] if len(winners) == 1 else None
 
-def infer_region(q:str,             # the query, read for a place and a language
-                 dflt:str='us-en',  # used for whichever half the query does not settle
+def infer_region(q:str,             # Query used to find a place and language.
+                 dflt:str='us-en',  # Default for each region part the query does not settle.
                 ) -> str:
-    "Return a ddgs `country-language` region read from `q`, filling the parts it leaves open from `dflt`."
+    "Return a ddgs `country-language` region from `q`. Use `dflt` for missing parts."
     dc, _, dl = (dflt or 'us-en').partition('-')
     c, lang = infer_country(q), infer_language(q)
     return f'{c or dc}-{lang or (COUNTRY_LANG.get(c, "en") if c else dl or "en")}'
 
 def _region(q:str, region:str) -> str:
-    "Resolve `region='auto'` (or None) against the query; anything explicit passes straight through."
+    "Resolve `region='auto'` or None from the query. Return an explicit region unchanged."
     return infer_region(q) if region in (None, 'auto') else region
 
 
 # %% ../nbs/02_search.ipynb #780933b0
 def _fused(q, n, backends, region, timeout, k, method, pages, kw=()):
-    "Fan out, fuse, rerank. Raises when every backend failed, so `search(cache=)` does not keep a passing outage."
+    "Query backends, fuse results and rerank them. Raise when every backend fails."
     lists = _backend_lists(q, backends, region=region, timeout=timeout, pages=pages, **dict(kw))
     if not (out := rerank(q, rrf(lists, k=k), n=n, method=method)):
         raise ValueError('every backend returned nothing')
@@ -285,20 +283,20 @@ def _search_ddgs(q, category, kw, timeout=8):
         _warn(f'search/{category}', f'search({q!r}, {category!r}) failed: {type(e).__name__}: {e}')
         return []
 
-def search(q:str,                  # search query
-           category:str='text',    # text | images | news | videos | books
-           n:int=10,               # number of results to return
-           fuse:bool=True,         # fan out across backends and fuse with RRF (text only)
-           backend:str=None,       # restrict to a single ddgs backend, e.g. 'google'
-           method:str='none',      # rerank method: none | lexical | flashrank | auto
-           pages:int=1,            # result pages to pull from each backend (raises the candidate pool)
-           region:str='auto',      # ddgs region, or 'auto' to read the country off the query
-           timelimit:str=None,     # d | w | m | y — only results from the last day/week/month/year
+def search(q:str,                  # Search query.
+           category:str='text',    # text, images, news, videos or books.
+           n:int=10,               # Number of results to return.
+           fuse:bool=True,         # Fan out across backends and fuse with RRF for text.
+           backend:str=None,       # Restrict to one ddgs backend, such as 'google'.
+           method:str='none',      # Rerank method: none, lexical, flashrank or auto.
+           pages:int=1,            # Result pages to pull from each backend.
+           region:str='auto',      # ddgs region, or 'auto' to read the country from the query.
+           timelimit:str=None,     # d, w, m or y for the last day, week, month or year.
            timeout:int=8,
-           cache:float=0,          # keep a result that is not empty for this many seconds, and give it again for the same call (default: off)
-           **kw,                   # extra kwargs passed to ddgs (max_results, safesearch, page)
+           cache:float=0,          # Keep a non-empty result for this many seconds.
+           **kw,                   # Extra keyword arguments passed to ddgs.
           ) -> list:
-    "Search the web, merging text results from several engines with RRF and optionally reranking them."
+    "Search the web and merge text results from several engines with RRF."
     if not (q and q.strip()): return []
     if cache:
         a = (q, category, n, fuse, backend, method, pages, region, timelimit, timeout)
@@ -325,23 +323,23 @@ videos = bind(search, category='videos')
 books = bind(search, category='books')
 
 def extract(url, **kw):
-    "Download `url` with ddgs and return `{url, content}`, the content as markdown by default."
+    "Download `url` with ddgs and return `{url, content}` with markdown content by default."
     return get_ddgs().extract(url, **kw)
 
 # %% ../nbs/02_search.ipynb #61e5cac2
 def _parse_google(html:str, n:int) -> list:
-    "Parse organic results from a rendered Google SERP into dicts (title, url, content)."
+    "Parse organic results from a rendered Google results page."
     sel = Selector(html)
     out, seen = [], set()
     for h3 in sel.css('h3'):
         a = h3.parent
-        while a is not None and a.tag != 'a': a = a.parent          # nearest ancestor anchor
+        while a is not None and a.tag != 'a': a = a.parent          # Find the nearest ancestor anchor.
         if a is None: continue
         href = a.attrib.get('href', '')
         if not href.startswith('http') or 'google.' in href or href in seen: continue
         box = a
-        for _ in range(4): box = box.parent if box.parent is not None else box   # climb to result container
-        snip = first(box.css('div.VwiC3b'))                         # Google's snippet block
+        for _ in range(4): box = box.parent if box.parent is not None else box   # Move to the result container.
+        snip = first(box.css('div.VwiC3b'))                         # Read Google's snippet block.
         seen.add(href)
         out.append(dict(title=h3.get_all_text().strip(), href=href, rank=len(out)+1, engine='google',
                         content=snip.get_all_text().strip() if snip else '', score=float(n - len(out))))
@@ -349,9 +347,8 @@ def _parse_google(html:str, n:int) -> list:
     return out
 
 def _google(q:str, n:int, lang:str, gl:str=None, tbs:str=None) -> list:
-    "Stealth-browser Google fetch+parse, memoized. Raises on empty so throttled/failed calls aren't cached."
-    # `gl` biases ranking towards a country; `cr` would *exclude* everything else, which throws away
-    # the authoritative .com page about Australian rules along with the noise.
+    "Fetch and parse Google results in a stealth browser. Raise on empty results."
+    # `gl` biases ranking toward a country. `cr` excludes other countries.
     url = f'https://www.google.com/search?q={quote_plus(q)}&hl={lang}&num={n+2}'
     if gl: url += f'&gl={gl}'
     if tbs: url += f'&tbs={tbs}'
@@ -362,17 +359,17 @@ def _google(q:str, n:int, lang:str, gl:str=None, tbs:str=None) -> list:
 
 def _google_cached(q:str, n:int, lang:str, gl:str=None, tbs:str=None) -> list: return _google(q, n, lang, gl, tbs)
 
-def google(q:str,                # search query
-           n:int=10,             # number of results
-           lang:str=None,        # `hl`; defaults to the language half of `region`
-           region:str='auto',    # ddgs-style region, or 'auto' to read the country off the query
-           timelimit:str=None,   # d | w | m | y — Google's own `tbs=qdr:` filter
+def google(q:str,                # Search query.
+           n:int=10,             # Number of results.
+           lang:str=None,        # `hl`; defaults to the language in `region`.
+           region:str='auto',    # ddgs region, or 'auto' to read the country from the query.
+           timelimit:str=None,   # d, w, m or y for Google's `tbs=qdr:` filter.
           ) -> list:
-    "Search Google itself through the stealth browser and return results in the same shape as `search`."
+    "Search Google through the stealth browser and return results in the same shape as `search`."
     if not q or not q.strip(): return []
     gl, _, rlang = _region(q, region).partition('-')
     tbs = f'qdr:{timelimit}' if timelimit in TIMELIMITS else None
-    try: return _google_cached(q, n, lang or rlang or 'en', gl, tbs)   # memoized on the raising call
+    try: return _google_cached(q, n, lang or rlang or 'en', gl, tbs)   # Cache the call that raises on an empty result.
     except ValueError: return []
     except Exception as e:
         _warn('google', f'google() is falling back to nothing: {type(e).__name__}: {e}')
@@ -381,24 +378,23 @@ def google(q:str,                # search query
 # %% ../nbs/02_search.ipynb #0624580b
 _MIN_CHARS = 400
 
-#: `<meta>` names every common CMS emits for a publication date, lowercased.
+#: Store lowercase `<meta>` names used for publication dates.
 DATE_META = ('article:published_time', 'og:published_time', 'citation_publication_date',
              'datepublished', 'dc.date.issued', 'dcterms.date', 'sailthru.date',
              'parsely-pub-date', 'pubdate', 'publish-date', 'date')
 
-# Longest alternative first in both groups, and no digit may follow: `0?[1-9]` would
-# otherwise take the '1' of '11' and turn 2019-11-02 into 2019-01-01.
+# Put the longest alternative first. Do not allow a following digit.
 _ISO = re.compile(r'(?:19|20)\d{2}[-/](?:1[0-2]|0?[1-9])(?:[-/](?:3[01]|[12]\d|0?[1-9]))?(?!\d)')
 
 def _iso(s) -> str:
-    "The first `YYYY-MM-DD` in `s`, zero-padded; day 01 when only a month is given. None if there is none."
+    "Return the first date in `s` as `YYYY-MM-DD`, or None when absent."
     if not s: return None
     if not (m := _ISO.search(str(s))): return None
     p = re.split(r'[-/]', m.group(0))
     return f'{p[0]}-{p[1].zfill(2)}-{(p[2].zfill(2) if len(p) > 2 else "01")}'
 
 def _ld_nodes(html:str):
-    "Every schema.org object on the page, flattened — a `@graph` is one script tag holding a dozen."
+    "Return every schema.org object on the page as a flat list."
     out = []
     for m in re.finditer(r'<script[^>]+application/ld\+json[^>]*>(.*?)</script>', html, re.S | re.I):
         try: data = json.loads(m.group(1).strip())
@@ -413,8 +409,7 @@ def _ld_nodes(html:str):
 
 def page_date(page) -> str:
     "Return the publication date a page states, as `YYYY-MM-DD`, or None."
-    # Duck-typed like `core._blocked`, not via `core._html`: that one returns None for anything
-    # that isn't a scrapling Response, and a page here can be any object carrying markup.
+    # Accept any object with markup, not only a Scrapling response.
     html = page if isinstance(page, str) else (getattr(page, 'html', None) or getattr(page, 'html_content', '') or '')
     for nd in _ld_nodes(html):
         for k in ('datePublished', 'dateCreated', 'uploadDate', 'dateModified'):
@@ -431,23 +426,22 @@ def page_date(page) -> str:
     return None
 
 def _why(pg) -> str:
-    "Why a fetched page was unusable — surfaced in `research()['dropped']` instead of vanishing."
+    "Return why a fetched page was unusable for `research()['dropped']`."
     if pg is None: return 'fetch failed'
     if (st := getattr(pg, 'status', 0)) != 200: return f'http {st}'
     if getattr(pg, 'tier', '') == 'blocked' or _blocked(pg): return 'bot wall / challenge page'
     return 'no readable content'
 
 def usable(pg, min_chars:int=_MIN_CHARS) -> bool:
-    "Return True when a fetched page is a 200 response, not a bot wall, and has at least `min_chars` of readable markdown."
+    "Return True when a page has status 200, no bot wall and enough readable markdown."
     if pg is None or getattr(pg, 'status', 0) != 200 or getattr(pg, 'tier', '') == 'blocked' or _blocked(pg): return False
     if min_chars <= 0: return True
     try: return len(html2md(getattr(pg, 'html', None) or getattr(pg, 'html_content', '') or '').strip()) >= min_chars
     except Exception: return False
 
 def _split_blocks(md:str, max_len:int=1200) -> list:
-    # The length cap matters: an un-paragraphed wall of text is a single block, and a block bigger
-    # than the whole character budget can never be selected, so the page contributes nothing.
-    "Markdown -> blocks: split on blank lines, glue a heading to the text under it, cap the length."
+    # Split long blocks so a block can fit within the character budget.
+    "Split markdown into capped blocks and keep headings with their text."
     parts, out = [p.strip() for p in re.split(r'\n\s*\n', md) if p.strip()], []
     for p in parts:
         if out and out[-1].lstrip().startswith('#') and len(out[-1]) < max_len: out[-1] += '\n\n' + p
@@ -455,16 +449,16 @@ def _split_blocks(md:str, max_len:int=1200) -> list:
     res = []
     for p in out:
         while len(p) > max_len:
-            cut = (p.rfind('. ', 0, max_len) + 1) or max_len       # prefer a sentence boundary
+            cut = (p.rfind('. ', 0, max_len) + 1) or max_len       # Prefer a sentence boundary.
             res.append(p[:cut].strip()); p = p[cut:].strip()
         if p: res.append(p)
     return res
 
-def focus(md:str,            # page markdown
-          q:str,             # query to keep relevant to
-          chars:int=4000,    # character budget
-          reserve:float=0.3, # fraction of the budget spent on the top of the page before ranking
-          lead:float=0.6,    # extra score for blocks near the top (intros define things)
+def focus(md:str,            # Page markdown.
+          q:str,             # Query used to select relevant text.
+          chars:int=4000,    # Character budget.
+          reserve:float=0.3, # Fraction of the budget reserved for the page start.
+          lead:float=0.6,    # Extra score for blocks near the top.
          ) -> str:
     "Keep the parts of `md` that best answer `q`, in their original order, within `chars` characters."
     if not md or len(md) <= chars: return md
@@ -477,7 +471,7 @@ def focus(md:str,            # page markdown
             out.append(bl[i]); prev = i
         return '\n\n'.join(out)
     keep = set()
-    for i in range(len(bl)):                       # a reference page often answers in its opening
+    for i in range(len(bl)):                       # Keep the opening blocks.
         if len(render(keep | {i})) > chars*reserve: break
         keep.add(i)
     sc = bm25(q, bl)
@@ -487,33 +481,33 @@ def focus(md:str,            # page markdown
         if i in keep or len(render(keep | {i})) > chars: continue
         keep.add(i)
         if len(render(keep)) >= chars*0.95: break
-    if not keep: return max(zip(sc, bl), key=lambda t: t[0])[1][:chars]   # nothing fit: best block, clipped
+    if not keep: return max(zip(sc, bl), key=lambda t: t[0])[1][:chars]   # Return the best block when no block fits.
     return render(keep)
 
 def _fetch_batch(urls:list, concurrency:int=8, **kw) -> list:
-    "fetch() each url in parallel, returning None where it raised — one dead host mustn't kill the batch."
+    "Fetch URLs in parallel and return None for raised errors."
     def _one(u):
         try: return fetch(u, **kw)
         except Exception: return None
     return list(parallel(_one, urls, n_workers=min(concurrency, len(urls) or 1), threadpool=True))
 
-def research(q:str,                 # search query
-             n:int=5,               # number of readable sources to gather
-             engine:str='search',   # 'search' (fused metasearch) or 'google' (stealth browser ranking)
-             sel:str=None,          # CSS selector to narrow each page before markdown
-             chars:int=4000,        # max markdown chars kept per page
-             auto:bool=True,        # auto-escalate fetching (plain->heavy->stealthy->session) per page
-             region:str='auto',     # ddgs region, or 'auto' to read the country off the query
-             timelimit:str=None,    # d | w | m | y — only sources from the last day/week/month/year
-             curated:bool=True,     # drop mirror domains and rank by source authority before reading
-             intent:str='auto',     # authority class ('policy', 'docs', …), 'auto' to read it off `q`
-             facets:int=4,          # searches to fan out over when `q` holds more than one question; 1 disables
-             rewrite=None,          # optional `f(q) -> list[str]` (a model) in place of the heuristic planner
-             focused:bool=True,     # keep query-relevant passages instead of the first `chars` chars
-             candidates:int=None,   # how many hits to draw on when backfilling (default 3n)
-             pages:int=1,           # result pages per backend (raise it when `candidates` exceeds one page)
+def research(q:str,                 # Search query.
+             n:int=5,               # Number of readable sources to gather.
+             engine:str='search',   # 'search' for fused search or 'google' for browser ranking.
+             sel:str=None,          # CSS selector used before markdown conversion.
+             chars:int=4000,        # Maximum markdown characters kept per page.
+             auto:bool=True,        # Increase fetch methods for each page when needed.
+             region:str='auto',     # ddgs region, or 'auto' to read the country from the query.
+             timelimit:str=None,    # d, w, m or y for the last day, week, month or year.
+             curated:bool=True,     # Drop mirror domains and rank sources before reading.
+             intent:str='auto',     # Authority class, or 'auto' to read it from `q`.
+             facets:int=4,          # Searches to use when `q` has several questions.
+             rewrite=None,          # Optional model function to replace the planner.
+             focused:bool=True,     # Keep relevant passages instead of the first `chars` characters.
+             candidates:int=None,   # Number of hits to use when backfilling.
+             pages:int=1,           # Result pages per backend.
              concurrency:int=8,
-             **kw,                  # extra kwargs passed to fetch()
+             **kw,                  # Extra keyword arguments passed to fetch().
             ) -> dict:
     "Search for `q`, read the top `n` readable results, and return them with a markdown digest that cites each one."
     if not (q and q.strip()):
@@ -526,12 +520,10 @@ def research(q:str,                 # search query
         got = (google(sq, n=cand, region=region, timelimit=timelimit) if engine == 'google'
                else search(sq, n=cand, region=region, timelimit=timelimit, pages=pages))
         return [dict(h, queries=[sq]) for h in got]
-    # Interleaved, not fused. RRF across facets would promote whatever ranks for all three, which is
-    # the generalist guide rather than the source that actually owns one of them.
+    # Interleave facets instead of fusing them. Fusion would favour general sources.
     hits = _hits(qs[0]) if len(qs) < 2 else interleave(
         list(parallel(_hits, qs, n_workers=len(qs), threadpool=True)))
-    # Curate before fetching, not after: `research` reads the candidates in order, so the ordering
-    # *is* the choice of which pages get read. Filtering afterwards would have paid for them first.
+    # Curate before fetching. Candidate order selects which pages `research` reads.
     hits, curation = _curate(q, hits, intent=intent) if curated else (hits, None)
     todo, seen = [], set()
     for h in hits:
@@ -553,11 +545,9 @@ def research(q:str,                 # search query
                                 date=page_date(pg), queries=h.get('queries') or [q],
                                 md=focus(md, q, chars) if focused else md[:chars]))
     sources = sources[:n]
-    # The date goes in the digest, not just the dict: the model reading this is the one that has to
-    # notice the price it is quoting was published in 2018.
+    # Include the date in the digest so readers can see the publication date.
     def _head(s):
-        # Which facet a source answers is worth as much as its date: it tells the reader this page is
-        # the cost answer, not the regulation one.
+        # Include the question facet that the source answers.
         bits = [f'## {s["title"]}', s['href']]
         if s['date']: bits.append(f'published: {s["date"]}')
         if (qq := [x for x in s['queries'] if x != q]): bits.append(f'answers: {"; ".join(qq)}')

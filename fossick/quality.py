@@ -1,4 +1,4 @@
-"""Choosing which search results are worth reading, and what to search for
+"""Choose useful search results and searches
 
 Docs: https://vedicreader.github.io/fossick/quality.html.md"""
 
@@ -18,8 +18,9 @@ from fastcore.all import ifnone
 
 
 # %% ../nbs/06_quality.ipynb #0170b1df
-#: Two-label registry endings such as `co.uk`. A site under one has a three-label registrable domain (`bbc.co.uk`).
-#: The list covers some countries only and is not the full public suffix list.
+#: Registry endings with two labels, such as `co.uk`.
+#: A site under one has a three-label registrable domain, such as `bbc.co.uk`.
+#: The list covers some countries. It is not the full public suffix list.
 MULTI_LABEL_SUFFIXES = frozenset({
     'ac.at', 'co.at', 'gv.at', 'or.at', 'priv.at',
     'com.au', 'net.au', 'org.au', 'edu.au', 'gov.au', 'asn.au', 'id.au',
@@ -163,8 +164,9 @@ def classify(q:str) -> str:
 
 
 # %% ../nbs/06_quality.ipynb #c3423b47
-#: Sites that republish other people's answers. `drop_spam` removes them and does not demote them.
-#: They rank on every engine at once, and reciprocal rank fusion (RRF) of several engines reads that as consensus.
+#: Sites that republish other people's answers.
+#: `drop_spam` removes these sites instead of demoting them.
+#: They rank on every engine. Reciprocal rank fusion (RRF) can treat this as consensus.
 SPAM_MIRRORS = (
     # Stack Overflow / Q&A scrapers
     'newbedev.com', 'stackoom.com', 'stackovergo.com', 'syntaxfix.com', 'copyprogramming.com',
@@ -200,7 +202,7 @@ def drop_spam(hits:list, blocked=(), allowed=()) -> tuple:
 
 
 # %% ../nbs/06_quality.ipynb #8d2f9b2d
-#: Conversational lead-ins stripped before splitting.
+#: Conversational lead-ins that planning removes before splitting.
 LEAD_INS = (r"i (?:want|need|would like|wanna|have) to", r"i(?:'m| am) (?:looking|trying) to",
             r"can you (?:tell me|help me|find|look up)", r"(?:please )?(?:tell me|help me|find me)",
             r"how (?:do|can|would) i", r"what (?:do|should) i", r"i (?:want|need)",
@@ -212,7 +214,7 @@ FILLER = (r"what (?:is|are|was|were) (?:the |a |an )?", r"things to consider(?: 
           r"tell me", r"please", r"kindly", r"etc\.?", r"and so on", r"as well", r"also",
           r"in general", r"or not")
 
-#: Words that carry no topic. The list is short so that it does not remove domain terms.
+#: Words that carry no topic. The short list keeps domain terms.
 _STOP = frozenset("""a an the and or but of in on at to for from by with without into over under
     my your our their its his her this that these those it they i we you is are was were be been
     am do does did have has had can could should would will shall may might must not no if then

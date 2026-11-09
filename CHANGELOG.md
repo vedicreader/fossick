@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.1.28
+
+
 ## 0.1.27
 
 - `replay_xhr` sends through the checked plain HTTP path. It refuses a private or local address, pins the checked address and checks each redirect. New `allow_private` turns the check off.
@@ -10,9 +13,12 @@
 - The plain HTTP path follows at most `MAX_REDIRECTS` (10) redirects. Before, it followed 30.
 - The MCP server does not show the tools that use the logged-in Chrome. Set `FOSSICK_MCP_SESSION=1` to show them. Without it, `fetch_page(session=True)`, `fetch_page(auto=True)` and `find_hidden_apis(session=True)` raise `PermissionError`, and `replay_capture` sends no cookies.
 - MCP `shop_fill(confirm=True)` raises `PermissionError` unless `FOSSICK_MCP_PAY=1` is set.
-- MCP tools read local files and write files only in `FOSSICK_MCP_ROOT`, which is the working folder by default. A path outside it raises `PermissionError`.
-- MCP `fetch_page`, `fetch_pages` and plain `crawl_site` stop at `MAX_BYTES` (20 MB) per page.
+- MCP tools read local files and write files only in `FOSSICK_MCP_ROOT`, which is the working folder by default. A path outside it raises `PermissionError`. `read_github_repo` skips a file that a symlink takes outside the folder.
+- MCP `url_to_notebook` takes only an http or https URL. Use `pdf_to_notebook` for a local PDF.
+- MCP `fetch_page`, `fetch_pages`, plain `crawl_site`, `read_github_file`, `replay_capture`, `paginate_api`, `url_to_notebook` and `pdf_to_notebook` stop at `MAX_BYTES` (20 MB) per response.
+- The browser checks look at the URL that fossick gives Chrome. They do not stop a redirect or a request that the page makes after it loads.
 - `fossick-mcp --http` binds only to a loopback address. It needs `Authorization: Bearer <token>` on each request. The token comes from `FOSSICK_MCP_TOKEN`, or the server makes one and prints it to stderr. DNS rebinding protection is on. fossick needs `mcp>=1.10.0`.
+- The docs, docstrings, comments, README and `SKILL.md` use ASD-STE100 Simplified Technical English. This includes the MCP tool descriptions that an agent reads. No behaviour changes.
 
 ## 0.1.26
 

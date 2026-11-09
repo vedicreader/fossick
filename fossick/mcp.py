@@ -19,7 +19,7 @@ Docs: https://vedicreader.github.io/fossick/mcp.html.md"""
 
 import hmac, json, os, secrets, sys
 from pathlib import Path
-from .core import (_gh_remotes, _nb_stem, fetch as _fetch, to_md, crawl as _crawl, fetch_all as _fetch_all,
+from .core import (_clone_dir, _gh_remotes, _nb_stem, fetch as _fetch, to_md, crawl as _crawl, fetch_all as _fetch_all,
                           read_arxiv as _read_arxiv, lookup_doi as _lookup_doi,
                           read_yt as _read_yt, search_yt as _search_yt, download_yt as _download_yt,
                           read_gh_repo as _read_gh_repo, read_gh_file as _read_gh_file,
@@ -87,7 +87,7 @@ def _jsonable(o):
 @mcp.tool()
 def web_search(query:str, n:int=10, category:str='text', region:str='auto', timelimit:str|None=None,
                google:bool=False) -> list:
-    "Search the web via ddgs metasearch (no API key). category: text|images|news|videos|books. region is a ddgs 'country-lang' code, or 'auto' to read the country off the query — pass it whenever the answer depends on where you are (law, price, availability). timelimit d|w|m|y keeps only recent results. google=True gives real Google ranking via a stealth browser (slow — only when you need Google)."
+    "Search the web with DDGS metasearch. No API key is needed. category accepts text|images|news|videos|books. region accepts a DDGS country-lang code or auto. Set region when the answer depends on location, law, price, or availability. timelimit d|w|m|y keeps recent results. google=True uses Google ranking through a stealth browser."
     res = (_google(query, n=n, region=region, timelimit=timelimit) if google
            else _search(query, category=category, n=n, region=region, timelimit=timelimit))
     return _jsonable(res)
@@ -95,7 +95,7 @@ def web_search(query:str, n:int=10, category:str='text', region:str='auto', time
 @mcp.tool()
 def research(query:str, n:int=5, google:bool=False, region:str='auto', timelimit:str|None=None,
              sel:str|None=None, chars:int=4000) -> dict:
-    "Question -> cited answer: search, read the top n *readable* results in parallel (auto-escalating past bot walls, skipping bot-wall/empty pages and backfilling), return {query, sources, digest, dropped, region}. digest is cited markdown, one ## section per source, trimmed to the passages that answer the query and headed with the date the source says it was published. region is a ddgs 'country-lang' code, or 'auto' to read the country off the query — set it whenever the answer depends on jurisdiction or market. timelimit d|w|m|y keeps only recent sources."
+    "Search and read the top n readable results in parallel. Escalate past bot walls, skip bot-wall or empty pages, and backfill skipped results. Return {query, sources, digest, dropped, region}. digest is cited markdown with one ## section per source. Each section contains passages that answer the query and the source publication date. region accepts a DDGS country-lang code or auto. Set it when the answer depends on jurisdiction or market. timelimit d|w|m|y keeps recent sources."
     return _jsonable(_research(query, n=n, engine='google' if google else 'search', region=region,
                                timelimit=timelimit, sel=sel, chars=chars))
 
@@ -108,7 +108,7 @@ def lookup_doi(title:str) -> str:
 @mcp.tool()
 def fetch_page(url:str, sel:str|None=None, heavy:bool=False, stealthy:bool=False, session:bool=False,
                auto:bool=False, max_chars:int=8000) -> dict:
-    "Fetch a URL as markdown. Always pass sel (CSS selector) to skip nav/ads. heavy=JS rendering; stealthy=anti-bot fetcher; session=reuse the logged-in debug Chrome's cookies; auto=escalate plain->heavy->stealthy->session (winning tier in result)."
+    "Fetch a URL as markdown. Pass sel, a CSS selector, to skip navigation and ads. heavy enables JavaScript rendering. stealthy uses an anti-bot fetcher. session reuses logged-in debug Chrome cookies. auto escalates plain->heavy->stealthy->session. The result gives the selected tier."
     _need_session(session or auto)
     p = _fetch(url, sel=sel, heavy=heavy, stealthy=stealthy, session=session, auto=auto, max_bytes=MAX_BYTES)
     return {'url': p['url'], 'status': p['status'], 'tier': getattr(p, 'tier', None),
@@ -116,14 +116,14 @@ def fetch_page(url:str, sel:str|None=None, heavy:bool=False, stealthy:bool=False
 
 @mcp.tool()
 def fetch_pages(urls:list, sel:str|None=None, max_chars:int=4000) -> list:
-    "Fetch many known URLs in parallel; returns [{url, status, markdown}] in the same order as urls."
+    "Fetch known URLs in parallel. Return [{url, status, markdown}] in the same order as urls."
     return [{'url': p['url'], 'status': p['status'], 'markdown': _trunc(to_md(p, sel=sel), max_chars)}
             for p in _fetch_all(urls, sel=sel, max_bytes=MAX_BYTES)]
 
 @mcp.tool()
 def crawl_site(url:str, sel:str|None=None, follow_sel:str='a[href]', max_pages:int=10,
                same_domain:bool=True, heavy:bool=False, stealthy:bool=False, max_chars:int=4000) -> list:
-    "Crawl from a start URL following follow_sel links (docs sites, blogs, multi-page content); returns [{url, status, markdown}] per page."
+    "Crawl from a start URL by following follow_sel links. Return [{url, status, markdown}] for each page."
     pages = _crawl(url, sel=sel, follow_sel=follow_sel, max_pages=max_pages,
                    same_domain=same_domain, heavy=heavy, stealthy=stealthy,
                    **({} if heavy or stealthy else dict(max_bytes=MAX_BYTES)))
@@ -133,7 +133,7 @@ def crawl_site(url:str, sel:str|None=None, follow_sel:str='a[href]', max_pages:i
 # %% ../nbs/04_mcp.ipynb #1146a675
 @mcp.tool()
 def read_arxiv(url:str, include_source:bool=False, chars:int=8000, save_dir:str='.') -> dict:
-    "arXiv paper (ID or any arXiv URL) -> {title, authors, published, summary, pdf_path}. include_source adds the full text (30-100k chars total — raise chars only when needed)."
+    "Read an arXiv paper from an ID or arXiv URL. Return {title, authors, published, summary, pdf_path}. include_source adds the full text. The full text is 30-100k characters. Increase chars only when needed."
     p = _read_arxiv(url, source=include_source, save_dir=_inroot(save_dir))
     out = {k: _jsonable(v) for k, v in p.items() if k not in ('source','doc')}
     if include_source: out['source'] = _trunc(p.get('source'), chars)
@@ -141,43 +141,47 @@ def read_arxiv(url:str, include_source:bool=False, chars:int=8000, save_dir:str=
 
 @mcp.tool()
 def read_youtube(url:str, chars:int=20000) -> dict:
-    "YouTube video (URL or ID) -> metadata + full English transcript (in 'source')."
+    "Read a YouTube video from a URL or ID. Return metadata and the full English transcript in 'source'."
     v = {k: _jsonable(val) for k, val in dict(_read_yt(url)).items()}
     v['source'] = _trunc(v.get('source'), chars)
     return v
 
 @mcp.tool()
 def search_youtube(query:str, n:int=10) -> list:
-    "Search YouTube; returns [{title, url, channel, duration, description}]."
+    "Search YouTube. Return [{title, url, channel, duration, description}]."
     return _jsonable(_search_yt(query, n=n))
 
 @mcp.tool()
 def download_youtube(url:str, format:str='audio', save_dir:str='.') -> str:
-    "Download YouTube audio or video. format: audio|video|any yt-dlp format string. Returns the saved file path."
+    "Download YouTube audio or video. format accepts audio, video, or any yt-dlp format string. Return the saved file path."
     return str(_download_yt(url, format=format, save_dir=_inroot(save_dir)))
 
 @mcp.tool()
 def read_github_file(url:str, max_chars:int=20000) -> str:
     "Read a single file from a GitHub blob URL."
-    return _trunc(_read_gh_file(url), max_chars)
+    return _trunc(_read_gh_file(url, max_bytes=MAX_BYTES), max_chars)
 
 @mcp.tool()
 def read_github_repo(url:str, globs:list|None=None, limit:int|None=None, max_chars_per_file:int=8000) -> dict:
-    "Read files from a GitHub repo (URL, SSH address, or local path) filtered by glob patterns (default: README*, pyproject.toml, *.py). Returns {path: content}."
-    if not _gh_remotes(url): url = _inroot(url)
-    files = _read_gh_repo(url, globs=tuple(globs) if globs else None, limit=limit)
-    return {str(k): _trunc(v, max_chars_per_file) for k, v in files.items()}
+    "Read files from a GitHub repository URL, SSH address, or local path. Filter files by glob patterns. The default is README*, pyproject.toml, and *.py. Return {path: content}."
+    rs = _gh_remotes(url)
+    base = (_clone_dir(rs[0]) if rs else Path(url := _inroot(url))).resolve()
+    files = _read_gh_repo(url, globs=tuple(globs) if globs else None, limit=limit, as_list=True)
+    # a symlink in the tree can point anywhere, so each file must resolve inside the folder
+    return {str(p): _trunc(p.read_text(errors='ignore'), max_chars_per_file)
+            for p in files if p.resolve().is_relative_to(base)}
 
 @mcp.tool()
 def url_to_notebook(url:str, path:str|None=None) -> str:
-    "Convert a URL (HTML page, PDF, or arXiv paper) to a Jupyter notebook; returns the notebook path."
-    return str(_url2nb(url, nb_path=_inroot(path or f'{_nb_stem(url)}.ipynb')))
+    "Convert an HTML page, PDF, or arXiv paper URL to a Jupyter notebook. Return the notebook path."
+    if not url.startswith(('http://', 'https://')): raise ValueError(f'{url} is not an http or https URL: use pdf_to_notebook for a local PDF')
+    return str(_url2nb(url, nb_path=_inroot(path or f'{_nb_stem(url)}.ipynb'), max_bytes=MAX_BYTES))
 
 @mcp.tool()
 def pdf_to_notebook(src:str, path:str|None=None, ocr:str='auto') -> str:
-    "Convert a PDF (URL or local path) to a notebook — one markdown cell per page. ocr: auto|on|off."
+    "Convert a PDF URL or local path to a notebook with one markdown cell per page. ocr accepts auto|on|off."
     if not src.startswith('http'): src = _inroot(src)
-    return str(_pdf2nb(src, nb_path=_inroot(path or f'{_nb_stem(src)}.ipynb'), ocr_selection=ocr))
+    return str(_pdf2nb(src, nb_path=_inroot(path or f'{_nb_stem(src)}.ipynb'), ocr_selection=ocr, max_bytes=MAX_BYTES))
 
 # %% ../nbs/04_mcp.ipynb #effa9ab5
 _captures = []   # replayable request captures from the last find_hidden_apis/capture_network call
@@ -201,7 +205,7 @@ def replay_capture(capture_id:int, data:str|None=None, max_chars:int=8000) -> di
     "Re-issue a captured request (by capture_id from find_hidden_apis/capture_network) as a fast plain-HTTP call, reusing the browser's cookies. data overrides the request body."
     if not (0 <= capture_id < len(_captures)) or _captures[capture_id] is None:
         raise ValueError(f'no capture #{capture_id} — run find_hidden_apis or capture_network first')
-    r = _replay_xhr(_captures[capture_id], data=data, use_cookies=SESSION)
+    r = _replay_xhr(_captures[capture_id], data=data, use_cookies=SESSION, max_bytes=MAX_BYTES)
     try: body = r.json()
     except Exception: body = getattr(r, 'text', None) or getattr(r, 'body', None) or str(r)
     if not isinstance(body, str): body = json.dumps(_jsonable(body), default=str)
@@ -213,7 +217,8 @@ def paginate_api(url:str, payload:dict|None=None, page_field:str='pageNumber', s
                  max_items:int=500) -> list:
     "Paginate a JSON API, collecting all items across pages. payload is the base body (POST) or params (GET); page_field is the key incremented per page; results_field is auto-detected if None."
     items = _paginate_api(url, payload=payload, page_field=page_field, size_field=size_field,
-                          results_field=results_field, method=method, max_pages=max_pages, page_start=page_start)
+                          results_field=results_field, method=method, max_pages=max_pages, page_start=page_start,
+                          max_bytes=MAX_BYTES)
     return _jsonable(items[:max_items])
 
 # %% ../nbs/04_mcp.ipynb #55612593
@@ -226,7 +231,7 @@ def _page():
 
 @_live
 def browse(url:str, port:int=9223, full:bool=False) -> str:
-    "Open a URL in the persistent debug Chrome and return a compact accessibility snapshot ('[#id] role \"name\"' per element). Later page_* tools act on this page. full=True includes non-interactive elements."
+    "Open a URL in persistent debug Chrome and return a compact accessibility snapshot. Each element uses '[#id] role \"name\"'. Later page_* tools act on this page. full=True includes non-interactive elements."
     from fossick.cdp import cdp_connect, syncy
     async def _run():
         cdp = await cdp_connect(port=port)
@@ -242,25 +247,25 @@ def page_snapshot(full:bool=False) -> str:
 
 @_live
 def page_fill_form(fields:dict, submit:str|None=None) -> str:
-    "Fill form fields on the current page by visible label ({label: value}; handles <select>), optionally click a submit button by label. Returns the post-action snapshot."
+    "Fill current-page form fields by visible label with {label: value}. This handles <select>. Optionally click a submit button by label. Return the post-action snapshot."
     from fossick.cdp import syncy
     return syncy(_page().fill_form(fields, submit=submit))
 
 @_live
 def page_act(steps:list) -> dict:
-    "Run a declarative flow on the current page. Steps (JSON arrays): ['goto',url] ['fill',label,value] ['click',label] ['select',label,option] ['wait',text] ['wait_sel',css] ['read',css] or ['read',css,label]. Returns {label: markdown} for every read step."
+    "Run a declarative flow on the current page. Use these JSON array steps: ['goto',url], ['fill',label,value], ['click',label], ['select',label,option], ['wait',text], ['wait_sel',css], ['read',css], or ['read',css,label]. Return {label: markdown} for every read step."
     from fossick.cdp import syncy
     return _jsonable(syncy(_page().act([tuple(s) for s in steps])))
 
 @_live
 def page_markdown(sel:str|None=None, max_chars:int=8000) -> str:
-    "Read the current page's live post-JS DOM as markdown, optionally narrowed by a CSS selector."
+    "Read the current page's live post-JavaScript DOM as markdown. Optionally narrow it with a CSS selector."
     from fossick.cdp import syncy
     return _trunc(syncy(_page().md(sel=sel)), max_chars)
 
 @_live
 def capture_network(url:str, pattern:str='.*', tail:int=3, port:int=9223, preview_chars:int=300) -> list:
-    "Navigate the debug Chrome to a URL and capture outgoing network requests matching pattern (listens tail seconds after load). Each request gets a capture_id for replay_capture."
+    "Navigate debug Chrome to a URL and capture outgoing requests matching pattern. Listen for tail seconds after load. Give each request a capture_id for replay_capture."
     from fossick.cdp import cdp_connect, syncy
     async def _run():
         cdp = await cdp_connect(port=port)
@@ -286,14 +291,14 @@ def _sh(url=None, port=9223):
 
 @_live
 def shop_open(url:str, port:int=9223) -> dict:
-    "Open a store in the persistent debug Chrome, or move the open session to `url` (a category or product page — passing the site root keeps it where it is), and report the platform, anything blocking (cookie banner, login, store/postcode), the current cart and what is on the page. Later shop_* tools act on this session."
+    "Open a store in persistent debug Chrome or move the session to `url`. Use a category or product page. The site root keeps the current page. Report the platform, blockers such as cookie banners or login, the current cart, and page products. Later shop_* tools act on this session."
     s = _sh(url, port=port)
     return {'url': s.url, 'platform': s.platform(), 'blockers': s.blockers(),
             'cart': _jsonable(s.cart()), 'products': _jsonable(s.products(25))}
 
 @_live
 def shop_search(query:str, limit:int=25) -> list:
-    "Search the open store and return numbered products [{i, title, price, url, add, qty, oos}]. Pass i (or the title) to shop_add."
+    "Search the open store and return numbered products [{i, title, price, url, add, qty, oos}]. Pass i or the title to shop_add."
     return _jsonable(_sh().search(query, limit=limit))
 
 @_live
@@ -303,18 +308,18 @@ def shop_products(limit:int=25) -> list:
 
 @_live
 def shop_add(item:str, qty:int=1, variant:str|None=None) -> dict:
-    "Add a product to the cart by index or title, then verify it landed. ok=True only when the cart actually changed; ok=None means the site exposes no signal to check; need='variant' means pick one of the returned variants."
+    "Add a product to the cart by index or title, then verify the change. ok=True means the cart changed. ok=None means the site provides no signal to check. need='variant' means choose one returned variant."
     return _jsonable(_sh().add(item, qty=qty, variant=variant))
 
 @_live
 def shop_cart(page:bool=False) -> dict:
-    "The current cart. page=True opens the cart page first, which is what gives you the line indexes shop_line needs."
+    "Return the current cart. page=True opens the cart page first. This provides the line indexes for shop_line."
     s = _sh()
     return _jsonable(s.cart_page() if page else s.cart(lines=True))
 
 @_live
 def shop_line(line:int, qty:int) -> dict:
-    "Set a cart line (index from shop_cart(page=True)) to `qty`, or to 0 to remove it. Verified."
+    "Set a cart line from shop_cart(page=True) to `qty`, or set it to 0 to remove it. Verify the change."
     s = _sh()
     return _jsonable(s.remove(line) if qty == 0 else s.set_qty(line, qty))
 
@@ -326,18 +331,18 @@ def shop_dismiss() -> dict:
 
 @_live
 def shop_fields() -> list:
-    "Every visible form field on the current page with its label, autocomplete token, current value and select options — the ground truth for filling a checkout, so no field name has to be guessed."
+    "Return every visible form field with its label, autocomplete token, current value, and select options. Use this output to fill a checkout without guessing field names."
     return _jsonable(_sh().fields())
 
 @_live
 def shop_fill(profile:dict, submit:str|None=None, confirm:bool=False) -> dict:
-    "Fill a checkout form from a profile dict (first_name, last_name, email, phone, address1, address2, city, state, postcode, country, company, notes, card_*), matching fields by autocomplete token first, then re-read the form to confirm what stuck. A numeric key sets that shop_fields index directly, for options a profile has no name for (size, colour, delivery window). submit= clicks that button; a payment button also needs confirm=True."
+    "Fill a checkout form from a profile dict with first_name, last_name, email, phone, address1, address2, city, state, postcode, country, company, notes, and card_* fields. Match fields by autocomplete token first. Re-read the form to confirm the values. A numeric key sets the shop_fields index directly for options without a profile name, such as size, colour, or delivery window. submit= clicks that button. A payment button also needs confirm=True."
     if confirm and not _on('FOSSICK_MCP_PAY'): raise PermissionError('a payment needs a person: set FOSSICK_MCP_PAY=1')
     return _jsonable(_sh().fill(profile, submit=submit, confirm=confirm))
 
 # %% ../nbs/04_mcp.ipynb #2adadd9f
 def _bearer(app, token:str):
-    "`app` behind a check for `Authorization: Bearer <token>` on each HTTP request."
+    "Put `app` behind an `Authorization: Bearer <token>` check for each HTTP request."
     want = f'Bearer {token}'.encode()
     async def guard(scope, receive, send):
         if scope['type'] == 'http' and not hmac.compare_digest(dict(scope['headers']).get(b'authorization', b''), want):
@@ -347,7 +352,7 @@ def _bearer(app, token:str):
     return guard
 
 def _serve_http():
-    "Serve Streamable HTTP on loopback only, with the token in FOSSICK_MCP_TOKEN or a new one printed to stderr."
+    "Serve Streamable HTTP on loopback only. Use the token in FOSSICK_MCP_TOKEN, or create one and print it to stderr."
     import uvicorn
     if (h := mcp.settings.host) not in _LOOPBACK: raise SystemExit(f'fossick-mcp --http binds to loopback only, not {h}')
     if not (tok := os.environ.get('FOSSICK_MCP_TOKEN')):
@@ -356,5 +361,5 @@ def _serve_http():
     uvicorn.run(_bearer(mcp.streamable_http_app(), tok), host=h, port=mcp.settings.port)
 
 def main():
-    "Run the MCP server over standard input and output, or over Streamable HTTP with `--http`."
+    "Run the MCP server over standard input and output, or use Streamable HTTP with `--http`."
     _serve_http() if '--http' in sys.argv[1:] else mcp.run(transport='stdio')

@@ -29,7 +29,7 @@ from functools import cache
 
 # %% ../nbs/00_core.ipynb #b7683b88563710b3
 def fossick_cache(path=None):
-    "Return the path `path` inside fossick's cache folder (`.fossick` in the user cache directory), creating its parent folders."
+    "Return `path` inside fossick's cache folder and create its parent folders."
     p = xdg_cache_home()/'.fossick'
     if path: p /= path
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -38,7 +38,7 @@ def fossick_cache(path=None):
 # %% ../nbs/00_core.ipynb #ba561b54822b02d0
 _loop = None
 def _bridge():
-    "The one background event loop the package drives async work on, started on first use."
+    "Return the background event loop, creating it on first use."
     global _loop
     if _loop is None:
         _loop = asyncio.new_event_loop()
@@ -46,7 +46,7 @@ def _bridge():
     return _loop
 
 def syncy(coro, tout=60):
-    "Run the coroutine `coro` from ordinary synchronous code and return its result; on timeout, cancel it and raise `TimeoutError`."
+    "Run coroutine `coro` from synchronous code and return its result."
     fut = asyncio.run_coroutine_threadsafe(coro, _bridge())
     try: return fut.result(timeout=tout)
     except TimeoutError:
@@ -56,7 +56,7 @@ def syncy(coro, tout=60):
 
 @patch
 def mk_bytes(self:Path, data, mode=511, uid=-1, gid=-1):
-	"Write the bytes `data` to this path, creating any missing parent folders first."
+	"Write `data` to this path and create missing parent folders."
 	self.parent.mkdir(exist_ok=True, parents=True, mode=mode)
 	self.write_bytes(data)
 	if uid!=-1 or gid!=-1: os.chown(self, uid, gid)
@@ -65,19 +65,19 @@ def mk_bytes(self:Path, data, mode=511, uid=-1, gid=-1):
 def _wrap_md(text, tag): return f'\n<{tag}>\n{text}\n</{tag}>\n' if text else ''
 
 def _html(res_or_html):
-    'Extract HTML string from a Page dict or return input if already a string'
+    'Extract HTML from a response or return a string unchanged.'
     if isinstance(res_or_html, str): return res_or_html
     elif isinstance(res_or_html, Response):
 	    return res_or_html.html if getattr(res_or_html,'html', None) is not None else res_or_html.html_content
     return None
 
-#: Tags whose contents are code or markup, never prose
+#: Tags that contain code or markup, not prose.
 _DROP_TAGS = ('script','style','noscript','template')
-#: Adjacent inline tags run their words together ('trace IDs'+'tool call logs'), so they get a space
+#: Add a space between adjacent inline tags unless punctuation follows.
 _INLINE_TAGS = {'span','a','b','i','em','strong','code','small','label','td','th'}
 
 def _clean_html(s:str) -> str:
-    'Drop script/style/noscript/template and comments from `s`, and space out adjacent inline tags'
+    'Remove script, style, noscript and template tags and comments from `s`.'
     try: doc = lxml.html.fromstring(s)
     except Exception: return s
     for el in doc.xpath('|'.join(f'//{t}' for t in _DROP_TAGS)+'|//comment()'): el.drop_tree()
@@ -88,23 +88,23 @@ def _clean_html(s:str) -> str:
     return lxml.html.tostring(doc, encoding='unicode')
 
 def html_title(s:str) -> str:
-    "Return the text of the document's `<title>`, or of its first `<h1>` when it has no title, or an empty string."
+    "Return the document title, its first `<h1>`, or an empty string."
     for tag in ('title','h1'):
         m = re.search(rf'<{tag}[^>]*>(.*?)</{tag}>', s, re.S|re.I)
         if m: return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', m.group(1))).strip()
     return ''
 
-#: Classes that name a code block's language: `language-py`, `lang-py`, `highlight-python3`, `highlight-source-python`
+#: Classes that name a code block language.
 _LANG_RE = re.compile(r'(?:language|lang|highlight(?:-source)?)-([\w+#-]+)$')
 
 def _code_lang(el):
-    "The language a `<pre>` or its `<code>` or the wrapper around it names in a class, or None."
+    "Return the language named by a code block class, or `None`."
     for e in (el, el.find('code'), el.parent, getattr(el.parent, 'parent', None)):
         for k in (e.get('class') or []) if e is not None and hasattr(e, 'get') else []:
             if (m := _LANG_RE.match(k)) and m[1] not in ('notranslate',): return re.sub(r'\d+$', '', m[1])
 
 def _captions_out(s:str) -> str:
-    "`s` with each table `<caption>` as a paragraph before its table; markdownify finds a table's first row by its first sibling."
+    "Move each table caption in `s` before its table."
     if '<caption' not in s: return s
     doc = lxml.html.fromstring(s)
     for cap in doc.xpath('//table/caption'):
@@ -113,19 +113,19 @@ def _captions_out(s:str) -> str:
     return lxml.html.tostring(doc, encoding='unicode')
 
 def _md_conv(strip):
-    "A markdownify converter that drops the `<title>` text; the page title is `html_title`'s job."
+    "Return a markdownify converter that omits `<title>` text."
     from markdownify import MarkdownConverter
     class _Md(MarkdownConverter):
         def convert_title(self, el, text, *a, **kw): return ''
     return _Md
 
-#: With `readability=None`, an article shorter than this many characters gives way to the whole document
+#: With `readability=None`, use the whole document when the article is shorter than this value.
 WHOLE_BELOW = 200
 
 def html2md(s:str, ignore_links=True, ignore_images=False,
-            readability:bool=True,  # Extract the article (right for fetched pages); False converts the whole document; None the whole document when the article is shorter than `WHOLE_BELOW`
+            readability:bool=True,  # True extracts the article; False converts the whole document; None uses the whole document below `WHOLE_BELOW`
            ):
-    "Convert the HTML string `s` to markdown, keeping only the main article unless `readability=False`."
+    "Convert HTML string `s` to markdown."
     from readability import Document
     if not s.strip(): return ''
     if readability is None:
@@ -136,15 +136,15 @@ def html2md(s:str, ignore_links=True, ignore_images=False,
     md = _md_conv(strip)(heading_style='ATX', bullets='*', table_infer_header=True, escape_underscores=False, escape_asterisks=False, strip=strip, code_language_callback=_code_lang).convert(h)
     return re.sub(r'\n{3,}', '\n\n', '\n'.join(l.rstrip() for l in md.splitlines())).strip() + '\n'
 
-def to_md(res_or_html,  # Page dict (from fetch/crawl) or raw HTML string
-          sel:str=None,  # CSS selector to extract before conversion; returns '' if no match
-          multi:bool=False,  # Return all selector matches joined
-          wrap_tag:str=None,  # Wrap each multi-result in <wrap_tag>...</wrap_tag>; only used when multi=True
+def to_md(res_or_html,  # Response from fetch or raw HTML string
+          sel:str=None,  # CSS selector to extract before conversion; returns '' when no match
+          multi:bool=False,  # Return all selector matches joined together
+          wrap_tag:str=None,  # Wrap each multi-result in <wrap_tag>...</wrap_tag> when multi=True
           ignore_links:bool=True,
           ignore_images:bool=False,
-          readability:bool=True,  # False keeps the whole document, for local files and saved pages; None keeps it when the article is too short
+          readability:bool=True,  # False keeps the whole document; None keeps it when the article is too short
           ) -> str:
-    "Convert a response from `fetch` or an HTML string to markdown, optionally keeping only the parts that match a CSS selector."
+    "Convert a fetched response or HTML string to markdown."
     html = _html(res_or_html)
     _md = lambda h: html2md(str(h), ignore_links, ignore_images, readability)
     if sel:
@@ -155,30 +155,29 @@ def to_md(res_or_html,  # Page dict (from fetch/crawl) or raw HTML string
     return _md(html)
 
 # %% ../nbs/00_core.ipynb #d7fe1f81
-#: Hostnames that name an internal service whatever they resolve to. Checked before DNS, since a
-#: cloud metadata endpoint is worth refusing even where it does not resolve.
+#: Hostnames for internal services. Check these names before DNS.
 BLOCKED_HOSTS = frozenset({'localhost', 'metadata', 'instance-data',
                            'metadata.google.internal', 'metadata.internal'})
 
 class BlockedURL(ValueError):
-    "The error raised when a URL points at a private, local or cloud metadata address."
+    "The error raised for a private, local or cloud metadata address."
 
 def _env_allows_private() -> bool:
     return (os.environ.get('FOSSICK_ALLOW_PRIVATE') or '').strip().strip('\'"').lower() in (
         '1', 'true', 'yes', 'on')
 
 def _private_ok(allow_private) -> bool:
-    "Does this call skip the private address check?"
+    "Return whether this call skips the private address check."
     return bool(allow_private or (allow_private is None and _env_allows_private()))
 
 def _bad_ip(addr:str) -> bool:
-    "Is `addr` an address no outbound fetch should reach?"
+    "Return whether an outbound fetch must not reach `addr`."
     try: ip = ipaddress.ip_address(addr)
     except ValueError: return False
     return (not ip.is_global) or ip.is_multicast
 
 def _check_addrs(url:str, allow_private:bool=None) -> list:
-    "Run the checks of `check_url` and return the addresses the host resolves to, or [] when the check is skipped or the host is an IP address."
+    "Check `url` and return the host addresses."
     if _private_ok(allow_private): return []
     u = urlparse(url if '//' in (url or '') else f'//{url or ""}')
     if u.scheme and u.scheme.lower() not in ('http', 'https', ''):
@@ -200,17 +199,17 @@ def _check_addrs(url:str, allow_private:bool=None) -> list:
     except ValueError: return addrs
 
 def check_url(url:str,                   # the URL about to be fetched
-              allow_private:bool=None,   # True skips the check; None skips it only when FOSSICK_ALLOW_PRIVATE is 1, true, yes or on
+              allow_private:bool=None,   # True skips the check. None skips it only when FOSSICK_ALLOW_PRIVATE is enabled.
              ) -> str:
-    "Return `url` unchanged when it is safe to fetch, or raise `BlockedURL` when it is not http or https or its host is private or reserved."
+    "Return `url` when it is safe to fetch, or raise `BlockedURL`."
     _check_addrs(url, allow_private)
     return url
 
-#: Name endings that a local network uses, never the public internet
+#: Name endings used by local networks.
 _LOCAL_ENDS = ('.localhost', '.local', '.lan', '.internal', '.home.arpa')
 
 def _ip(host:str):
-    "`host` as an IP address, also in a short form that the system takes, such as `127.1`; None for a name."
+    "Return `host` as an IP address, including short forms such as `127.1`."
     try: return ipaddress.ip_address(host.strip('[]'))
     except ValueError: pass
     try: return ipaddress.ip_address(socket.inet_aton(host))
@@ -218,38 +217,37 @@ def _ip(host:str):
 
 def local_host(host:str  # a host name or an IP address, with no scheme or port
               ) -> bool:
-    "True when `host` is this computer or the local network, with no DNS look-up: `localhost`, a local name ending, a name with no dot, or an address that is not global."
+    "Return whether `host` is local without a DNS lookup."
     h = str(host or '').strip().rstrip('.').lower()
     if h == 'localhost' or h.endswith(_LOCAL_ENDS) or ('.' not in h and ':' not in h): return True
     return (ip := _ip(h)) is not None and _bad_ip(str(ip))
 
 def _host(url:str) -> str:
-    "The lower-case host name of `url`, also when it has no scheme, or '' when it has none."
+    "Return the lower-case host name in `url`, or an empty string."
     try: return (urlparse(url if '//' in url else f'//{url}').hostname or '').rstrip('.')
     except ValueError: return ''
 
 def _on_host(url:str, *domains) -> bool:
-    "Is the host of `url` one of `domains`, or a subdomain of one?"
+    "Return whether `url` uses one of `domains` or its subdomain."
     h = _host(url)
     return any(h == d or h.endswith(f'.{d}') for d in domains)
 
 # %% ../nbs/00_core.ipynb #9f5a399cf870a5d1
 @cache
 def _fetcher():
-    """scrapling's plain-HTTP Fetcher, imported on first request. It pulls curl_cffi and
-    playwright's generated bindings — 0.21s of import for something only http_page and
-    replay_xhr touch."""
+    """Return the plain HTTP `Fetcher` of scrapling, imported on the first request.
+
+    The import loads curl_cffi and the bindings of playwright. It takes 0.21 s."""
     from scrapling.fetchers import Fetcher
     return Fetcher
 
 @cache
 def _browser_fetchers():
-    """scrapling's browser fetchers, imported on demand.
+    """Return the browser fetchers of scrapling, imported on first use, or raise `BrowserUnavailable`.
 
-    Importing them can fail outright — scrapling generates a browser fingerprint at import time and
-    browserforge raises when it has no header set for the running platform. That surfaces as a bare
-    `ValueError` from a `from ... import ...` line, which every caller here used to treat as "no
-    results". Re-raise it as something that names the actual problem."""
+    scrapling makes a browser fingerprint when it is imported. browserforge raises a bare
+    `ValueError` when it has no header set for the platform. This function raises
+    `BrowserUnavailable` instead, with a message that names the problem."""
     try:
         from scrapling.fetchers import StealthyFetcher, DynamicFetcher
         return StealthyFetcher, DynamicFetcher
@@ -271,7 +269,7 @@ def _curl_opts(max_bytes=None, curl_options=None) -> dict:
     return ({CurlOpt.MAXFILESIZE_LARGE: int(max_bytes)} if max_bytes else {}) | dict(curl_options or {})
 
 def _http_client(opts:dict, own:bool=False):
-    "Return scrapling's `Fetcher` and None, or, when `opts` or `own` is set, a client of the same kind and the curl session it owns, which sends `opts` with each request."
+    "Return the scrapling `Fetcher` and None. When `opts` or `own` is set, return a new client and its curl session, which sends `opts` with each request."
     if not (opts or own): return _fetcher(), None
     from scrapling.engines.static import FetcherClient
     from curl_cffi.requests import Session
@@ -302,7 +300,7 @@ def _system_ca(path=None, max_age:int=86400):
     return str(p)
 
 def _verify(verify=True, ca_bundle=None):
-    "What to give curl as `verify`: `ca_bundle` or a `verify` path, else for `verify=True` the first CA bundle file named in `_CA_ENV`, then `_system_ca`, else `verify` unchanged."
+    "Return the `verify` value for curl. This is `ca_bundle` or a `verify` path. For `verify=True`, it is the first file in `_CA_ENV`, then `_system_ca`. Otherwise it is `verify`."
     if ca_bundle: return str(Path(ca_bundle).expanduser())
     if isinstance(verify, (str, Path)): return str(Path(verify).expanduser())
     if verify is not True: return verify
@@ -408,7 +406,7 @@ http_post = bind(get_page, method='POST', timeout=30)
 # %% ../nbs/00_core.ipynb #4c84bd2931cbee8e
 _warned = set()
 def _warn_once(key, msg):
-    "Print `msg` to stderr the first time `key` fails — silent degradation is how bad data gets in."
+    "Print `msg` to stderr the first time `key` fails."
     if key not in _warned:
         _warned.add(key)
         print(f'fossick: {msg}', file=sys.stderr)
@@ -419,7 +417,7 @@ _BLOCK_MARKERS = ('cf-chl', 'just a moment', 'attention required', 'checking you
                   "making sure you're not a bot", 'id="anubis')     # Anubis proof-of-work wall
 
 def _blocked(page) -> bool:
-    "Heuristic: did this response hit a bot wall / challenge page (so we should escalate)?"
+    "Return whether this response is a bot wall or challenge page."
     if page is None: return True
     st = getattr(page, 'status', 200)
     if st in (401, 403, 429, 503, 530): return True
@@ -429,7 +427,7 @@ def _blocked(page) -> bool:
     return st == 200 and len(html.strip()) < 200
 
 def _finish(page, sel=None, capture_xhr=False) -> Response:
-    "Attach `.html` (raw or `sel`-extracted) and `.xhr` to a scrapling Response"
+    "Attach `.html` and `.xhr` to a scrapling response."
     html = page.html_content
     if sel: html = str(el.get()) if (el:=page.css(sel).first) else ''
     xhr = []
@@ -446,11 +444,11 @@ def _finish(page, sel=None, capture_xhr=False) -> Response:
 _AUTO_TIERS = (dict(), dict(heavy=True), dict(stealthy=True), dict(stealthy=True, session=True))
 
 def _fetch_auto(url, sel=None, tiers=_AUTO_TIERS, **kw) -> Response:
-    """Escalate plain -> heavy -> stealthy -> stealthy+debug-Chrome until a non-blocked response; sets `.tier`.
+    """Try plain, heavy, stealthy, then stealthy with the debug Chrome, until a response is not blocked. Set `.tier`.
 
-    Every tier's failure is recorded on `.errs`. When the browser tiers can't even load, escalation
-    silently degrades to "plain HTTP only" and the caller gets the bot wall back as if it were the
-    page — so say it once, loudly, rather than returning a challenge page that looks like content."""
+    Each failed tier goes in `.errs`. When no tier gives a good response, `.tier` is `'blocked'`.
+    When the browser fetchers cannot load, only plain HTTP runs. Then fossick prints one
+    warning to stderr, so the caller does not take a bot wall for the page."""
     page, errs = None, []
     for opts in tiers:
         tier = '+'.join(k for k, v in opts.items() if v) or 'plain'
@@ -472,19 +470,19 @@ def _fetch_auto(url, sel=None, tiers=_AUTO_TIERS, **kw) -> Response:
     return page
 
 def _fetch_once(url, sel, method, payload, heavy, stealthy, capture_xhr, session, auto, **kw) -> Response:
-    "One download for `fetch`, with no memory."
+    "Perform one download for `fetch` without caching."
     if auto: return _fetch_auto(url, sel=sel, method=method, payload=payload, capture_xhr=capture_xhr, **kw)
     heavy = heavy or capture_xhr
     if capture_xhr: kw.setdefault('capture_xhr', '.*')
     page = get_page(url, method=method, payload=payload, heavy=heavy, stealthy=stealthy, session=session, **kw)
     return _finish(page, sel, capture_xhr)
 
-#: The most responses, and the most hosts that refused, that `fetch` keeps; the oldest goes first
+#: Maximum cached responses and refused hosts. Remove the oldest first.
 MEM_MOST = 256
 _mem, _mem_lock = dict(pages={}, blocks={}, hosts={}, hits={}), threading.Lock()   # `hits` holds the results of `search(cache=)`
 
 def _kept(box:str, key, secs:float):
-    "The value under `key` in the memory `box` while it is younger than `secs` seconds, now the newest; else None."
+    "Return a recent value under `key` in memory box `box`, or `None`."
     with _mem_lock:
         b = _mem[box]
         if (v := b.pop(key, None)) and time.time() - v[0] < secs:
@@ -492,7 +490,7 @@ def _kept(box:str, key, secs:float):
             return v[1]
 
 def _keep(box:str, key, value):
-    "Keep `value` under `key` in the memory `box`, with the time. The oldest goes when `box` has more than `MEM_MOST`. Return `value`."
+    "Cache `value` under `key` in memory box `box`."
     with _mem_lock:
         b = _mem[box]
         b.pop(key, None)
@@ -501,20 +499,20 @@ def _keep(box:str, key, value):
     return value
 
 def _host_lock(h:str) -> threading.Lock:
-    "The lock that `fetch(per_host=True)` holds while it asks host `h` for a page."
+    "Return the lock for host `h`."
     with _mem_lock: return _mem['hosts'].setdefault(h, threading.Lock())
 
 def forget():
-    "Clear what `fetch` and `search` remember: the kept responses and searches, the hosts that refused, and the lock of each host."
+    "Clear the cached responses, searches, refused hosts and host locks."
     with _mem_lock:
         for b in _mem.values(): b.clear()
 
 def fetch(url:str,                # URL to fetch
-          sel:str=None,           # CSS selector to extract (None = full page)
+          sel:str=None,           # CSS selector to extract; `None` uses the full page
           method:str='GET',       # HTTP method; 'POST' sends payload as JSON body
           payload:dict=None,      # POST body (JSON) or GET query params
-          heavy:bool=False,       # Full JS rendering via headless browser
-          stealthy:bool=False,    # Anti-bot stealth fetcher (Cloudflare etc.)
+          heavy:bool=False,       # Render JavaScript with a headless browser
+          stealthy:bool=False,    # Use the stealth fetcher for bot walls
           capture_xhr:bool=False, # Capture XHR calls made by the page (only works with heavy or stealthy)
           session:bool=False,     # Route through the persistent debug Chrome (reuses its logged-in cookies); True or a port int
           auto:bool=False,        # Try plain, heavy, stealthy, then the logged-in debug Chrome with its cookies for the site; keep False for untrusted URLs
@@ -526,7 +524,7 @@ def fetch(url:str,                # URL to fetch
           remember_blocks:tuple=(), # Statuses such as (401, 403, 429): for `cache` seconds after one, a call to that host raises `BlockedURL` with no request
           **kw,                   # Extra kwargs passed to scrapling (e.g. verify, headers, timeout)
          ) -> Response:
-    "Download `url` and return the response with `.html` set to the page, or the part matching `sel`, and `.xhr` set to any recorded background requests. `auto=True` can end in the logged-in debug Chrome, so pass `auto=False` for untrusted URLs."
+    "Download `url` and return its HTML and recorded background requests."
     kw |= dict(allow_private=allow_private, max_bytes=max_bytes, max_recv_speed=max_recv_speed)
     args = (url, sel, method, payload, heavy, stealthy, capture_xhr, session, auto)
     if not (cache or per_host or remember_blocks): return _fetch_once(*args, **kw)
@@ -543,7 +541,7 @@ def fetch(url:str,                # URL to fetch
 
 @contextmanager
 def browser_session(stealthy:bool=False, headless:bool=True, allow_private:bool=None, **init_kw):
-    "Keep one browser open for a `with` block and yield a `fetch(url, sel=None)` function that reuses it."
+    "Keep one browser open for a `with` block and yield a reusable fetch function."
     from scrapling.fetchers import AsyncDynamicSession, AsyncStealthySession
     init_kw.pop('verify', None)
     Sess = AsyncStealthySession if stealthy else AsyncDynamicSession
@@ -617,13 +615,13 @@ from pdf_oxide import PdfDocument
 
 # %% ../nbs/00_core.ipynb #80f691ca933d706
 def is_pdf(b) -> bool:
-    "True when the bytes `b` hold the `%PDF-` signature in their first 1024 bytes."
+    "Return whether `b` contains `%PDF-` in its first 1024 bytes."
     return isinstance(b, bytes) and b'%PDF-' in b[:1024]
 
 _is_pdf = is_pdf
 
 def _pmc_pow_pdf(url, page:bytes, **kw):
-    "Solve NCBI PMC's small proof-of-work challenge and download the PDF again with the answer, through `get_page`'s plain HTTP path and its checks."
+    "Solve the NCBI PMC proof-of-work challenge and download the PDF again."
     text = page.decode(errors='replace')
     challenge = re.search(r'const POW_CHALLENGE = \"([^\"]+)', text)
     difficulty = re.search(r'const POW_DIFFICULTY = \"(\d+)', text)
@@ -638,12 +636,12 @@ def _pmc_pow_pdf(url, page:bytes, **kw):
                                    cookies=ck | {cookie.group(1): f'{challenge},{nonce}'})))
     return r.body if r.status == 200 and is_pdf(r.body) else None
 
-def get_pdf(url_or_path:str, # URL or local path to PDF
-            save_path=None, # optional path to save the PDF (directory or full path)
-            max_bytes:int=None, # raise `TooLarge` when the download is larger than this many bytes (default: no limit)
-            **scrapling_kw # extra kwargs passed to `get_page` (e.g. verify, headers, timeout, allow_private)
+def get_pdf(url_or_path:str, # URL or local PDF path
+            save_path=None, # Optional PDF output path
+            max_bytes:int=None, # Raise `TooLarge` when the download exceeds this size
+            **scrapling_kw # Extra arguments for `get_page`
             ) -> PdfDocument|None:
-    "Download a PDF from a URL, or read one from disk, and return it as a `PdfDocument`, or None when the bytes are not a PDF."
+    "Download or read a PDF and return a `PdfDocument`, or `None`."
     pth = Path(url_or_path) if not url_or_path.startswith('http') else None
     if pth: src = pth.read_bytes() if pth.exists() else None
     else:
@@ -659,7 +657,7 @@ def get_pdf(url_or_path:str, # URL or local path to PDF
 
 # %% ../nbs/00_core.ipynb #jsoncache
 class JsonStore:
-    "A key-value store in one SQLite file. Values are JSON, so an edited file cannot run code as a pickle can."
+    "Store JSON values in one SQLite file."
     def __init__(self, path):
         self.path = Path(path)
         self._q('create table if not exists kv (k text primary key, v text not null)')
@@ -681,18 +679,18 @@ class JsonStore:
         return v
 
 def _json_index(name):
-    "The `JsonStore` named `name` in fossick's cache folder."
+    "Return the `JsonStore` named `name` in fossick's cache folder."
     return JsonStore(fossick_cache(name))
 
 
 # %% ../nbs/00_core.ipynb #da946b97ed964105
 @cache
 def _arxiv_index():
-    "Disk cache for arXiv metadata, opened on first use rather than at import."
+    "Return the disk cache for arXiv metadata."
     return _json_index('arxiv_cache.sqlite')
 
 def _fetch_arxiv_meta(arxiv_id:str, **kw):
-    "Fetch and parse arxiv metadata for a given ID; result is cached to disk"
+    "Fetch and parse metadata for an arXiv id."
     r = http_get(f'https://export.arxiv.org/api/query?id_list={arxiv_id}', **kw)
     if r.status != 200: raise Exception(f"Failed to fetch arxiv data: {r.status}")
     ns = {'a': 'http://www.w3.org/2005/Atom'}
@@ -714,25 +712,25 @@ def _arxiv_full(s:str) -> str|None:
     if m := _ARXIV_ID.fullmatch(s): return m[0]
     return m[1] if (m := _ARXIV_LINK.fullmatch(s)) else None
 
-def arxiv_id(s:str  # an arXiv id, an `arxiv:` id, or an abs, pdf, html or export link
+def arxiv_id(s:str  # arXiv id, `arxiv:` id, or abs, PDF, HTML or export link
              ) -> str|None:
-    "The bare arXiv id in an id, an `arxiv:` id, or an abs, pdf, html or export link. None for any other text."
+    "Return the bare arXiv id, or `None` for other text."
     return re.sub(r'v\d+$', '', v) if (v := _arxiv_full(s)) else None
 
 def _arxiv_key(url:str) -> tuple:
-    "Split an arXiv URL/ID into its bare id and version suffix, e.g. '1706.03762', 'v7'."
+    "Split an arXiv URL or id into its bare id and version."
     aid = _arxiv_full(url) or url.rsplit('/', 1)[-1]
     ver = re.search(r'v(\d+)$', aid)
     return re.sub(r'v\d+$', '', aid), (f'v{ver.group(1)}' if ver else '')
 
-def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
-               save_pdf:bool=True, # if True, saves the downloaded PDF to disk
-               save_dir:str='.', # directory in which to save the PDF
-               source:bool=False, # if True, also extract the paper's full text into `source`
-               force:bool=False, # if True, forces re-download even if cached
-               **kw # http_get kwargs (e.g. verify=False to skip SSL verification, headers=... etc.)
+def read_arxiv(url:str, # arXiv PDF URL, abstract URL or id
+               save_pdf:bool=True, # Save the downloaded PDF when `True`
+               save_dir:str='.', # Directory for the PDF
+               source:bool=False, # Extract the full paper text when `True`
+               force:bool=False, # Fetch again when `True`
+               **kw # Arguments for `http_get`
                )-> dict:
-    "Return an arXiv paper's metadata and PDF path, and optionally its full text, caching the metadata on disk."
+    "Return arXiv metadata and the PDF path, with optional full text."
     aid, ver_sfx = _arxiv_key(url)
     key, idx = f'{aid}{ver_sfx}', _arxiv_index()
     fn = key.replace('/', '_')   # an old id such as hep-th/9901001 names one file, not a folder
@@ -754,27 +752,27 @@ def read_arxiv(url:str, # arxiv PDF URL, or arxiv abstract URL, or arxiv ID
     return dict(res, doc=doc)
 
 # %% ../nbs/00_core.ipynb #f7ltx001
-ARXIV_HTML = 'https://arxiv.org/html/{aid}'   # the LaTeXML page of a paper
-_ARXIV_FIGS, _LTX_SHORT = 30, 200   # the most figure links; a page with less text than this is a stub
+ARXIV_HTML = 'https://arxiv.org/html/{aid}'   # LaTeXML page for a paper
+_ARXIV_FIGS, _LTX_SHORT = 30, 200   # Maximum figure links; shorter pages are stubs
 _IMG_SUFFIXES = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
 _UNSAFE = _DROP_TAGS + ('iframe', 'object', 'embed', 'form', 'button', 'svg', 'nav', 'link', 'meta')
 
 def _has(c): return f'contains(concat(" ", normalize-space(@class), " "), " {c} ")'
 
 def _tex(m) -> str:
-    "The TeX of the MathML element `m`: its `alttext`, else its TeX annotation, with no TeX comments, on one line, and with each `$` that is not escaped written `\\$`."
+    "Return the TeX from MathML element `m`."
     t = m.get('alttext') or next((a.text or '' for a in m.iter('{*}annotation', 'annotation') if a.get('encoding') == 'application/x-tex'), '')
     return re.sub(r'(?<!\\)\$', r'\\$', ' '.join(re.sub(r'(?<!\\)%[^\n]*', '', t).split()))
 
 def _swap(e, s:str):
-    "Put the text `s` in the place of the element `e`."
+    "Replace element `e` with text `s`."
     p, prev, s = e.getparent(), e.getprevious(), s + (e.tail or '')
     if prev is not None: prev.tail = (prev.tail or '') + s
     else: p.text = (p.text or '') + s
     p.remove(e)
 
 def _ltx(s:str):
-    "The `ltx_document` element of the arXiv page `s`, with no scripts, styles or menus and each formula as a token, and `{token: TeX}`. `(None, {})` for another page."
+    "Return the LaTeXML document and its formula tokens, or `(None, {})`."
     root = first(lxml.html.fromstring(s).xpath(f'//*[{_has("ltx_document")}]'))
     if root is None: return None, {}
     for e in root.xpath('|'.join(f'.//{t}' for t in _UNSAFE) + f'|.//comment()|.//*[{_has("ltx_TOC")}]'): e.drop_tree()
@@ -791,11 +789,11 @@ def _ltx(s:str):
     return root, toks
 
 def _untok(s:str, toks:dict) -> str:
-    "`s` with each `$` written `\\$`, then each token as its TeX."
+    "Replace formula tokens in `s` with their TeX."
     return re.sub(r'ZXMATH\d{5}XZ', lambda m: toks.get(m[0], ''), s.replace('$', r'\$'))
 
 def _ltx_md(root, toks:dict) -> str:
-    "The markdown of the `_ltx` element `root`, with its formulas as TeX."
+    "Return markdown for `_ltx` element `root` with TeX formulas."
     return _untok(html2md(lxml.html.tostring(root, encoding='unicode'), ignore_images=False, readability=False), toks).strip()
 
 def arxiv_md(html:str  # an arXiv HTML page, as LaTeXML makes it
@@ -805,14 +803,14 @@ def arxiv_md(html:str  # an arXiv HTML page, as LaTeXML makes it
     return '' if root is None else _ltx_md(root, toks)
 
 def _plain_path(p:str) -> str:
-    "The path `p` with its percent codes decoded, again until none is left, as a server can do."
+    "Decode percent codes in path `p` until none remain."
     for _ in range(5):
         if (q := unquote(p)) == p: break
         p = q
     return p
 
 def _figures(root, base:str, aid:str) -> list:
-    "The image links under `root`, from the page `base`, in the HTML folder of paper `aid`, with no `..`: at most `_ARXIV_FIGS`, each one time."
+    "Return safe image links under `root`, up to `_ARXIV_FIGS`."
     at, out = re.compile(rf'https://arxiv\.org/html/{re.escape(aid)}(?:v\d+)?/'), []
     for src in root.xpath('.//img/@src'):
         u = urljoin(base, src.strip())
@@ -820,10 +818,10 @@ def _figures(root, base:str, aid:str) -> list:
         if at.match(u) and '..' not in re.split(r'[/\\]', path) and path.lower().endswith(_IMG_SUFFIXES) and u not in out: out.append(u)
     return out[:_ARXIV_FIGS]
 
-def read_arxiv_html(aid:str,  # an arXiv id or link, as `arxiv_id` reads it; a version such as `v7` is kept
-                    **kw      # passed to `fetch` (e.g. timeout, max_bytes, allow_private); `auto` is False unless you set it
+def read_arxiv_html(aid:str,  # arXiv id or link; keep a version such as `v7`
+                    **kw      # Arguments for `fetch`; `auto` is `False` unless set
                    ) -> AttrDict|None:
-    "Return the arXiv HTML page of a paper as `title`, `text`, `figures` (image links) and `url`, with each formula as TeX in `$…$` or `$$…$$`, from one fetch. None when it has no usable LaTeXML page."
+    "Return usable arXiv HTML data, or `None`."
     if not (full := _arxiv_full(aid)): return None
     url = ARXIV_HTML.format(aid=full)
     try:
@@ -842,14 +840,14 @@ def read_arxiv_html(aid:str,  # an arXiv id or link, as `arxiv_id` reads it; a v
 
 # %% ../nbs/00_core.ipynb #bb7d64207baa24dd
 def _crossref_search(**params):
-    "Search Crossref API; returns parsed response dict"
+    "Search the Crossref API and return its parsed response."
     return fetch(f'https://api.crossref.org/works?{urlencode(params)}').json() or {}
 
 _crossref = bind(_crossref_search, **{'select': 'DOI,title', 'rows': 1})
 
-def lookup_doi(title:str  # Paper title to search
+def lookup_doi(title:str  # Paper title
                ) -> str|None:
-    "Return the doi.org URL of the first Crossref result for `title`, or None."
+    "Return the DOI URL of the first Crossref result, or `None`."
     items = _crossref(**{'query.title': title}).get('message', {}).get('items', [])
     doi = items[0].get('DOI') if items else None
     return f"https://doi.org/{doi}" if doi else None
@@ -994,7 +992,7 @@ _GH_FORMS = (rf'(?:https?://)?(?:www\.)?github\.com/({_GH_OWNER})/({_GH_NAME})(?
 
 def gh_repo(s:str  # a github.com link, an SSH remote, or `owner/name`
            ) -> str|None:
-    "Return `owner/name` of the GitHub repository that `s` names: a github.com link with any subpath, `.git`, `#` or `?`, an SSH remote, or an `owner/name` shorthand. None for anything else."
+    "Return the `owner/name` of the GitHub repository that `s` names, or None. `s` can be a github.com link, an SSH remote or an `owner/name` shorthand."
     s = str(s or '').strip()
     m = first((re.fullmatch(f, s, re.I) for f in _GH_FORMS), bool)
     return f'{m[1]}/{m[2]}' if m and m[2].strip('.') else None
@@ -1141,7 +1139,7 @@ def json_records(data,                # any decoded JSON payload
                  with_key:bool=False, # also return the key the records were found under
                  max_depth:int=6,
                 ):
-    "Return the longest list of dictionaries found anywhere in a decoded JSON payload."
+    "Return the longest list of dictionaries in decoded JSON."
     best, at = [], None
     def walk(o, d=0, k=None):
         nonlocal best, at
@@ -1156,18 +1154,18 @@ def json_records(data,                # any decoded JSON payload
     return (best, at) if with_key else best
 
 def paginate_api(url:str,                      # API endpoint URL
-                 payload:dict=None,            # Request body (POST) or params (GET)
-                 page_field:str='pageNumber',  # Payload key to increment for each page
-                 size_field:str='pageSize',    # Payload key for page size (detects last page)
-                 results_field:str=None,       # Response key with items list (auto-detect if None)
+                 payload:dict=None,            # POST body or GET parameters
+                 page_field:str='pageNumber',  # Payload key to increment
+                 size_field:str='pageSize',    # Payload key for page size
+                 results_field:str=None,       # Response key with items; detect it when `None`
                  method:str='POST',            # HTTP method
                  max_pages:int=10,
                  page_size=24,                 # Page size to request (only used if not in payload)
                  page_start:int=1,             # Starting page number (default 1)
-                 save:bool=False,              # If True, saves each page's items to disk
-                 save_file:str='{url}_page_{page}.json', # Filepath pattern for saving (only used if save=True)
-                 force:bool=False,             # If True, forces re-fetching even if saved file exists
-                 **kw,                         # Extra kwargs passed to fetch() (verify, headers, etc.)
+                 save:bool=False,              # Save each page when `True`
+                 save_file:str='{url}_page_{page}.json', # File path pattern used when saving
+                 force:bool=False,             # Fetch again when `True`
+                 **kw,                         # Extra arguments for `fetch`
                 ) -> list:
     "Request successive pages of a JSON API and return the items from every page in one list."
     payload = dict(payload or {})
@@ -1199,20 +1197,20 @@ def paginate_api(url:str,                      # API endpoint URL
 
 # %% ../nbs/00_core.ipynb #c430c05b6017e310
 def download_files(url:str,
-                   pattern:str='*',          # Glob or regex to match download hrefs
-                   save_dir:str='.',         # Directory to save files
-                   follow:bool=False,        # Crawl linked pages looking for more files
-                   follow_sel:str='a[href]', # Selector for page links to follow when crawling
-                   file_sel:str='a[href]',   # Selector to scan for download links on each page
+                   pattern:str='*',          # Glob or regex for download links
+                   save_dir:str='.',         # Directory for saved files
+                   follow:bool=False,        # Crawl linked pages for more files
+                   follow_sel:str='a[href]', # Selector for links to follow
+                   file_sel:str='a[href]',   # Selector for download links
                    same_domain:bool=True,
                    max_pages:int=10,
                    delay:float=0,
-                   force:bool=False,         # Re-download even if file already exists
+                   force:bool=False,         # Download existing files again
                    heavy:bool=False,
                    stealthy:bool=False,
-                   **kw,                     # Extra kwargs passed to fetch/http_get (e.g. verify)
+                   **kw,                     # Extra arguments for `fetch` and `http_get`
                   ) -> list[Path]:
-    "Download every file linked from `url` whose link matches `pattern`, optionally crawling linked pages first, and return the saved paths."
+    "Download matching files from `url` and return their paths."
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
     rx = compile_pattern(pattern)
@@ -1235,22 +1233,22 @@ def download_files(url:str,
 # %% ../nbs/00_core.ipynb #7976427343ad1143
 @cache
 def _ytdl():
-    "Import yt_dlp on first use. Eager import cost 0.16s of fossick's 0.35s import for 3 functions."
+    "Import yt_dlp on first use."
     import yt_dlp
     return yt_dlp
 
 @cache
 def _yt_index():
-    "Disk cache for `read_yt`, opened on first use rather than at import."
+    "Return the disk cache for `read_yt`."
     return _json_index('yt_cache.sqlite')
 
 def _yt_id(url:str) -> str:
-    "Extract 11-char video ID from any YouTube URL or pass through bare ID"
+    "Return the video id from a YouTube URL or bare id."
     if m := re.search(r'(?:v=|youtu\.be/|/shorts/|/embed/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])', url): return m.group(1)
     return url
 
 def _parse_vtt(vtt:str) -> str:
-    "Strip VTT timing lines and cue tags, deduplicate adjacent lines, return plain text"
+    "Return plain text from VTT captions."
     lines = []
     for line in vtt.splitlines():
         if (re.match(r'^\d{2}:\d{2}', line) or '-->' in line
@@ -1261,13 +1259,13 @@ def _parse_vtt(vtt:str) -> str:
     return ' '.join(lines)
 
 def _secs(t:str) -> float:
-    "Seconds from a VTT time like `01:02:03.456` or `02:03.456`"
+    "Convert a VTT time to seconds."
     return sum(float(p) * 60**i for i,p in enumerate(reversed(t.replace(',', '.').split(':'))))
 
 _cue_t = re.compile(r'((?:\d+:)?\d{2}:\d{2}[.,]\d{3})\s*-->\s*((?:\d+:)?\d{2}:\d{2}[.,]\d{3})')
 
 def _parse_cues(vtt:str) -> list:
-    "Return `[{start, end, text}]` in seconds, with YouTube's rolling repeated lines folded into their first cue"
+    "Return caption cues with times in seconds."
     cues, prev, cur = [], [], None
     def flush():
         nonlocal prev

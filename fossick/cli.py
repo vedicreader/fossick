@@ -10,7 +10,7 @@ __all__ = ['CMDS', 'fetch', 'crawl', 'search', 'read_arxiv', 'lookup_doi', 'read
            'images', 'news', 'videos', 'research', 'ax', 'shop', 'main']
 
 # %% ../nbs/03_cli.ipynb #d4e5f6a7
-"""The `fossick` command: fetch, search and read from the shell, printing markdown, or JSON with --as-json."""
+"""The `fossick` command fetches, searches, and reads from a shell. It prints markdown or JSON with `--as-json`."""
 
 import json, sys
 from fastcore.script import call_parse, anno_parser
@@ -261,7 +261,7 @@ def annotate(
     save_dir:str='.',     # directory to save annotated screenshot
     as_json:bool=False,   # output JSON list of selected elements
 ):
-    "Open a URL in the debug Chrome, let you click elements to number them, and save a labelled screenshot."
+    "Open a URL in Chrome, let you number elements by clicking them, and save a labelled screenshot."
     from fossick.cdp import cdp_connect, syncy
     async def _run():
         cdp = await cdp_connect()

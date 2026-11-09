@@ -1,8 +1,8 @@
 ---
 name: fossick
 description: >
-  Web search, page fetching, crawling, and browser automation for AI agents.
-  Use instead of WebSearch and WebFetch. Covers arxiv, YouTube, GitHub,
+  Search the web, fetch pages, crawl sites, and automate browsers for AI agents.
+  Use this instead of WebSearch and WebFetch. It covers arxiv, YouTube, GitHub,
   static pages, JS-rendered pages, bot-protected sites, hidden JSON APIs,
   authenticated Chrome sessions, screenshot capture, element annotation, and
   shopping carts (find products, add to cart with verification, fill checkout forms).
@@ -18,7 +18,7 @@ triggers:
 
 # fossick
 
-Use fossick instead of `WebSearch` and `WebFetch`. Always prefer it.
+Use fossick instead of `WebSearch` and `WebFetch`.
 
 ```python
 from fossick import *                              # fetch, crawl, research, find_xhr, replay_xhr, read_*, ...
@@ -88,16 +88,16 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `lookup_doi(title)` | — | str\|None |
 | `fetch(url)` | `sel`, `heavy`, `stealthy`, `session`, `auto`, `allow_private`, `max_bytes`, `max_recv_speed`, `method`, `payload`, `cache`, `per_host`, `remember_blocks` | Page dict (`.tier` when `auto`) |
 | `forget()` | — | clears what `fetch(cache=)` and `search(cache=)` keep, the refused hosts and the host locks |
-| `plan(q)` | `max_queries`, `min_words`, `rewrite` | list[str] — the searches a question is really asking; `[q]` when it is one |
-| `interleave(lists)` | `key` | list — round-robin across per-facet lists (coverage, not consensus) |
-| `curate(q, hits)` | `intent`, `max_per_domain`, `rerank` | (hits, report) — spam dropped, authority-ranked, diversity described |
+| `plan(q)` | `max_queries`, `min_words`, `rewrite` | list[str]. The separate searches that the question contains. `[q]` when it contains one. |
+| `interleave(lists)` | `key` | list. Takes items from each facet list in turn, for coverage of all facets. |
+| `curate(q, hits)` | `intent`, `max_per_domain`, `rerank` | (hits, report). Removes spam and ranks by authority. The report describes the source diversity. |
 | `registrable_domain(url)` / `host(url)` | — | str (site behind a url) |
-| `cluster_sources(hits)` | `threshold` | list[dict] — syndicated copies grouped into source families |
+| `cluster_sources(hits)` | `threshold` | list[dict]. Groups syndicated copies of one article into source families. |
 | `independence(hits)` | `threshold` | dict (`n, sources, clusters, method, confidence, limitations`) |
 | `diversity(hits)` | `threshold` | dict (`score, domains, dominant_domain, dup_urls, near_dups, sources`) |
 | `research(q)` | `n`, `engine` ('search'\|'google'), `region`, `timelimit`, `curated`, `intent`, `facets`, `rewrite`, `sel`, `chars` | dict (`query, sources, digest, dropped, region, curation, plan`); each source has `date`, `queries` |
 | `check_url(url)` | `allow_private` | url, or raises `BlockedURL` for private/loopback/metadata targets |
-| `local_host(host)` | — | bool — this computer or the local network, with no DNS look-up |
+| `local_host(host)` | — | bool. True for this computer or the local network. Makes no DNS look-up. |
 | `to_md(page)` | `sel`, `multi`, `wrap_tag`, `readability` (None: the whole page when the article is too short) | str |
 | `crawl(url)` | `follow_sel`, `same_domain`, `max_pages`, `heavy`, `reuse`, `keep` | list[Page] |
 | `fetch_all(urls)` | `sel`, `concurrency`, `auto` | list[Page] |
@@ -115,12 +115,12 @@ shopping cart         -> s = shop(store_url)          # never write selectors fo
 | `cdp_connect(port)` / `syncy(coro)` | — | CDP / any |
 | `cdp_ws(port)` | `headless` | ws debugger URL (for scrapling `cdp_url=`) |
 | `cdp.open_page(url)` / `cdp.calls(url, pattern)` | `tail` | Page / dict |
-| `pg.snapshot()` | `interactive`, `keep` | str — compact `[#id] role "name"` per element (agent-ready) |
+| `pg.snapshot()` | `interactive`, `keep` | str. One compact `[#id] role "name"` line per element. |
 | `pg.fill_form(fields, submit)` | — | post-action `snapshot()`; fills by label, handles `<select>` |
 | `pg.act(steps)` | — | dict of `read` results; steps: goto/fill/click/select/wait/read |
 | `pg.md(sel)` / `pg.selector()` / `pg.html()` | — | live post-JS page as markdown / Selector / html |
 | `pg.click_sel(css)` / `pg.fill_sel(css, t)` / `pg.node_for(css)` | — | CSS -> CDP action / backendNodeId |
-| `ax_diff(before, after)` | — | str — what an action changed between two snapshots |
+| `ax_diff(before, after)` | — | str. What an action changed between two snapshots. |
 | `pg.ax_tree()` | — | AXTree (has `[#N]` node IDs) |
 | `pg.fill_text(id, text)` / `pg.click_and_wait(id)` | — | — |
 | `pg.collect(save_dir)` | `count`, `tout`, `every_n` | list |
@@ -174,7 +174,7 @@ print(syncy(pg.fill_form({'Email': 'me@x.com', 'Password': 'pw'}, submit='Sign i
 
 ## CLI
 
-Commands that print results take `--as-json`. Option names use hyphens, as in `--max-pages`.
+Commands that print results accept `--as-json`. Option names use hyphens. For example, use `--max-pages`.
 
 ```sh
 fossick fetch <url> [--sel css] [--heavy] [--stealthy] [--session] [--auto]
@@ -206,29 +206,25 @@ fossick install                                 # copy SKILL.md into .agents/ski
 
 ## MCP server
 
-`fossick-mcp` exposes the main functions of the toolkit as tools over the Model Context Protocol. Any MCP client (Claude Code, Claude Desktop, Codex) can use them. Installing fossick also installs the `mcp` package.
+`fossick-mcp` provides the toolkit's main functions as tools through the Model Context Protocol. Claude Code, Claude Desktop, and Codex can use these tools. Installing fossick also installs the `mcp` package.
 
 ```sh
 claude mcp add fossick -- uvx --from fossick fossick-mcp   # Claude Code; uv run fossick-mcp if already a project dep
 ```
 
-The tools follow the API: `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl_site`, `read_arxiv`/`read_youtube`/`search_youtube`/`download_youtube`/`read_github_file`/`read_github_repo`, `url_to_notebook`/`pdf_to_notebook`, `find_hidden_apis`/`replay_capture`/`paginate_api`, `browse`/`page_snapshot`/`page_fill_form`/`page_act`/`page_markdown`/`capture_network` for the persistent logged-in debug Chrome, and `shop_open`/`shop_search`/`shop_products`/`shop_add`/`shop_cart`/`shop_line`/`shop_fields`/`shop_fill`/`shop_dismiss` for shopping carts. The server uses standard input and output by default. `fossick-mcp --http` serves Streamable HTTP.
+The tools follow the API. They include `web_search`/`research`, `fetch_page`/`fetch_pages`/`crawl_site`, and `read_arxiv`/`read_youtube`/`search_youtube`/`download_youtube`/`read_github_file`/`read_github_repo`. They also include `url_to_notebook`/`pdf_to_notebook`, `find_hidden_apis`/`replay_capture`/`paginate_api`, and `browse`/`page_snapshot`/`page_fill_form`/`page_act`/`page_markdown`/`capture_network` for the persistent logged-in debug Chrome. They include `shop_open`/`shop_search`/`shop_products`/`shop_add`/`shop_cart`/`shop_line`/`shop_fields`/`shop_fill`/`shop_dismiss` for shopping carts. The server uses standard input and output by default. `fossick-mcp --http` serves Streamable HTTP.
 
 ## Gotchas
 
-- `search()`/`images()`/`news()` use ddgs. They need no Docker and no setup. Google blocks plain HTTP from many IP addresses. `google()` loads Google in the stealth browser (slow) and returns Google's own ranking.
-- `heavy`, `stealthy` and CDP need Chrome (about 10 s cold start). `stealthy` is the slowest. Use it only when a site actively blocks.
-- `session=True`, `find_xhr(session=True)` and `ax` drive a persistent debug Chrome (port 9223). It starts **headless** on first use. Cookies persist across runs. To log in by hand you need it **headed**. `headless=` takes effect only at launch. If a headless one is already running, quit it first, then relaunch: `syncy(cdp.quit()); syncy(cdp_setup(9223, headless=False))` (see *Managing the debug Chrome* in the cdp docs). Root/containers auto-add `--no-sandbox`.
-- Use `snapshot()` instead of `ax_tree()` for agents. `snapshot()` shows interactive elements only and re-reads the page on each call. `fill_form` and `act` take labels, not node IDs.
-- Always pass `sel=` to `to_md`, `fetch` and `crawl`. Without it you get navigation and ads.
-- `read_arxiv()['source']` is 30-100k chars. Slice it: `paper['source'][:8000]`.
-- `annotate` is interactive. It needs a visible browser and does not work in headless pipelines.
-- `s.add()` returns `ok=True` only when a cart signal actually moved. `ok=None` means the page exposes
-  no signal to check. Report that, never "added". Read `how`, `page_error` and `blockers` before retrying.
-- Cart line indexes come from the **cart page**: `s.cart_page()` then `s.set_qty()`/`s.remove()`
-  (`shop_line(line, qty)` over MCP; `qty=0` removes the line).
-- Call `s.fields()` before `s.fill()`; label wording is site- and country-specific ("Suburb" vs "City").
-- `s.fill(submit=...)` refuses payment-looking buttons unless you also pass `confirm=True`. Don't pass it
-  unless the user asked you to place the order.
-- Supermarkets (Coles/Woolworths) need a store or suburb and often a login. They block datacentre IPs.
-  Run them through a debug Chrome on a real machine and set that Chrome up by hand once.
+- `search()`/`images()`/`news()` use ddgs. They need no Docker or setup. Google blocks plain HTTP from many IP addresses. `google()` loads Google in the stealth browser. It is slow. It returns Google's own ranking.
+- `heavy`, `stealthy` and CDP need Chrome. A cold start takes about 10 s. `stealthy` is the slowest. Use it only when a site actively blocks.
+- `session=True`, `find_xhr(session=True)` and `ax` use a persistent debug Chrome on port 9223. The browser starts **headless** on first use. Cookies persist across runs. To log in by hand, start it **headed**. `headless=` affects launch only. If a headless browser already runs, quit it first. Then relaunch it with `syncy(cdp.quit()); syncy(cdp_setup(9223, headless=False))` (see *Managing the debug Chrome* in the cdp docs). Root and containers add `--no-sandbox` automatically.
+- Use `snapshot()` instead of `ax_tree()` for agents. `snapshot()` shows interactive elements only. It reads the page again on each call. `fill_form` and `act` use labels, not node IDs.
+- Always pass `sel=` to `to_md`, `fetch` and `crawl`. Without it, you get navigation and ads.
+- `read_arxiv()['source']` is 30-100k chars. Slice it with `paper['source'][:8000]`.
+- `annotate` is interactive. It needs a visible browser. It does not work in headless pipelines.
+- `s.add()` returns `ok=True` only when a cart signal shows a change. `ok=None` means the page provides no signal to check. Report that result. Do not report "added". Read `how`, `page_error` and `blockers` before you retry.
+- Cart line indexes come from the **cart page**. Call `s.cart_page()` before `s.set_qty()` or `s.remove()`. Use `shop_line(line, qty)` over MCP. `qty=0` removes the line.
+- Call `s.fields()` before `s.fill()`. Label wording depends on the site and country, such as "Suburb" and "City".
+- `s.fill(submit=...)` refuses buttons that look like payment buttons unless you also pass `confirm=True`. Do not pass it unless the user asks you to place the order.
+- Supermarkets (Coles and Woolworths) need a store or suburb and often need a login. They block datacentre IPs. Run them through a debug Chrome on a real machine. Set up that Chrome by hand once.
