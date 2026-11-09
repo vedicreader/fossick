@@ -3,7 +3,7 @@
 <!-- do not remove -->
 
 ## 0.1.28
-
+doc rewrite and hardening release
 
 ## 0.1.27
 
