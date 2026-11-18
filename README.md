@@ -17,7 +17,7 @@ Search and plain downloads need nothing else. JavaScript rendering, the stealth 
 
 ## Quick start
 
-These three calls cover most uses. [<code>search</code>](https://vedicreader.github.io/fossick/search.html#search) returns a list of results. Each result is a dictionary with the page `title`, its URL in `href`, and a snippet in `body`. `score` is the merged ranking score. `engines` lists the search engines that returned the page. `method='flashrank'` reorders results with a small relevance model. This method needs `pip install flashrank`. Without `method`, [`search`](https://vedicreader.github.io/fossick/cli.html#search) keeps the merged order.
+These three calls cover most uses. [<code>search</code>](https://vedicreader.github.io/fossick/search.html#search) returns a list of results. Each result is a dictionary with the page `title`, its URL in `href`, and a snippet in `body`. `score` is the merged ranking score. `engines` lists the search engines that returned the page. `method='flashrank'` reorders results with a small relevance model. This method needs `pip install flashrank`. Without `method`, [<code>search</code>](https://vedicreader.github.io/fossick/search.html#search) keeps the merged order.
 
 ``` python
 results = search('koshas github fts semantic code graph', method='flashrank', n=5)

@@ -45,7 +45,20 @@ def get_ddgs(timeout:int=10):
 	return _ddgs[key]
 
 # %% ../nbs/02_search.ipynb #921db403a2b19be1
-TEXT_BACKENDS = ('google', 'brave', 'duckduckgo', 'mojeek', 'yahoo', 'startpage')
+_TEXT_ORDER = ('google', 'brave', 'duckduckgo', 'mojeek', 'yahoo', 'startpage')
+
+def _text_backends() -> tuple:
+    "Return installed general engines in preferred order (not encyclopedias)."
+    from ddgs.engines import ENGINES
+    return tuple(be for be in _TEXT_ORDER if be in ENGINES.get('text', {}))
+
+TEXT_BACKENDS = _text_backends()
+
+class _SearchHits(list):
+    "A backward-compatible hit list carrying per-query, per-engine evidence."
+    def __init__(self, hits=(), outcomes=()):
+        super().__init__(hits)
+        self.outcomes = list(outcomes)
 
 def backends(category:str='text') -> list:
     "Return the names of every ddgs engine available for `category`."
@@ -53,16 +66,44 @@ def backends(category:str='text') -> list:
     return sorted(ENGINES.get(category, {}))
 
 def _engine_hits(be:str, q:str, region='us-en', page=1, timeout=8, tries=2, **kw) -> list:
-    "Return one backend's results in rank order with `engine` and `rank`. Pass `kw` to ddgs."
+    "Return ranked hits with outcomes, preserving HTTP evidence even when ddgs discards it."
     from ddgs.engines import ENGINES
-    cls = ENGINES['text'].get(be)
-    if cls is None: return []
-    for _ in range(tries):
+    from types import SimpleNamespace
+    cls = ENGINES.get('text', {}).get(be)
+    attempts = []
+    def result(hits=()):
+        return _SearchHits(hits, [dict(query=q, engine=be, page=page,
+                                      outcome='; '.join(dict.fromkeys(attempts)), attempts=list(attempts))])
+    if cls is None:
+        attempts.append('unavailable engine')
+        return result()
+    for _ in range(max(1, tries)):
+        evidence = []
         try:
-            hits = ifnone(cls(timeout=timeout, **ddgs_env()).search(q, region=region, page=page, **kw), [])
-            if hits: return [dict(h.__dict__, engine=be, rank=i+1) for i, h in enumerate(hits)]
-        except Exception: pass
-    return []
+            eng = cls(timeout=timeout, **ddgs_env())
+            request = eng.http_client.request
+            def observed(*a, **k):
+                resp = request(*a, **k)
+                st, html = resp.status_code, resp.text or ''
+                # Check markup separately: _blocked also flags rate-limit statuses.
+                # JSON API responses (Wikipedia) are not HTML challenge pages.
+                wall = html.lstrip().startswith('<') and _blocked(SimpleNamespace(status=200, html=html))
+                if wall: evidence.append('bot wall / challenge page' + (f' (http {st})' if st != 200 else ''))
+                elif st != 200: evidence.append(f'http {st}')
+                return resp
+            eng.http_client.request = observed
+            hits = ifnone(eng.search(q, region=region, page=page, **kw), [])
+            if evidence:
+                attempts.append('; '.join(dict.fromkeys(evidence)))
+            elif hits:
+                attempts.append('ok')
+                out = result([dict(h.__dict__, engine=be, rank=i+1) for i, h in enumerate(hits)])
+                out.outcomes[0]['outcome'] = 'ok'
+                return out
+            else: attempts.append('no results')
+        except Exception as e:
+            attempts.append('; '.join(dict.fromkeys([*evidence, f'{type(e).__name__}: {e}'])))
+    return result()
 
 def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1, page=1, **kw) -> list:
     "Return one rank-ordered list per backend from `pages` result pages. Start at `page`. Run each backend and page in parallel."
@@ -72,7 +113,7 @@ def _backend_lists(q:str, backends, region='us-en', timeout=8, pages=1, page=1, 
                    jobs, n_workers=len(jobs), threadpool=True)
     by_be = {}
     for (be, pg), hits in got: by_be.setdefault(be, {})[pg] = hits
-    out = []
+    out = _SearchHits(outcomes=[o for _, hits in got for o in getattr(hits, 'outcomes', [])])
     for be in backends:
         merged, seen = [], set()
         for pg in sorted(by_be.get(be, {})):
@@ -264,18 +305,28 @@ def _region(q:str, region:str) -> str:
 
 
 # %% ../nbs/02_search.ipynb #780933b0
-def _fused(q, n, backends, region, timeout, k, method, pages, kw=()):
+def _fused(q, n, backends, region, timeout, k, method, pages, kw=(), fallback=False):
     "Query backends, fuse results and rerank them. Raise when every backend fails."
     lists = _backend_lists(q, backends, region=region, timeout=timeout, pages=pages, **dict(kw))
+    outcomes = list(getattr(lists, 'outcomes', []))
+    # Wikipedia is a labelled encyclopedia fallback, not a substitute general index.
+    # Do not automatically use Grokipedia: generated articles lack the same editorial provenance.
+    from ddgs.engines import ENGINES
+    if not lists and fallback and 'wikipedia' in ENGINES.get('text', {}):
+        lists = _backend_lists(q, ('wikipedia',), region=region, timeout=timeout, pages=1, **dict(kw))
+        outcomes.extend(getattr(lists, 'outcomes', []))
     if not (out := rerank(q, rrf(lists, k=k), n=n, method=method)):
-        raise ValueError('every backend returned nothing')
-    return out
+        reasons = '; '.join(f'{o["engine"]}: {o["outcome"]}' for o in outcomes) or 'no available backends'
+        err = ValueError(f'search({q!r}) got nothing: {reasons}')
+        err.outcomes = outcomes
+        raise err
+    return _SearchHits(out, outcomes)
 
-def _search_fused(q, n, backends, region, timeout, k, method, pages, kw=()):
-    try: return _fused(q, n, backends, region, timeout, k, method, pages, kw)
+def _search_fused(q, n, backends, region, timeout, k, method, pages, kw=(), fallback=False):
+    try: return _fused(q, n, backends, region, timeout, k, method, pages, kw, fallback)
     except ValueError as e:
-        _warn('search', f'search({q!r}) got nothing: {e}')
-        return []
+        _warn(str(e), str(e))
+        return _SearchHits(outcomes=getattr(e, 'outcomes', []))
 
 def _search_ddgs(q, category, kw, timeout=8):
     try: return getattr(get_ddgs(timeout), category)(q, **dict(kw))
@@ -287,7 +338,7 @@ def search(q:str,                  # Search query.
            category:str='text',    # text, images, news, videos or books.
            n:int=10,               # Number of results to return.
            fuse:bool=True,         # Fan out across backends and fuse with RRF for text.
-           backend:str=None,       # Restrict to one ddgs backend, such as 'google'.
+           backend:str=None,       # Restrict to one installed ddgs backend, such as 'brave'.
            method:str='none',      # Rerank method: none, lexical, flashrank or auto.
            pages:int=1,            # Result pages to pull from each backend.
            region:str='auto',      # ddgs region, or 'auto' to read the country from the query.
@@ -296,7 +347,7 @@ def search(q:str,                  # Search query.
            cache:float=0,          # Keep a non-empty result for this many seconds.
            **kw,                   # Extra keyword arguments passed to ddgs.
           ) -> list:
-    "Search the web and merge text results from several engines with RRF."
+    "Search and merge text hits. Fused lists carry `.outcomes`; default search falls back to Wikipedia."
     if not (q and q.strip()): return []
     if cache:
         a = (q, category, n, fuse, backend, method, pages, region, timelimit, timeout)
@@ -309,9 +360,9 @@ def search(q:str,                  # Search query.
     if category == 'videos': return search_yt(q, n, **kw)
     if timelimit: kw['timelimit'] = timelimit
     if category == 'text' and fuse:
-        bes = (backend,) if backend else TEXT_BACKENDS
+        bes = (backend,) if backend else _text_backends()
         return _search_fused(q, n, tuple(bes), region, timeout, 60, method, max(pages, 1),
-                             tuple(sorted(kw.items())))
+                             tuple(sorted(kw.items())), fallback=backend is None)
     kw = dict(kw, max_results=n, region=region)
     if backend: kw['backend'] = backend
     return _search_ddgs(q, category, tuple(sorted(kw.items())), timeout)
@@ -512,17 +563,19 @@ def research(q:str,                 # Search query.
     "Search for `q`, read the top `n` readable results, and return them with a markdown digest that cites each one."
     if not (q and q.strip()):
         return dict(query=q, sources=[], digest='', dropped=[], region=_region(q, region),
-                    curation=None, plan=[])
+                    curation=None, plan=[], search=[])
     cand = candidates or max(3*n, n+5)
     region = _region(q, region)
     qs = _plan(q, max_queries=facets, rewrite=rewrite)
     def _hits(sq):
         got = (google(sq, n=cand, region=region, timelimit=timelimit) if engine == 'google'
                else search(sq, n=cand, region=region, timelimit=timelimit, pages=pages))
-        return [dict(h, queries=[sq]) for h in got]
+        outcomes = getattr(got, 'outcomes', [dict(query=sq, engine=engine, outcome='ok' if got else 'no results')])
+        return [dict(h, queries=[sq]) for h in got], outcomes
     # Interleave facets instead of fusing them. Fusion would favour general sources.
-    hits = _hits(qs[0]) if len(qs) < 2 else interleave(
-        list(parallel(_hits, qs, n_workers=len(qs), threadpool=True)))
+    batches = [_hits(qs[0])] if len(qs) < 2 else list(parallel(_hits, qs, n_workers=len(qs), threadpool=True))
+    search_outcomes = [o for _, outcomes in batches for o in outcomes]
+    hits = batches[0][0] if len(batches) == 1 else interleave([hs for hs, _ in batches])
     # Curate before fetching. Candidate order selects which pages `research` reads.
     hits, curation = _curate(q, hits, intent=intent) if curated else (hits, None)
     todo, seen = [], set()
@@ -543,6 +596,7 @@ def research(q:str,                 # Search query.
                 dropped.append(dict(title=title, href=u, reason=_why(pg))); continue
             sources.append(dict(title=title, href=u, tier=getattr(pg, 'tier', 'plain'),
                                 date=page_date(pg), queries=h.get('queries') or [q],
+                                engine=h.get('engine', engine), engines=h.get('engines') or [h.get('engine', engine)],
                                 md=focus(md, q, chars) if focused else md[:chars]))
     sources = sources[:n]
     # Include the date in the digest so readers can see the publication date.
@@ -554,5 +608,5 @@ def research(q:str,                 # Search query.
         return '\n'.join(bits)
     digest = '\n\n---\n\n'.join(f'{_head(s)}\n\n{s["md"]}' for s in sources)
     return dict(query=q, sources=sources, digest=digest, dropped=dropped, region=region,
-                curation=curation, plan=qs)
+                curation=curation, plan=qs, search=search_outcomes)
 
