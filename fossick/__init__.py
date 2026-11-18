@@ -1,4 +1,4 @@
-__version__ = "0.1.28"
+__version__ = "0.1.29"
 from .search import *
 from .core import *
 from .quality import *

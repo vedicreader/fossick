@@ -2,6 +2,14 @@
 
 <!-- do not remove -->
 
+## 0.1.29
+
+- `search` says why each engine gave no results. When all engines fail, the warning names each engine and its reason, for example `brave: http 429; duckduckgo: bot wall / challenge page`. Before, the warning said only "every backend returned nothing".
+- A fused `search` result is still a list. It has a new `.outcomes` attribute: one record for each query, engine and page, with `outcome` (`ok`, `no results`, `http NNN`, `bot wall / challenge page`, `unavailable engine`, or the exception) and the outcome of each retry in `attempts`.
+- `research` returns a new `search` key with these records. A caller can tell a blocked search from a topic with no sources. Each source has new `engine` and `engines` keys. The other keys do not change.
+- The default engines are the engines that the installed ddgs has, in fossick's order. Before, fossick queried `google` also when ddgs had no `google` engine, and got nothing with no message.
+- When all default engines give no results, `search` asks Wikipedia and marks those hits with `engine='wikipedia'`. A search with an explicit `backend` does not use this fallback. Grokipedia is not an automatic fallback, because its articles are generated.
+
 ## 0.1.28
 doc rewrite and hardening release
 
