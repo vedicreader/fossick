@@ -243,14 +243,16 @@ def _fetcher():
 
 @cache
 def _browser_fetchers():
-    """Return the browser fetchers of scrapling, imported on first use, or raise `BrowserUnavailable`.
+    """Return scrapling's stealth browser and its remote session, imported on first use, or raise `BrowserUnavailable`.
 
+    scrapling 0.5 has one browser, `StealthyFetcher`, for JavaScript pages and for bot walls.
+    Only `AsyncRemoteSession` connects to a Chrome that is already open, through `cdp_url`.
     scrapling makes a browser fingerprint when it is imported. browserforge raises a bare
     `ValueError` when it has no header set for the platform. This function raises
     `BrowserUnavailable` instead, with a message that names the problem."""
     try:
-        from scrapling.fetchers import StealthyFetcher, DynamicFetcher
-        return StealthyFetcher, DynamicFetcher
+        from scrapling.fetchers import StealthyFetcher, AsyncRemoteSession
+        return StealthyFetcher, AsyncRemoteSession
     except Exception as e:
         raise BrowserUnavailable(
             f'scrapling browser fetchers unavailable ({type(e).__name__}: {e}). '
@@ -387,17 +389,20 @@ def get_page(url, method='GET', payload=None, heavy=False, stealthy=False, sessi
 		if max_recv_speed: kw['max_recv_speed'] = int(max_recv_speed)
 		return _checked_http(url, method, payload, allow_private, max_bytes=max_bytes, **kw)
 	check_url(url, allow_private)
-	kw.pop('ca_bundle', None)
+	kw.pop('ca_bundle', None); kw.pop('verify', None)   # plain-HTTP options; a browser checks TLS itself
 	if session:
 		from fossick.cdp import cdp_ws, cdp_cookies
 		port = 9223 if session is True else int(session)
-		kw.setdefault('cdp_url', cdp_ws(port))
+		cdp = kw.pop('cdp_url', None) or cdp_ws(port)
 		if (ck := cdp_cookies(url, port=port)): kw.setdefault('cookies', ck)
-		kw.pop('verify', None)
-		if not stealthy: heavy = True
-	StealthyFetcher, DynamicFetcher = _browser_fetchers()
-	f = DynamicFetcher.async_fetch if heavy else StealthyFetcher.async_fetch
-	return syncy(f(url, **kw))
+		_, RemoteSession = _browser_fetchers()
+		return syncy(_remote_fetch(RemoteSession, cdp, url, **kw))
+	StealthyFetcher, _ = _browser_fetchers()
+	return syncy(StealthyFetcher.async_fetch(url, **kw))
+
+async def _remote_fetch(R, cdp_url, url, **kw):
+	"Fetch `url` in a new context of the Chrome at `cdp_url`, through scrapling's remote session `R`, and close the context."
+	async with R(cdp_url, **kw) as s: return await s.fetch(url)
 
 http_get = bind(get_page, method='GET', verify=True, timeout=30)
 http_post = bind(get_page, method='POST', timeout=30)
@@ -541,11 +546,10 @@ def fetch(url:str,                # URL to fetch
 
 @contextmanager
 def browser_session(stealthy:bool=False, headless:bool=True, allow_private:bool=None, **init_kw):
-    "Keep one browser open for a `with` block and yield a reusable fetch function."
-    from scrapling.fetchers import AsyncDynamicSession, AsyncStealthySession
+    "Keep one stealth browser open for a `with` block and yield a reusable fetch function. scrapling 0.5 has no other browser, so `stealthy` changes nothing."
+    from scrapling.fetchers import AsyncStealthySession
     init_kw.pop('verify', None)
-    Sess = AsyncStealthySession if stealthy else AsyncDynamicSession
-    s = Sess(headless=headless, **init_kw)
+    s = AsyncStealthySession(headless=headless, **init_kw)
     syncy(s.__aenter__())
     try:
         def _f(u, sel=None, **fkw): return _finish(syncy(s.fetch(check_url(u, allow_private), **fkw)), sel)

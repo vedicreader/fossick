@@ -2,6 +2,13 @@
 
 <!-- do not remove -->
 
+## 0.1.30
+
+- fossick needs scrapling 0.5.1 or later. scrapling 0.5 removed `DynamicFetcher` and `AsyncDynamicSession`, so `fetch(heavy=True)`, `fetch(stealthy=True)`, `fetch(auto=True)` escalation, `browser_session`, `crawl(heavy=True)` and `google()` all failed with `BrowserUnavailable` or `ImportError`.
+- `fetch(heavy=True)` and `fetch(stealthy=True)` use scrapling's stealth browser, `StealthyFetcher`. It renders JavaScript and gets past bot walls. `browser_session` and `crawl(heavy=True)` keep one stealth browser open. Their `stealthy` argument changes nothing now.
+- `fetch(session=True)` connects to the logged-in Chrome through scrapling's `AsyncRemoteSession`. It opens a new browser context with the Chrome's cookies for the site, and closes the context after the fetch.
+- A browser fetch drops `verify`, which is a plain-HTTP option. The browser checks TLS itself.
+
 ## 0.1.29
 
 - `search` says why each engine gave no results. When all engines fail, the warning names each engine and its reason, for example `brave: http 429; duckduckgo: bot wall / challenge page`. Before, the warning said only "every backend returned nothing".
